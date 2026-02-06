@@ -1,0 +1,47 @@
+[2026-02-05 22:24:48] [INFO] [19-Deploy-tidb(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-05 22:24:48] [INFO] [19-Deploy-tidb(init_framework):219]	OS: ubuntu 22.04
+namespace/tidb-admin created
+[2026-02-05 22:24:48] [INFO] [19-Deploy-tidb(main):25]	应用 TiDB CRD...
+[2026-02-05 22:24:48] [INFO] [19-Deploy-tidb(log_command):68]	执行命令: kubectl apply -f "/data/download/tidb/crd.yaml"
+customresourcedefinition.apiextensions.k8s.io/backups.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/backupschedules.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/dmclusters.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/restores.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/tidbclusterautoscalers.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/tidbdashboards.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/tidbinitializers.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/tidbmonitors.pingcap.com created
+customresourcedefinition.apiextensions.k8s.io/tidbngmonitorings.pingcap.com created
+The CustomResourceDefinition "tidbclusters.pingcap.com" is invalid: metadata.annotations: Too long: must have at most 262144 bytes
+[2026-02-05 22:27:39] [INFO] [19-Deploy-tidb(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-05 22:27:39] [INFO] [19-Deploy-tidb(init_framework):219]	OS: ubuntu 22.04
+namespace/tidb-admin configured
+[2026-02-05 22:27:39] [INFO] [19-Deploy-tidb(main):25]	应用 TiDB CRD...
+[2026-02-05 22:27:39] [INFO] [19-Deploy-tidb(log_command):68]	执行命令: kubectl apply --server-side --force-conflicts --field-manager=k8s-deploy -f "/data/download/tidb/crd.yaml"
+customresourcedefinition.apiextensions.k8s.io/backups.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/backupschedules.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/dmclusters.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/restores.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/tidbclusterautoscalers.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/tidbclusters.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/tidbdashboards.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/tidbinitializers.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/tidbmonitors.pingcap.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/tidbngmonitorings.pingcap.com serverside-applied
+[2026-02-05 22:27:42] [INFO] [19-Deploy-tidb(log_command):72]	命令执行成功
+[2026-02-05 22:27:42] [INFO] [19-Deploy-tidb(main):36]	安装 TiDB Operator...
+[2026-02-05 22:27:42] [INFO] [19-Deploy-tidb(log_command):68]	执行命令: helm -n "tidb-admin" upgrade --install tidb-operator "/data/download/tidb/tidb-operator-v1.6.1.tgz" -f "/data/download/tidb/values-tidb-operator.yaml"
+Release "tidb-operator" does not exist. Installing it now.
+NAME: tidb-operator
+LAST DEPLOYED: Thu Feb  5 22:27:42 2026
+NAMESPACE: tidb-admin
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Make sure tidb-operator components are running:
+
+    kubectl get pods --namespace tidb-admin -l app.kubernetes.io/instance=tidb-operator
+[2026-02-05 22:27:42] [INFO] [19-Deploy-tidb(log_command):72]	命令执行成功
+[2026-02-05 22:27:42] [WARN] [19-Deploy-tidb(main):39]	TiDB 集群实例部署（tidb-cluster.yaml 等）需要按你的实际资源/存储做定制，这里不默认自动 apply。
+[2026-02-05 22:27:42] [INFO] [19-Deploy-tidb(main):40]	如需部署 TiDB 集群，可手动执行：kubectl apply -f /data/download/tidb/tidb-cluster.yaml

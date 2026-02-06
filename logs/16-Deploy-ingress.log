@@ -1,0 +1,42 @@
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(init_framework):219]	OS: ubuntu 22.04
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(main):19]	部署 ingress-nginx...
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(log_command):68]	执行命令: kubectl apply -f "/data/download/ingress/ingress_nginx.yaml"
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+daemonset.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(log_command):72]	命令执行成功
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(main):22]	给 ingress 节点打 label: real-341
+node/real-341 labeled
+[2026-02-05 22:10:20] [INFO] [16-Deploy-ingress(main):25]	等待 ingress-nginx controller 就绪...
+[2026-02-05 22:10:21] [INFO] [16-Deploy-ingress(log_command):68]	执行命令: kubectl -n ingress-nginx rollout status daemonset/ingress-nginx-controller --timeout=300s
+Waiting for daemon set "ingress-nginx-controller" rollout to finish: 0 of 1 updated pods are available...
+daemon set "ingress-nginx-controller" successfully rolled out
+[2026-02-05 22:10:31] [INFO] [16-Deploy-ingress(log_command):72]	命令执行成功
+[2026-02-05 22:10:31] [INFO] [16-Deploy-ingress(main):37]	等待 admission job 完成: ingress-nginx-admission-create
+[2026-02-05 22:10:31] [INFO] [16-Deploy-ingress(log_command):68]	执行命令: kubectl -n ingress-nginx wait --for=condition=complete job/ingress-nginx-admission-create --timeout=300s
+job.batch/ingress-nginx-admission-create condition met
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(log_command):72]	命令执行成功
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(main):37]	等待 admission job 完成: ingress-nginx-admission-patch
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(log_command):68]	执行命令: kubectl -n ingress-nginx wait --for=condition=complete job/ingress-nginx-admission-patch --timeout=300s
+job.batch/ingress-nginx-admission-patch condition met
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(log_command):72]	命令执行成功
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(main):42]	等待 admission endpoints 就绪...
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(main):46]	admission endpoints 已就绪
+[2026-02-05 22:10:32] [INFO] [16-Deploy-ingress(main):57]	Ingress 部署完成

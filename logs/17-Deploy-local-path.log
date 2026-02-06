@@ -1,0 +1,19 @@
+[2026-02-05 22:10:50] [INFO] [17-Deploy-local-path(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-05 22:10:50] [INFO] [17-Deploy-local-path(init_framework):219]	OS: ubuntu 22.04
+[2026-02-05 22:10:50] [INFO] [17-Deploy-local-path(main):17]	部署 local-path...
+[2026-02-05 22:10:50] [INFO] [17-Deploy-local-path(log_command):68]	执行命令: kubectl apply -f "/data/download/local-path/local-path-storage.yaml"
+namespace/local-path-storage created
+serviceaccount/local-path-provisioner-service-account created
+clusterrole.rbac.authorization.k8s.io/local-path-provisioner-role created
+clusterrolebinding.rbac.authorization.k8s.io/local-path-provisioner-bind created
+deployment.apps/local-path-provisioner created
+storageclass.storage.k8s.io/local-path created
+configmap/local-path-config created
+[2026-02-05 22:10:51] [INFO] [17-Deploy-local-path(log_command):72]	命令执行成功
+[2026-02-05 22:10:51] [INFO] [17-Deploy-local-path(log_command):68]	执行命令: kubectl apply -f "/data/download/local-path/local-dynamic.yaml"
+storageclass.storage.k8s.io/local-dynamic created
+[2026-02-05 22:10:51] [INFO] [17-Deploy-local-path(log_command):72]	命令执行成功
+NAME                      PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+local-dynamic (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  0s
+local-path                rancher.io/local-path   Delete          WaitForFirstConsumer   false                  0s
+[2026-02-05 22:10:51] [INFO] [17-Deploy-local-path(main):22]	local-path 部署完成

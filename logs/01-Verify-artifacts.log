@@ -1,0 +1,17 @@
+[2026-02-05 22:09:08] [INFO] [01-Verify-artifacts(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-05 22:09:08] [INFO] [01-Verify-artifacts(init_framework):219]	OS: ubuntu 22.04
+[2026-02-05 22:09:08] [INFO] [01-Verify-artifacts(main):13]	DOWNLOAD_DIR: /data/download
+[2026-02-05 22:09:08] [INFO] [01-Verify-artifacts(main):14]	MAAS_MD5_CHECK: 1
+[2026-02-05 22:09:13] [ERROR] [01-Verify-artifacts(main):39]	[MISSING] os dir: /data/download/packages/ubuntu/kubernetes\toffline deb dir: kubeadm/kubelet/kubectl + deps
+[2026-02-05 22:09:13] [ERROR] [01-Verify-artifacts(die):56]	制品检查失败：缺失/校验失败项数量 = 1
+[2026-02-06 16:00:43] [INFO] [01-Verify-artifacts(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-06 16:00:43] [INFO] [01-Verify-artifacts(init_framework):327]	OS: ubuntu 22.04
+[2026-02-06 16:00:43] [INFO] [01-Verify-artifacts(main):13]	DOWNLOAD_DIR: /data/download
+[2026-02-06 16:00:43] [INFO] [01-Verify-artifacts(main):14]	MAAS_MD5_CHECK: 1
+[2026-02-06 16:00:47] [ERROR] [01-Verify-artifacts(main):39]	[MISSING] os dir: /data/download/packages/ubuntu/kubernetes\tname=os.dir.kubernetes.ubuntu\toffline deb dir: kubeadm/kubelet/kubectl + deps
+[2026-02-06 16:00:47] [ERROR] [01-Verify-artifacts(die):56]	制品检查失败：缺失/校验失败项数量 = 1
+[2026-02-06 16:01:15] [INFO] [01-Verify-artifacts(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-06 16:01:15] [INFO] [01-Verify-artifacts(init_framework):327]	OS: ubuntu 22.04
+[2026-02-06 16:01:15] [INFO] [01-Verify-artifacts(main):13]	DOWNLOAD_DIR: /data/download
+[2026-02-06 16:01:15] [INFO] [01-Verify-artifacts(main):14]	MAAS_MD5_CHECK: 1
+[2026-02-06 16:01:20] [INFO] [01-Verify-artifacts(main):74]	制品检查通过
