@@ -161,6 +161,7 @@ check_3_runtime_type() {
   [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
   runtime_type = "io.containerd.runc.v2"
 - 修复后重启：sudo systemctl restart containerd
+- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
 EOF
   elif [ "$runtime_type" = "${EXPECTED_RUNTIME_TYPE}" ]; then
     log_info "OK: runtime_type=${runtime_type}"
@@ -171,12 +172,13 @@ EOF
 - 修改 /etc/containerd/config.toml：
   将 runc runtime_type 改为：runtime_type = "${EXPECTED_RUNTIME_TYPE}"
 - 然后重启：sudo systemctl restart containerd
+- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
 EOF
   fi
 }
 
 # check_4_default_runtime_name
-# 检查 default_runtime_name 是否为 nvidia（按你当前策略：GPU 节点默认 runtime= nvidia）
+# 检查 default_runtime_name 是否为 nvidia（GPU 节点默认 runtime= nvidia）
 check_4_default_runtime_name() {
   log_info "检查 4/6：default_runtime_name 是否为 ${EXPECTED_DEFAULT_RUNTIME_NAME}"
   local def_rt
@@ -192,6 +194,7 @@ check_4_default_runtime_name() {
   [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
   runtime_type = "io.containerd.runc.v2"
 - 然后重启：sudo systemctl restart containerd
+- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
 EOF
   elif [ "$def_rt" = "${EXPECTED_DEFAULT_RUNTIME_NAME}" ]; then
     log_info "OK: default_runtime_name=${def_rt}"
@@ -202,6 +205,7 @@ EOF
 - 修改 /etc/containerd/config.toml：
   将 default_runtime_name 改为 "${EXPECTED_DEFAULT_RUNTIME_NAME}"
 - 然后重启：sudo systemctl restart containerd
+- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
 EOF
   fi
 }

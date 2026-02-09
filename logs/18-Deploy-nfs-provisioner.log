@@ -26,3 +26,16 @@ REVISION: 1
 TEST SUITE: None
 [2026-02-05 22:13:31] [INFO] [18-Deploy-nfs-provisioner(log_command):72]	命令执行成功
 [2026-02-05 22:13:31] [INFO] [18-Deploy-nfs-provisioner(main):42]	nfs-provisioner 部署完成
+[2026-02-09 10:31:26] [INFO] [18-Deploy-nfs-provisioner(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-09 10:31:26] [INFO] [18-Deploy-nfs-provisioner(init_framework):327]	OS: ubuntu 22.04
+namespace/nfs-provisioner created
+[2026-02-09 10:31:26] [INFO] [18-Deploy-nfs-provisioner(log_command):68]	执行命令: helm -n "nfs-provisioner" upgrade --install nfs-provisioner "/data/download/nfs-provisioner/nfs-subdir-external-provisioner-4.0.18.tgz"   --set nfs.server="10.120.155.138"   --set nfs.path="/data/nfs"   --set image.repository="docker.io/eipwork/nfs-subdir-external-provisioner"   --set image.tag="v4.0.2"   --set image.pullPolicy=IfNotPresent
+Release "nfs-provisioner" does not exist. Installing it now.
+NAME: nfs-provisioner
+LAST DEPLOYED: Mon Feb  9 10:31:26 2026
+NAMESPACE: nfs-provisioner
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+[2026-02-09 10:31:26] [INFO] [18-Deploy-nfs-provisioner(log_command):72]	命令执行成功
+[2026-02-09 10:31:26] [INFO] [18-Deploy-nfs-provisioner(main):42]	nfs-provisioner 部署完成

@@ -21,8 +21,8 @@ rm -f /etc/modules-load.d/k8s-deploy.conf 2>/dev/null || true
 sysctl --system >/dev/null 2>&1 || true
 
 # 3) 尝试恢复备份（按记录顺序逆序恢复：最后备份的优先）
-if [ -f "${K8S_DEPLOY_BACKUPS_FILE}" ]; then
-  tac "${K8S_DEPLOY_BACKUPS_FILE}" | while IFS=$'\t' read -r orig bak; do
+if [ -f "${BACKUPS_FILE}" ]; then
+  tac "${BACKUPS_FILE}" | while IFS=$'\t' read -r orig bak; do
     [ -n "${orig}" ] || continue
     [ -n "${bak}" ] || continue
     if [ -e "${bak}" ] && [ ! -e "${orig}" ]; then
@@ -31,7 +31,7 @@ if [ -f "${K8S_DEPLOY_BACKUPS_FILE}" ]; then
     fi
   done
 else
-  log_warn "未找到备份记录文件：${K8S_DEPLOY_BACKUPS_FILE}"
+  log_warn "未找到备份记录文件：${BACKUPS_FILE}"
 fi
 
 # 4) 尝试恢复防火墙服务状态（仅当脚本曾记录为 active）

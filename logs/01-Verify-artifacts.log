@@ -15,3 +15,8 @@
 [2026-02-06 16:01:15] [INFO] [01-Verify-artifacts(main):13]	DOWNLOAD_DIR: /data/download
 [2026-02-06 16:01:15] [INFO] [01-Verify-artifacts(main):14]	MAAS_MD5_CHECK: 1
 [2026-02-06 16:01:20] [INFO] [01-Verify-artifacts(main):74]	制品检查通过
+[2026-02-06 16:38:38] [INFO] [01-Verify-artifacts(init_logging):53]	-------------------脚本开始执行----------------------
+[2026-02-06 16:38:38] [INFO] [01-Verify-artifacts(init_framework):327]	OS: ubuntu 22.04
+[2026-02-06 16:38:38] [INFO] [01-Verify-artifacts(main):89]	DOWNLOAD_DIR: /data/download
+[2026-02-06 16:38:38] [INFO] [01-Verify-artifacts(main):90]	MAAS_MD5_CHECK: 1
+[2026-02-06 16:38:42] [INFO] [01-Verify-artifacts(main):93]	制品检查通过

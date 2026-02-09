@@ -4,7 +4,7 @@ artifacts:
   - module: base
     type: file
     name: base.python.source.tgz
-    path: /data/download/base/Python-3.11.9.tgz
+    path: /data/download_new/base/Python-3.11.9.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/Python-3.11.9.tgz"
     md5: "bfd4d3bfeac4216ce35d7a503bf02d5c"
     description: "Python source tgz"
@@ -12,7 +12,7 @@ artifacts:
   - module: base
     type: file
     name: base.helm.linux-amd64.tgz
-    path: /data/download/base/helm-v3.18.3-linux-amd64.tar.gz
+    path: /data/download_new/base/helm-v3.18.3-linux-amd64.tar.gz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/helm-v3.18.3-linux-amd64.tar.gz"
     md5: "28ecc6ee582231ddc604b8a3623c48ea"
     description: "Helm tarball"
@@ -20,7 +20,7 @@ artifacts:
   - module: base
     type: file
     name: base.helmfile.linux-amd64.tgz
-    path: /data/download/base/helmfile_1.1.2_linux_amd64.tar.gz
+    path: /data/download_new/base/helmfile_1.1.2_linux_amd64.tar.gz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/helmfile_1.1.2_linux_amd64.tar.gz"
     md5: "450f7a51d35a7181f5c039ab3cbd9be3"
     description: "Helmfile tarball"
@@ -28,7 +28,7 @@ artifacts:
   - module: containerd
     type: file
     name: containerd.tarball.1.7.4.linux-amd64
-    path: /data/download/containerd/containerd-1.7.4-linux-amd64.tar.gz
+    path: /data/download_new/containerd/containerd-1.7.4-linux-amd64.tar.gz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd-1.7.4-linux-amd64.tar.gz"
     md5: "9b6be86b7531a6f9809eb337f3177748"
     description: "containerd tarball"
@@ -36,7 +36,7 @@ artifacts:
   - module: containerd
     type: file
     name: containerd.systemd.unit
-    path: /data/download/containerd/containerd.service
+    path: /data/download_new/containerd/containerd.service
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd.service"
     md5: "75ea61286292c8addeacb8a5ea4f9c8b"
     description: "containerd systemd service"
@@ -44,7 +44,7 @@ artifacts:
   - module: containerd
     type: file
     name: containerd.runc.binary.amd64
-    path: /data/download/containerd/runc.amd64
+    path: /data/download_new/containerd/runc.amd64
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/runc.amd64"
     md5: "b95479b0dfac6485299b2588991228d8"
     description: "runc binary"
@@ -52,7 +52,7 @@ artifacts:
   - module: containerd
     type: file
     name: containerd.cni-plugins.tgz.linux-amd64.v1.7.1
-    path: /data/download/containerd/cni-plugins-linux-amd64-v1.7.1.tgz
+    path: /data/download_new/containerd/cni-plugins-linux-amd64-v1.7.1.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/cni-plugins-linux-amd64-v1.7.1.tgz"
     md5: "84c43dfb3ba5fe0be1771228ddbbea26"
     description: "CNI plugins tgz"
@@ -60,7 +60,7 @@ artifacts:
   - module: containerd
     type: file
     name: containerd.config.template.toml
-    path: /data/download/containerd/containerd-config.toml
+    path: /data/download_new/containerd/containerd-config.toml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd-config.toml"
     md5: "315d32846e46ee8a6d06aa73b2f251a4"
     description: "containerd config template"
@@ -68,7 +68,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.kube-apiserver.v1.31.11
-    path: /data/download/k8s/kube-apiserver-v1.31.11.tar
+    path: /data/download_new/k8s/kube-apiserver-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-apiserver-v1.31.11.tar"
     md5: "2e6f07595e01bcc3614343f104721e63"
     description: "kube-apiserver image tar"
@@ -76,7 +76,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.kube-controller-manager.v1.31.11
-    path: /data/download/k8s/kube-controller-manager-v1.31.11.tar
+    path: /data/download_new/k8s/kube-controller-manager-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-controller-manager-v1.31.11.tar"
     md5: "a3f1578cad683509c364ac4d0bf49f06"
     description: "kube-controller-manager image tar"
@@ -84,7 +84,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.kube-scheduler.v1.31.11
-    path: /data/download/k8s/kube-scheduler-v1.31.11.tar
+    path: /data/download_new/k8s/kube-scheduler-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-scheduler-v1.31.11.tar"
     md5: "137f62ab65399a9ebf17a4d504f6d48d"
     description: "kube-scheduler image tar"
@@ -92,7 +92,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.kube-proxy.v1.31.11
-    path: /data/download/k8s/kube-proxy-v1.31.11.tar
+    path: /data/download_new/k8s/kube-proxy-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-proxy-v1.31.11.tar"
     md5: "55e8e8ee02de0b066db6e32845fe936a"
     description: "kube-proxy image tar"
@@ -100,7 +100,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.coredns.v1.11.3
-    path: /data/download/k8s/coredns-v1.11.3.tar
+    path: /data/download_new/k8s/coredns-v1.11.3.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/coredns-v1.11.3.tar"
     md5: "900239dbef1fb263c271255f3087d195"
     description: "coredns image tar"
@@ -108,7 +108,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.pause.3.10
-    path: /data/download/k8s/pause-3.10.tar
+    path: /data/download_new/k8s/pause-3.10.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/pause-3.10.tar"
     md5: "61852907a1ad4b185b6a7965a8258eae"
     description: "pause image tar"
@@ -116,7 +116,7 @@ artifacts:
   - module: k8s
     type: tar
     name: k8s.image.etcd.3.5.15-0
-    path: /data/download/k8s/etcd-3.5.15-0.tar
+    path: /data/download_new/k8s/etcd-3.5.15-0.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/etcd-3.5.15-0.tar"
     md5: "c9c0c4111650fc065b9229f7ef9b1d14"
     description: "etcd image tar"
@@ -124,7 +124,7 @@ artifacts:
   - module: cni
     type: file
     name: cni.manifest.calico
-    path: /data/download/cni/calico.yaml
+    path: /data/download_new/cni/calico.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/calico.yaml"
     md5: "9cacb279f1b29b73340fcc46755efd79"
     description: "calico manifest"
@@ -132,7 +132,7 @@ artifacts:
   - module: cni
     type: tar
     name: cni.image.calico-cni.v3.30
-    path: /data/download/cni/cni-release-v3.30.tar
+    path: /data/download_new/cni/cni-release-v3.30.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/cni-release-v3.30.tar"
     md5: "ad5fc5a30daf813e459664304c0d0842"
     description: "calico cni image tar"
@@ -140,7 +140,7 @@ artifacts:
   - module: cni
     type: tar
     name: cni.image.kube-controllers.v3.30
-    path: /data/download/cni/kube-controllers-release-v3.30.tar
+    path: /data/download_new/cni/kube-controllers-release-v3.30.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/kube-controllers-release-v3.30.tar"
     md5: "cf64e4fb81cf2abf0b2c709eb219a834"
     description: "calico kube-controllers image tar"
@@ -148,7 +148,7 @@ artifacts:
   - module: cni
     type: tar
     name: cni.image.calico-node.v3.30
-    path: /data/download/cni/node-release-v3.30.tar
+    path: /data/download_new/cni/node-release-v3.30.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/node-release-v3.30.tar"
     md5: "1c4045cb86463790106fa81d44471550"
     description: "calico node image tar"
@@ -156,7 +156,7 @@ artifacts:
   - module: ingress
     type: file
     name: ingress.manifest.ingress-nginx
-    path: /data/download/ingress/ingress_nginx.yaml
+    path: /data/download_new/ingress/ingress_nginx.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/ingress_nginx.yaml"
     md5: "e5139c07cfa739eda074eddbd795f051"
     description: "ingress-nginx manifest"
@@ -164,7 +164,7 @@ artifacts:
   - module: ingress
     type: tar
     name: ingress.image.controller.v1.12.2
-    path: /data/download/ingress/controller-v1.12.2.tar
+    path: /data/download_new/ingress/controller-v1.12.2.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/controller-v1.12.2.tar"
     md5: "b99276677a656f2cf6a8b3a0bfc101ad"
     description: "ingress-nginx controller image tar"
@@ -172,7 +172,7 @@ artifacts:
   - module: ingress
     type: tar
     name: ingress.image.webhook-certgen.v1.5.3
-    path: /data/download/ingress/kube-webhook-certgen-v1.5.3.tar
+    path: /data/download_new/ingress/kube-webhook-certgen-v1.5.3.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/kube-webhook-certgen-v1.5.3.tar"
     md5: "f8a7606f41649cfa16a6182ec3c33f25"
     description: "ingress-nginx webhook certgen image tar"
@@ -180,7 +180,7 @@ artifacts:
   - module: local-path
     type: file
     name: local-path.manifest.storage
-    path: /data/download/local-path/local-path-storage.yaml
+    path: /data/download_new/local-path/local-path-storage.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/local-path-storage.yaml"
     md5: "9e195740777921752bae8adfe0e85c0d"
     description: "local-path storageclass"
@@ -188,7 +188,7 @@ artifacts:
   - module: local-path
     type: file
     name: local-path.manifest.dynamic
-    path: /data/download/local-path/local-dynamic.yaml
+    path: /data/download_new/local-path/local-dynamic.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/local-dynamic.yaml"
     md5: "a2a3f8810dccc8a1a30ceff6a7cf37f8"
     description: "local-path dynamic pv"
@@ -196,7 +196,7 @@ artifacts:
   - module: local-path
     type: tar
     name: local-path.image.provisioner.master-head
-    path: /data/download/local-path/local-path-provisioner-master-head.tar
+    path: /data/download_new/local-path/local-path-provisioner-master-head.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/local-path-provisioner-master-head.tar"
     md5: "8e7e1c52ac43f09561c6c6570b5c71b7"
     description: "local-path provisioner image tar"
@@ -204,7 +204,7 @@ artifacts:
   - module: local-path
     type: tar
     name: local-path.image.busybox.1.33.1
-    path: /data/download/local-path/busybox-1.33.1.tar
+    path: /data/download_new/local-path/busybox-1.33.1.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/x86/busybox-1.33.1.tar"
     md5: "62528f4fe5525ad3573b0b3012d74e0d"
     description: "busybox image tar"
@@ -212,7 +212,7 @@ artifacts:
   - module: nfs-provisioner
     type: file
     name: nfs-provisioner.chart.v4.0.18
-    path: /data/download/nfs-provisioner/nfs-subdir-external-provisioner-4.0.18.tgz
+    path: /data/download_new/nfs-provisioner/nfs-subdir-external-provisioner-4.0.18.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nfs-subdir-external-provisioner-4.0.18.tgz"
     md5: "6ae0e7c6676bceaa1b006e33e1d46824"
     description: "nfs-provisioner helm chart"
@@ -220,7 +220,7 @@ artifacts:
   - module: nfs-provisioner
     type: tar
     name: nfs-provisioner.image.v4.0.2
-    path: /data/download/nfs-provisioner/nfs-subdir-external-provisioner-v4.0.2.tar
+    path: /data/download_new/nfs-provisioner/nfs-subdir-external-provisioner-v4.0.2.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/nfs-subdir-external-provisioner-v4.0.2.tar"
     md5: "e7653aebf180319de06dfe95fc28c9d3"
     description: "nfs-provisioner image tar"
@@ -228,7 +228,7 @@ artifacts:
   - module: tidb
     type: file
     name: tidb.chart.operator.v1.6.1
-    path: /data/download/tidb/tidb-operator-v1.6.1.tgz
+    path: /data/download_new/tidb/tidb-operator-v1.6.1.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/tidb-operator-v1.6.1.tgz"
     md5: "3666e78088e0fa3b3c0ec030811eeada"
     description: "tidb-operator helm chart"
@@ -236,7 +236,7 @@ artifacts:
   - module: tidb
     type: file
     name: tidb.crd.yaml
-    path: /data/download/tidb/crd.yaml
+    path: /data/download_new/tidb/crd.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/crd.yaml"
     md5: "0c54bfeb9c12f3478285e96c8bad1331"
     description: "tidb crd yaml"
@@ -244,7 +244,7 @@ artifacts:
   - module: tidb
     type: file
     name: tidb.values.operator.yaml
-    path: /data/download/tidb/values-tidb-operator.yaml
+    path: /data/download_new/tidb/values-tidb-operator.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/values-tidb-operator.yaml"
     md5: "457c628b31e772b960b781175dd532ad"
     description: "tidb operator values"
@@ -252,7 +252,7 @@ artifacts:
   - module: nvidia
     type: file
     name: nvidia.deb.nvidia-container-toolkit.1.17.8-1.amd64
-    path: /data/download/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb
+    path: /data/download_new/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb"
     md5: "83c8f5c09db90fa980ae7b8d6ce745ff"
     description: "nvidia-container-toolkit deb"
@@ -260,7 +260,7 @@ artifacts:
   - module: nvidia
     type: file
     name: nvidia.deb.nvidia-container-toolkit-base.1.17.8-1.amd64
-    path: /data/download/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb
+    path: /data/download_new/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb"
     md5: "e2cc56a5dd6fe817e4b590223a246b67"
     description: "nvidia-container-toolkit-base deb"
@@ -268,7 +268,7 @@ artifacts:
   - module: nvidia
     type: file
     name: nvidia.deb.libnvidia-container-tools.1.17.8.amd64
-    path: /data/download/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb
+    path: /data/download_new/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb"
     md5: "1a1d798687a709c9e000b744af03c454"
     description: "libnvidia-container-tools deb"
@@ -276,7 +276,7 @@ artifacts:
   - module: nvidia
     type: file
     name: nvidia.deb.libnvidia-container1.1.17.8.amd64
-    path: /data/download/nvidia/libnvidia-container1_1.17.8-1_amd64.deb
+    path: /data/download_new/nvidia/libnvidia-container1_1.17.8-1_amd64.deb
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/libnvidia-container1_1.17.8-1_amd64.deb"
     md5: "39ab68777c6efe50b5817a0ca8fdab51"
     description: "libnvidia-container1 deb"
@@ -284,7 +284,7 @@ artifacts:
   - module: nvidia
     type: file
     name: nvidia.manifest.device-plugin.v0.17.2
-    path: /data/download/nvidia/device-plugin-nvidia-v0.17.2.yaml
+    path: /data/download_new/nvidia/device-plugin-nvidia-v0.17.2.yaml
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/device-plugin-nvidia-v0.17.2.yaml"
     md5: "48ba13c2b9d1f3da664ef48de368246b"
     description: "nvidia device-plugin yaml"
@@ -292,7 +292,7 @@ artifacts:
   - module: nvidia
     type: tar
     name: nvidia.image.device-plugin.v0.17.2
-    path: /data/download/nvidia/k8s-device-plugin-v0.17.2.tar
+    path: /data/download_new/nvidia/k8s-device-plugin-v0.17.2.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/k8s-device-plugin-v0.17.2.tar"
     md5: "e805e9b00f0cc9d80a646f7170041842"
     description: "nvidia device-plugin image tar"
@@ -301,7 +301,7 @@ artifacts:
   #   type: dir
   #   os_id: ubuntu
   #   name: os.dir.kubernetes.ubuntu
-  #   path: /data/download/packages/ubuntu/kubernetes
+  #   path: /data/download_new/packages/ubuntu/kubernetes
   #   url: ""
   #   md5: "__DIR__"
   #   description: "offline deb dir: kubeadm/kubelet/kubectl + deps"
@@ -310,7 +310,7 @@ artifacts:
   #   type: dir
   #   os_id: centos
   #   name: os.dir.kubernetes.centos
-  #   path: /data/download/packages/centos/kubernetes
+  #   path: /data/download_new/packages/centos/kubernetes
   #   url: ""
   #   md5: "__DIR__"
   #   description: "offline rpm dir: kubeadm/kubelet/kubectl + deps"
@@ -319,7 +319,7 @@ artifacts:
   #   type: dir
   #   os_id: kylin
   #   name: os.dir.kubernetes.kylin
-  #   path: /data/download/packages/kylin/kubernetes
+  #   path: /data/download_new/packages/kylin/kubernetes
   #   url: ""
   #   md5: "__DIR__"
   #   description: "offline pkg dir: kubeadm/kubelet/kubectl + deps"
@@ -328,7 +328,7 @@ artifacts:
   #   type: dir
   #   os_id: openeuler
   #   name: os.dir.kubernetes.openeuler
-  #   path: /data/download/packages/openeuler/kubernetes
+  #   path: /data/download_new/packages/openeuler/kubernetes
   #   url: ""
   #   md5: "__DIR__"
   #   description: "offline rpm dir: kubeadm/kubelet/kubectl + deps"
