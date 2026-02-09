@@ -97,9 +97,22 @@ find_node_name() {
   kubectl get nodes 2>/dev/null | awk 'NR==2{print $1}'
 }
 
+# print_solution
+# 统一输出解决方案建议的格式
+print_solution() {
+  local msg="$1"
+  log_info ""
+  log_info "  [解决方案]"
+  echo "$msg" | sed 's/^/  /' | while IFS= read -r line; do
+    log_info "  ${line}"
+  done
+  log_info ""
+}
+
 # check_1_toolkit_packages
 # 检查 NVIDIA toolkit 相关包与 nvidia-ctk 是否存在
 check_1_toolkit_packages() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查 1/6：NVIDIA container toolkit 相关包是否已安装"
 
   local pkgs=(
@@ -111,159 +124,144 @@ check_1_toolkit_packages() {
   local missing_pkgs=0
   for p in "${pkgs[@]}"; do
     if check_dpkg_installed "$p"; then
-      log_info "OK: 已安装 ${p}"
+      log_info "  ✓ 已安装: ${p}"
     else
-      log_error "MISSING: 未安装 ${p}"
+      log_error "  ✗ 未安装: ${p}"
       missing_pkgs=$((missing_pkgs+1))
     fi
   done
   if ! have_cmd nvidia-ctk; then
-    log_error "MISSING: 未找到 nvidia-ctk（通常来自 nvidia-container-toolkit）"
+    log_error "  ✗ 未找到: nvidia-ctk（通常来自 nvidia-container-toolkit）"
     missing_pkgs=$((missing_pkgs+1))
   else
-    log_info "OK: nvidia-ctk 已存在"
+    log_info "  ✓ nvidia-ctk 已存在"
   fi
   if [ "$missing_pkgs" -ne 0 ]; then
-    cat <<EOF
-解决方案建议：
-- 离线场景：请补齐并安装 k8s-deploy 清单里的 NVIDIA deb（或自行准备 rpm 并扩展脚本）
-- 执行安装脚本：sudo bash ${K8S_DEPLOY_ROOT}/Script/20-Deploy-nvidia.sh
-EOF
+    print_solution "离线场景：请补齐并安装 k8s-deploy 清单里的 NVIDIA deb（或自行准备 rpm 并扩展脚本）
+执行安装脚本：sudo bash ${K8S_DEPLOY_ROOT}/Script/20-Deploy-nvidia.sh"
+  else
+    log_info "  ✓ 所有必需包已安装"
   fi
 }
 
 # check_2_containerd_config
 # 检查 containerd 配置文件是否存在
 check_2_containerd_config() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查 2/6：containerd 配置文件是否存在"
   if [ ! -f "${CFG_CONTAINERD}" ]; then
-    log_error "未找到 containerd 配置文件: ${CFG_CONTAINERD}"
-    cat <<EOF
-解决方案建议：
-- 先执行：sudo bash ${K8S_DEPLOY_ROOT}/Script/11-Install-containerd.sh
-EOF
+    log_error "  ✗ 未找到 containerd 配置文件: ${CFG_CONTAINERD}"
+    print_solution "先执行：sudo bash ${K8S_DEPLOY_ROOT}/Script/11-Install-containerd.sh"
     exit 1
   fi
-  log_info "OK: ${CFG_CONTAINERD}"
+  log_info "  ✓ 配置文件存在: ${CFG_CONTAINERD}"
 }
 
 # check_3_runtime_type
 # 检查 runc runtime_type 是否为 io.containerd.runc.v2（cgroup v2 建议搭配 runc.v2）
 check_3_runtime_type() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查 3/6：runtime_type 是否为 ${EXPECTED_RUNTIME_TYPE}"
   local runtime_type
   runtime_type="$(toml_get_value_in_block "${CFG_CONTAINERD}" '[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]' 'runtime_type' || true)"
   if [ -z "$runtime_type" ]; then
-    log_error "未读取到 runc runtime_type（配置块缺失或格式不匹配）"
-    cat <<'EOF'
-解决方案建议：
-- 确保 containerd config 中存在块：
-  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-  runtime_type = "io.containerd.runc.v2"
-- 修复后重启：sudo systemctl restart containerd
-- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
-EOF
+    log_error "  ✗ 未读取到 runc runtime_type（配置块缺失或格式不匹配）"
+    print_solution "确保 containerd config 中存在块：
+  [plugins.\"io.containerd.grpc.v1.cri\".containerd.runtimes.runc]
+  runtime_type = \"io.containerd.runc.v2\"
+修复后重启：sudo systemctl restart containerd
+重启 device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system"
   elif [ "$runtime_type" = "${EXPECTED_RUNTIME_TYPE}" ]; then
-    log_info "OK: runtime_type=${runtime_type}"
+    log_info "  ✓ runtime_type=${runtime_type}"
   else
-    log_warn "NOT-OK: runtime_type=${runtime_type}（期望 ${EXPECTED_RUNTIME_TYPE}）"
-    cat <<EOF
-解决方案建议：
-- 修改 /etc/containerd/config.toml：
-  将 runc runtime_type 改为：runtime_type = "${EXPECTED_RUNTIME_TYPE}"
-- 然后重启：sudo systemctl restart containerd
-- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
-EOF
+    log_warn "  ✗ runtime_type=${runtime_type}（期望 ${EXPECTED_RUNTIME_TYPE}）"
+    print_solution "修改 /etc/containerd/config.toml：
+  将 runc runtime_type 改为：runtime_type = \"${EXPECTED_RUNTIME_TYPE}\"
+然后重启：sudo systemctl restart containerd
+重启 device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system"
   fi
 }
 
 # check_4_default_runtime_name
 # 检查 default_runtime_name 是否为 nvidia（GPU 节点默认 runtime= nvidia）
 check_4_default_runtime_name() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查 4/6：default_runtime_name 是否为 ${EXPECTED_DEFAULT_RUNTIME_NAME}"
   local def_rt
   def_rt="$(toml_get_value_in_block "${CFG_CONTAINERD}" '[plugins."io.containerd.grpc.v1.cri".containerd]' 'default_runtime_name' || true)"
   if [ -z "$def_rt" ]; then
-    log_warn "NOT-OK: 未设置 default_runtime_name（期望 ${EXPECTED_DEFAULT_RUNTIME_NAME}）"
-    cat <<'EOF'
-解决方案建议（按你的策略：GPU 节点默认 runtime = nvidia）：
-- 修改 /etc/containerd/config.toml：
-  [plugins."io.containerd.grpc.v1.cri".containerd]
-  default_runtime_name = "nvidia"
-- 确保存在 nvidia runtime 块（nvidia-ctk 通常会写入）：
-  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.nvidia]
-  runtime_type = "io.containerd.runc.v2"
-- 然后重启：sudo systemctl restart containerd
-- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
-EOF
+    log_warn "  ✗ 未设置 default_runtime_name（期望 ${EXPECTED_DEFAULT_RUNTIME_NAME}）"
+    print_solution "修改 /etc/containerd/config.toml：
+  [plugins.\"io.containerd.grpc.v1.cri\".containerd]
+  default_runtime_name = \"nvidia\"
+确保存在 nvidia runtime 块（nvidia-ctk 通常会写入）：
+  [plugins.\"io.containerd.grpc.v1.cri\".containerd.runtimes.nvidia]
+  runtime_type = \"io.containerd.runc.v2\"
+然后重启：sudo systemctl restart containerd
+重启 device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system"
   elif [ "$def_rt" = "${EXPECTED_DEFAULT_RUNTIME_NAME}" ]; then
-    log_info "OK: default_runtime_name=${def_rt}"
+    log_info "  ✓ default_runtime_name=${def_rt}"
   else
-    log_warn "NOT-OK: default_runtime_name=${def_rt}（期望 ${EXPECTED_DEFAULT_RUNTIME_NAME}）"
-    cat <<EOF
-解决方案建议（按你的策略：GPU 节点默认 runtime = nvidia）：
-- 修改 /etc/containerd/config.toml：
-  将 default_runtime_name 改为 "${EXPECTED_DEFAULT_RUNTIME_NAME}"
-- 然后重启：sudo systemctl restart containerd
-- 重启device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system
-EOF
+    log_warn "  ✗ default_runtime_name=${def_rt}（期望 ${EXPECTED_DEFAULT_RUNTIME_NAME}）"
+    print_solution "修改 /etc/containerd/config.toml：
+  将 default_runtime_name 改为 \"${EXPECTED_DEFAULT_RUNTIME_NAME}\"
+然后重启：sudo systemctl restart containerd
+重启 device-plugin: kubectl delete pod -l name=nvidia-device-plugin -n kube-system"
   fi
 }
 
 # check_5_k8s_gpu_resource
 # 检查 K8s Node 上是否出现 nvidia.com/gpu，并按你要求输出 Allocated resources
 check_5_k8s_gpu_resource() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查 5/6：Kubernetes 层面（nvidia.com/gpu 是否出现在 Node 上）"
 
-  cat <<'EOF'
-你可以手动执行（示例）：
-  kubectl describe node <nodeName> | grep -A10 "Allocated resources"
-  kubectl get node <nodeName> -o jsonpath='{.status.capacity.nvidia\.com/gpu}{" "}{.status.allocatable.nvidia\.com/gpu}{"\n"}'
-  kubectl get pods -A | grep -i nvidia
-EOF
-
   if ! kubectl_ok; then
-    log_warn "kubectl 不可用或集群不可达，跳过本段自动检查"
+    log_warn "  ⚠ kubectl 不可用或集群不可达，跳过本段自动检查"
     return 0
   fi
 
   local node_name gpu_cap gpu_all
   node_name="$(find_node_name || true)"
   if [ -z "${node_name}" ] || ! kubectl get node "${node_name}" >/dev/null 2>&1; then
-    log_warn "无法自动定位/访问 Node（可能未配置 KUBECONFIG 或 nodeName 不匹配）"
+    log_warn "  ⚠ 无法自动定位/访问 Node（可能未配置 KUBECONFIG 或 nodeName 不匹配）"
     return 0
   fi
 
+  log_info "  检查节点: ${node_name}"
   gpu_cap="$(kubectl get node "${node_name}" -o jsonpath='{.status.capacity.nvidia\.com/gpu}' 2>/dev/null || true)"
   gpu_all="$(kubectl get node "${node_name}" -o jsonpath='{.status.allocatable.nvidia\.com/gpu}' 2>/dev/null || true)"
+  
   if [ -n "${gpu_cap}${gpu_all}" ]; then
-    log_info "Node ${node_name} nvidia.com/gpu capacity=${gpu_cap:-?} allocatable=${gpu_all:-?}"
+    log_info "  ✓ nvidia.com/gpu capacity=${gpu_cap:-?} allocatable=${gpu_all:-?}"
+    log_info ""
+    log_info "  [Node Allocated Resources]"
+    kubectl describe node "${node_name}" 2>/dev/null | grep -A10 "Allocated resources" | sed 's/^/  /' || true
+    log_info ""
+    log_info "  [NVIDIA Device Plugin Pods]"
+    kubectl get pods -A 2>/dev/null | grep -i nvidia | sed 's/^/  /' || log_info "  （未发现 nvidia 相关 Pod）"
   else
-    log_warn "Node ${node_name} 未发现 nvidia.com/gpu（device-plugin 可能未生效/驱动未就绪/需重启 kubelet）"
-    cat <<EOF
-解决方案建议：
-- 确认已执行：sudo bash ${K8S_DEPLOY_ROOT}/Script/20-Deploy-nvidia.sh
-- 确认 device-plugin Pod 处于 Running
-- 如已安装驱动/模块但资源仍不出现，可尝试重启 kubelet：
+    log_warn "  ✗ Node ${node_name} 未发现 nvidia.com/gpu（device-plugin 可能未生效/驱动未就绪/需重启 kubelet）"
+    print_solution "确认已执行：sudo bash ${K8S_DEPLOY_ROOT}/Script/20-Deploy-nvidia.sh
+确认 device-plugin Pod 处于 Running
+如已安装驱动/模块但资源仍不出现，可尝试重启 kubelet：
   sudo systemctl restart kubelet
-EOF
+手动检查命令：
+  kubectl describe node ${node_name} | grep -A10 \"Allocated resources\"
+  kubectl get node ${node_name} -o jsonpath='{.status.capacity.nvidia\\.com/gpu}{\" \"}{.status.allocatable.nvidia\\.com/gpu}{\"\\n\"}'
+  kubectl get pods -A | grep -i nvidia"
   fi
-
-  # 输出 Allocated resources（按你要求的 grep 方式）
-  kubectl describe node "${node_name}" 2>/dev/null | grep -A10 "Allocated resources" || true
-
-  # device-plugin 运行态（尽量宽松匹配）
-  kubectl get pods -A 2>/dev/null | grep -i nvidia || true
 }
 
 # check_6_device_plugin_ds_constraints
 # 检查 device-plugin DS 的 nodeSelector/desiredNumberScheduled（是否因为缺 label 导致 desired=0）
 check_6_device_plugin_ds_constraints() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查 6/6：device-plugin DaemonSet 调度约束（nodeSelector/desiredNumberScheduled）"
-  kubectl_ok || { log_warn "kubectl 不可用或集群不可达，跳过本段自动检查"; return 0; }
+  kubectl_ok || { log_warn "  ⚠ kubectl 不可用或集群不可达，跳过本段自动检查"; return 0; }
 
   if ! kubectl -n "${DS_NAMESPACE}" get ds "${DS_NAME}" >/dev/null 2>&1; then
-    log_warn "未找到 DaemonSet: ${DS_NAMESPACE}/${DS_NAME}（可能尚未部署 device-plugin）"
+    log_warn "  ⚠ 未找到 DaemonSet: ${DS_NAMESPACE}/${DS_NAME}（可能尚未部署 device-plugin）"
     return 0
   fi
 
@@ -271,25 +269,29 @@ check_6_device_plugin_ds_constraints() {
   node_name="$(find_node_name || true)"
   ds_desired="$(kubectl -n "${DS_NAMESPACE}" get ds "${DS_NAME}" -o jsonpath='{.status.desiredNumberScheduled}' 2>/dev/null || true)"
   sel="$(kubectl -n "${DS_NAMESPACE}" get ds "${DS_NAME}" -o jsonpath='{.spec.template.spec.nodeSelector}' 2>/dev/null || true)"
-  log_info "device-plugin DS: desiredNumberScheduled=${ds_desired:-?} nodeSelector=${sel:-{}}"
+  log_info "  DaemonSet 状态: desiredNumberScheduled=${ds_desired:-?} nodeSelector=${sel:-{}}"
 
   if [ "${ds_desired:-}" = "0" ] && [ -n "${node_name}" ] && kubectl get node "${node_name}" >/dev/null 2>&1; then
     has_label="$(kubectl get node "${node_name}" -o jsonpath='{.metadata.labels.nvidia\.com/gpu\.present}' 2>/dev/null || true)"
     if [ "${has_label}" != "true" ]; then
-      log_warn "device-plugin 未创建 Pod：节点缺少 label nvidia.com/gpu.present=true（DS nodeSelector 要求）"
-      cat <<EOF
-解决方案建议：
-- 给 GPU 节点打标签（示例）：
+      log_warn "  ✗ device-plugin 未创建 Pod：节点缺少 label nvidia.com/gpu.present=true（DS nodeSelector 要求）"
+      print_solution "给 GPU 节点打标签（示例）：
   kubectl label node ${node_name:-<nodeName>} nvidia.com/gpu.present=true --overwrite
-- 然后再观察：
+然后再观察：
   kubectl -n ${DS_NAMESPACE} get ds ${DS_NAME}
-  kubectl -n ${DS_NAMESPACE} get pods -l name=nvidia-device-plugin -o wide
-EOF
+  kubectl -n ${DS_NAMESPACE} get pods -l name=nvidia-device-plugin -o wide"
+    else
+      log_info "  ✓ 节点已打标签: nvidia.com/gpu.present=true"
     fi
+  elif [ -n "${ds_desired}" ] && [ "${ds_desired}" != "0" ]; then
+    log_info "  ✓ DaemonSet 期望调度数量: ${ds_desired}"
   fi
 }
 
 main() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log_info "GPU 节点 containerd/NVIDIA 运行时配置检查"
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "OS: ${OS_ID:-unknown} ${OS_VERSION_ID:-unknown}"
 
   if ! is_gpu_node; then
@@ -297,7 +299,8 @@ main() {
     exit 0
   fi
 
-  log_info "检测到 GPU 节点，开始检查 containerd/NVIDIA 运行时配置"
+  log_info "检测到 GPU 节点，开始检查..."
+  log_info ""
 
   check_1_toolkit_packages
   check_2_containerd_config
@@ -306,7 +309,9 @@ main() {
   check_5_k8s_gpu_resource
   check_6_device_plugin_ds_constraints
 
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查完成"
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 }
 
 main "$@"

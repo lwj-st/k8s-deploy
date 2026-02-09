@@ -4,6 +4,7 @@
 - `Script/00-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
 - `Script/01-Download.sh`：按清单下载（可选 MD5 校验）
 - `Script/02-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
+- `Script/09-Install-tools.sh`：安装 helm/helmfile
 - `Script/10-Env.sh`：宿主机预置（可强改防火墙；默认只清 KUBE/CALI iptables 链）
 - `Script/11-Install-containerd.sh`：安装containerd
 - `Script/12-Load-images.sh`：load本地镜像
@@ -11,7 +12,6 @@
 - `Script/14-Kubeadm-init.sh`：初始化集群
 - `Script/15-Deploy-cni.sh`
 - `Script/16-Deploy-ingress.sh`
-- `Script/09-Install-tools.sh`：安装 helm/helmfile
 - `Script/17-Deploy-local-path.sh`
 - `Script/18-Deploy-nfs-provisioner.sh`
 - `Script/19-Deploy-tidb.sh`：部署tidb operator
@@ -42,11 +42,11 @@ bash 02-Verify-artifacts.sh
 部署（逐步执行，任一步失败即退出）：
 
 ```bash
+sudo bash 09-Install-tools.sh
 sudo bash 10-Env.sh
 sudo bash 11-Install-containerd.sh
 sudo bash 12-Load-images.sh
 sudo bash 13-Install-k8s-packages.sh
-sudo bash 09-Install-tools.sh
 sudo bash 14-Kubeadm-init.sh
 sudo bash 15-Deploy-cni.sh
 sudo bash 16-Deploy-ingress.sh
@@ -69,11 +69,14 @@ sudo bash 20-Deploy-nvidia.sh            # 可选：仅 NVIDIA
 
 ```bash
 cd k8s-deploy/Script
-# 确保 environment.sh 已存在（可从主节点复制，或重新运行 00-Cluster-host.sh）
+# 确保 environment.sh 已存在
 # 注意：脚本会自动 source environment.sh，此步骤可选（仅用于在命令行中使用环境变量）
-source environment.sh  # 可选
+source environment.sh  # 从主节点复制
 
 # 环境准备
+sudo bash 01-Download.sh           #可选
+sudo bash 02-Verify-artifacts.sh   #可选
+sudo bash 09-Install-tools.sh      #可选
 sudo bash 10-Env.sh
 sudo bash 11-Install-containerd.sh
 sudo bash 12-Load-images.sh
@@ -121,6 +124,12 @@ sudo bash 20-Deploy-nvidia.sh
 - `20-Deploy-nvidia.sh` 会安装 NVIDIA container toolkit 并配置 containerd runtime
 - Device plugin 的 DaemonSet 已在主节点部署，会自动在所有有 `nvidia.com/gpu.present=true` label 的节点上运行
 - 脚本会自动检测 GPU 并给节点打 label，无需手动操作
+- **重复执行是安全的**：`kubectl apply` 是幂等的，即使多次执行也不会报错
+- **Worker 节点需要 KUBECONFIG**：如果 worker 节点上没有 `/etc/kubernetes/admin.conf`，需要先从 control-plane 节点复制：
+  ```bash
+  # 在 control-plane 节点上执行
+  scp /etc/kubernetes/admin.conf root@<worker-node>:/etc/kubernetes/admin.conf
+  ```
 
 ### 验证节点加入
 
