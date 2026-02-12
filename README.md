@@ -2,6 +2,8 @@
 
 ## 目录结构
 - `Script/00-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
+- `00-Download-k8s-packages.sh` 下载 Kubernetes 离线安装包（可选）
+- `00-Download-k8s-packages-docker.sh` 如果没有对应的 OS 环境，可以使用 Docker 容器来模拟 (可选)
 - `Script/01-Download.sh`：按清单下载（可选 MD5 校验）
 - `Script/02-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
 - `Script/09-Install-tools.sh`：安装 helm/helmfile
@@ -26,6 +28,54 @@
 cd k8s-deploy/Script
 bash 00-Cluster-host.sh
 ```
+
+### 下载 Kubernetes 离线安装包（可选）
+
+如果需要离线安装 Kubernetes 包（kubelet/kubeadm/kubectl），需要先下载：
+
+**方式 1：在对应 OS 环境直接下载**
+
+```bash
+# Ubuntu/Debian
+bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
+
+# CentOS/RHEL/Rocky
+bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
+
+# OpenEuler
+bash 00-Download-k8s-packages.sh openeuler /data/download/packages/openeuler/kubernetes
+
+# Kylin
+bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
+```
+
+**方式 2：使用 Docker 容器模拟（推荐，无需对应 OS 环境）**
+
+如果没有对应的 OS 环境，可以使用 Docker 容器来模拟：
+
+```bash
+# CentOS/RHEL/Rocky
+bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.14
+
+# OpenEuler
+bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.14
+
+# Kylin
+bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.14
+
+```
+
+**说明**：
+- 脚本会在有网络的机器上配置 Kubernetes 官方仓库并下载所有依赖包
+- Docker 方式会自动拉取对应的 OS 镜像并在容器内执行下载
+- 下载完成后，将目录复制到离线环境
+- 默认下载版本为 `v1.31.14`，第三个参数可省略；文档中显式写出是为了避免歧义
+- 下载的包会自动包含所有依赖（如 cri-tools、kubernetes-cni 等）
+- 包兼容性建议：
+  - `centos/rhel/rocky/almalinux`：可共用同一套 RPM 目录（如 `/data/download/packages/centos/kubernetes`）
+  - `openeuler`：建议使用独立目录，不与 centos 系混用
+  - `kylin`：建议使用独立目录，不与 centos 系混用
+- `kylin` 默认使用 `macrosan/kylin`
 
 按清单下载缺失制品（离线环境可跳过下载，仅作为"补齐工具"）：
 
