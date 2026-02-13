@@ -10,5 +10,7 @@ export INGRESS_NODE_NAME="real-341"
 export MAAS_MD5_CHECK="1"
 export NFS_SERVER="10.120.155.138"
 export NFS_PATH="/data/nfs"
+export CONTAINERD_ROOT="/data/containerd"
 
 # 说明：MAAS_MD5_CHECK=1 时 verify/download 会强校验 md5；=0 时存在即跳过（更快但不防坏包）
+# CONTAINERD_ROOT 非空时，11-Install-containerd.sh 将把 containerd 数据目录设为该路径（默认 /var/lib/containerd）

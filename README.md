@@ -55,13 +55,13 @@ bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
 
 ```bash
 # CentOS/RHEL/Rocky
-bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.14
+bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
 
 # OpenEuler
-bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.14
+bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.11
 
 # Kylin
-bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.14
+bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.11
 
 ```
 
@@ -69,7 +69,7 @@ bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kube
 - 脚本会在有网络的机器上配置 Kubernetes 官方仓库并下载所有依赖包
 - Docker 方式会自动拉取对应的 OS 镜像并在容器内执行下载
 - 下载完成后，将目录复制到离线环境
-- 默认下载版本为 `v1.31.14`，第三个参数可省略；文档中显式写出是为了避免歧义
+- 默认下载版本为 `v1.31.11`，第三个参数可省略；文档中显式写出是为了避免歧义
 - 下载的包会自动包含所有依赖（如 cri-tools、kubernetes-cni 等）
 - 包兼容性建议：
   - `centos/rhel/rocky/almalinux`：可共用同一套 RPM 目录（如 `/data/download/packages/centos/kubernetes`）
@@ -227,5 +227,63 @@ Kubeadm 默认 **要求关闭 swap**（否则 preflight 通常会失败）。本
 - 宿主机时间正确（建议 NTP/chrony）
 - 端口未被占用（如 6443/10250 等）
 - containerd/kubelet 使用一致的 cgroup 驱动（本仓库按 containerd 默认/systemd 场景配置）
+
+## 修改 containerd 数据目录（默认 /var/lib/containerd）
+
+若要把镜像与元数据存到其他盘或目录（例如 `/data/containerd`），可按下面两种方式之一操作。
+
+### 方式一：生成配置时选择（推荐）
+
+运行 **`bash Script/00-Cluster-host.sh`** 时，会提示「是否修改 containerd 数据目录？」：
+
+- **直接回车**：不修改，使用默认 `/var/lib/containerd`
+- **输入路径**（如 `/data/containerd`）：会写入 `Script/environment.sh` 的 `CONTAINERD_ROOT`，后续执行 `11-Install-containerd.sh` 时自动使用该路径
+
+无需再单独设环境变量，执行 `sudo bash Script/11-Install-containerd.sh` 即可。
+
+### 方式二：安装前临时指定
+
+在**首次安装 containerd 之前**临时设置环境变量再执行安装脚本：
+
+```bash
+export CONTAINERD_ROOT="/data/containerd"
+sudo -E bash Script/11-Install-containerd.sh
+```
+
+脚本会在 `/etc/containerd/config.toml` 中写入 `root = "/data/containerd"` 并创建该目录。
+
+### 方式三：已安装后手动改路径
+
+1. **停服务**
+   ```bash
+   sudo systemctl stop kubelet    # 若已装 kubelet
+   sudo systemctl stop containerd
+   ```
+
+2. **迁移数据（可选，保留已有镜像）**
+   ```bash
+   sudo mv /var/lib/containerd /data/containerd
+   ```
+   若为新装、无需保留旧数据，只需新建目录：`sudo mkdir -p /data/containerd`。
+
+3. **改配置**  
+   编辑 `/etc/containerd/config.toml`，在文件**顶部**增加（或修改）两行：
+   ```toml
+   root = "/data/containerd"
+   state = "/run/containerd"
+   ```
+   `state` 不改也可以，保持默认 `/run/containerd` 即可。
+
+4. **启动服务**
+   ```bash
+   sudo systemctl start containerd
+   sudo systemctl start kubelet   # 若之前停了
+   ```
+
+5. **验证**
+   ```bash
+   sudo ctr -n k8s.io images ls
+   ```
+   若之前做过镜像导入，应仍能看到镜像列表。
 
 

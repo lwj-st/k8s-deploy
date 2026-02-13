@@ -74,9 +74,9 @@ install_helmfile() {
 main() {
   init_env
 
-  local tmp
+  # 使用全局变量，否则 EXIT trap 在脚本顶层执行时无法访问 local 变量
   tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+  trap 'rm -rf "${tmp:-}"' EXIT
 
   backup_existing_tools
   install_helm "${tmp}"

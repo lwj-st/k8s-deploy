@@ -304,7 +304,7 @@ artifacts:
     path: /data/download/packages/ubuntu/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline deb dir: kubeadm/kubelet/kubectl v1.31.14 + deps"
+    description: "offline deb dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
 
   - module: os
     type: dir
@@ -313,7 +313,7 @@ artifacts:
     path: /data/download/packages/centos/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.14 + deps"
+    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
 
   - module: os
     type: dir
@@ -322,7 +322,7 @@ artifacts:
     path: /data/download/packages/kylin/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.14 + deps"
+    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
 
   - module: os
     type: dir
@@ -331,6 +331,6 @@ artifacts:
     path: /data/download/packages/openeuler/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.14 + deps"
+    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
 
 

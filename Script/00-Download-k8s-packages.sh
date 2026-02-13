@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 下载 Kubernetes v1.31.14 离线安装包（deb/rpm） 可选
+# 下载 Kubernetes v1.31.11 离线安装包（deb/rpm） 可选
 # 用法：
 #   bash 00-Download-k8s-packages.sh [ubuntu|centos|rocky|openeuler|kylin] [输出目录]
 #
@@ -12,7 +12,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
-K8S_VERSION="${K8S_VERSION:-1.31.14}"
+K8S_VERSION="${K8S_VERSION:-1.31.11}"
 K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 
 # 检测 OS

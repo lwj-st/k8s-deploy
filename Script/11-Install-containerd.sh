@@ -76,6 +76,7 @@ backup_existing() {
 ################################################################################
 # Function: install_config
 # Description: 安装 config.toml 并修正关键项（imports/runtime_type/platforms）
+#              若设置 CONTAINERD_ROOT，则使用该路径为数据根目录（替代默认 /var/lib/containerd）
 ################################################################################
 install_config() {
   log_command "mkdir -p /etc/containerd"
@@ -83,6 +84,18 @@ install_config() {
   log_command "sed -i -E 's@^imports = \\[\"/etc/containerd/config\\.toml\"\\]@imports = []@' /etc/containerd/config.toml || true"
   log_command "sed -i -E 's@runtime_type = \"io\\.containerd\\.runtime\\.v1\\.linux\"@runtime_type = \"io.containerd.runc.v2\"@g' /etc/containerd/config.toml || true"
   log_command "sed -i -E 's@platforms = \\[\"linux/arm64/v8\"\\]@platforms = [\"linux/amd64\"]@' /etc/containerd/config.toml || true"
+
+  # 可选：自定义 containerd 数据根目录（镜像与元数据存储）
+  if [ -n "${CONTAINERD_ROOT:-}" ]; then
+    log_info "设置 containerd root = ${CONTAINERD_ROOT}"
+    CONTAINERD_STATE="${CONTAINERD_STATE:-/run/containerd}"
+    # 去掉已有 root/state 行，再在文件开头插入
+    sed -i -E '/^root = /d;/^state = /d' /etc/containerd/config.toml
+    { echo "root = \"${CONTAINERD_ROOT}\""; echo "state = \"${CONTAINERD_STATE}\""; cat /etc/containerd/config.toml; } > /etc/containerd/config.toml.tmp
+    mv /etc/containerd/config.toml.tmp /etc/containerd/config.toml
+    log_command "mkdir -p \"${CONTAINERD_ROOT}\""
+    mkdir -p "${CONTAINERD_ROOT}"
+  fi
 }
 
 ################################################################################

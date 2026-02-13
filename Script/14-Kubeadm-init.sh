@@ -8,17 +8,13 @@ init_framework
 require_root
 
 ensure_kubeconfig_for_user() {
-  # 初始化后自动配置 kubectl：
-  # - 优先使用 /etc/kubernetes/super-admin.conf（权限更全，避免部分场景 Forbidden）
-  # - 幂等：如已存在 ~/.kube/config 则先备份
+  # 初始化后自动配置 kubectl：使用 admin.conf，与常见集群 context 名 kubernetes-admin@kubernetes 保持一致
+  # 幂等：如已存在 ~/.kube/config 则先备份
   local user_home="$1"
   local owner_uid="$2"
   local owner_gid="$3"
 
   local src="/etc/kubernetes/admin.conf"
-  if [ -f /etc/kubernetes/super-admin.conf ]; then
-    src="/etc/kubernetes/super-admin.conf"
-  fi
 
   local kube_dir="${user_home}/.kube"
   local kube_cfg="${kube_dir}/config"
@@ -73,11 +69,7 @@ if [ ! -f /etc/kubernetes/admin.conf ]; then
   die "kubeadm init 完成但未生成 /etc/kubernetes/admin.conf"
 fi
 
-if [ -f /etc/kubernetes/super-admin.conf ]; then
-  export KUBECONFIG=/etc/kubernetes/super-admin.conf
-else
-  export KUBECONFIG=/etc/kubernetes/admin.conf
-fi
+export KUBECONFIG=/etc/kubernetes/admin.conf
 
 # 单节点：去污点（兼容 control-plane/master）
 node_name="$(hostname | tr 'A-Z' 'a-z')"

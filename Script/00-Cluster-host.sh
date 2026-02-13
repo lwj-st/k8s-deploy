@@ -79,6 +79,10 @@ if [ "${DEPLOY_NFS}" = "yes" ]; then
   fi
 fi
 
+# containerd 数据目录（镜像与元数据存储，默认 /var/lib/containerd）
+read -r -p "是否修改 containerd 数据目录？(直接回车=不修改使用默认 /var/lib/containerd；输入路径如 /data/containerd 则生效): " CONTAINERD_ROOT
+CONTAINERD_ROOT="${CONTAINERD_ROOT:-}"
+
 cat > "${SCRIPT_DIR}/environment.sh" <<EOF
 #!/usr/bin/env bash
 export DOWNLOAD_DIR="${DOWNLOAD_DIR}"
@@ -92,8 +96,10 @@ export INGRESS_NODE_NAME="${INGRESS_NODE_NAME}"
 export MAAS_MD5_CHECK="${MAAS_MD5_CHECK}"
 export NFS_SERVER="${NFS_SERVER}"
 export NFS_PATH="${NFS_PATH}"
+export CONTAINERD_ROOT="${CONTAINERD_ROOT:-}"
 
 # 说明：MAAS_MD5_CHECK=1 时 verify/download 会强校验 md5；=0 时存在即跳过（更快但不防坏包）
+# CONTAINERD_ROOT 非空时，11-Install-containerd.sh 将把 containerd 数据目录设为该路径（默认 /var/lib/containerd）
 EOF
 
 chmod 600 "${SCRIPT_DIR}/environment.sh"
