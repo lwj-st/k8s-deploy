@@ -20,15 +20,16 @@ jobs:
 
       - name: Prepare test env
         run: |
-          sudo mkdir -p /tmp/k8s-deploy-test
-          echo "BASE=/tmp/k8s-deploy-test" >> $GITHUB_ENV
+          # 使用当前用户可写的目录，避免 sudo 导致后续步骤无权限
+          mkdir -p "$RUNNER_TEMP/k8s-deploy-test"
+          echo "BASE=$RUNNER_TEMP/k8s-deploy-test" >> $GITHUB_ENV
 
       - name: Test each OS (K8S + tools, then delete)
         env:
           K8S_VERSION: "1.31.11"
         run: |
           set -e
-          BASE="${BASE:-/tmp/k8s-deploy-test}"
+          BASE="${BASE:-$RUNNER_TEMP/k8s-deploy-test}"
           # 与脚本支持的 OS 一致；顺序执行以节省空间
           for os in centos rocky almalinux rhel openeuler kylin ubuntu; do
             echo "========== OS: $os =========="
@@ -69,4 +70,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -rf /tmp/k8s-deploy-test
+        run: rm -rf "$RUNNER_TEMP/k8s-deploy-test"
