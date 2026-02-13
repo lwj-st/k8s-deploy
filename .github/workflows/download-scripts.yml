@@ -49,7 +49,7 @@ jobs:
               exit 1
             fi
             echo "[$os] K8S 通过 (${count} 个包)，删除输出目录..."
-            rm -rf "$BASE/$os"
+            sudo rm -rf "$BASE/$os"
 
             echo "[$os] 2/2 测试 tools 下载..."
             mkdir -p "$tools_out"
@@ -64,10 +64,10 @@ jobs:
               exit 1
             fi
             echo "[$os] tools 通过 (${count} 个包)，删除输出目录..."
-            rm -rf "$BASE/$os"
+            sudo rm -rf "$BASE/$os"
           done
           echo "========== 全部 OS 测试通过 =========="
 
       - name: Cleanup
         if: always()
-        run: rm -rf "$RUNNER_TEMP/k8s-deploy-test"
+        run: sudo rm -rf "$RUNNER_TEMP/k8s-deploy-test"
