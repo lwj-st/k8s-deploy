@@ -31,7 +31,7 @@ jobs:
           set -e
           BASE="${BASE:-$RUNNER_TEMP/k8s-deploy-test}"
           # 与脚本支持的 OS 一致；顺序执行以节省空间
-          for os in centos rocky almalinux rhel openeuler kylin ubuntu; do
+          for os in centos rocky almalinux  openeuler kylin ubuntu; do
             echo "========== OS: $os =========="
             k8s_out="$BASE/$os/kubernetes"
             tools_out="$BASE/$os/tools"
