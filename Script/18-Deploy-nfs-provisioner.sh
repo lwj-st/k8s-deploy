@@ -23,7 +23,7 @@ if helm -n "${ns}" status nfs-provisioner >/dev/null 2>&1; then
 fi
 
 if [ -z "${NFS_SERVER:-}" ] || [ -z "${NFS_PATH:-}" ]; then
-  die "缺少 NFS_SERVER/NFS_PATH（请先运行 00-Cluster-host.sh 填写）"
+  die "缺少 NFS_SERVER/NFS_PATH（请先运行 01-Cluster-host.sh 填写）"
 fi
 
 # 离线镜像对齐：

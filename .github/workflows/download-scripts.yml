@@ -55,9 +55,11 @@ jobs:
             mkdir -p "$tools_out"
             bash Script/00-Download-tools-packages-docker.sh "$os" "$tools_out"
             if [ "$os" = "ubuntu" ]; then
-              count=$(find "$tools_out" -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
+              # tools 脚本已改为：baseos/ 与按工具分目录存放 .deb，这里统计二级目录内的包数量
+              count=$(find "$tools_out" -mindepth 2 -maxdepth 2 -name '*.deb' 2>/dev/null | wc -l)
             else
-              count=$(find "$tools_out" -maxdepth 1 -name '*.rpm' 2>/dev/null | wc -l)
+              # RPM 系同样采用 baseos/ + 各工具子目录结构，统计二级目录内的 .rpm
+              count=$(find "$tools_out" -mindepth 2 -maxdepth 2 -name '*.rpm' 2>/dev/null | wc -l)
             fi
             if [ "${count:-0}" -lt 1 ]; then
               echo "ERROR [$os] tools 下载后无包: $tools_out"

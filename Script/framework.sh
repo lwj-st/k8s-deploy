@@ -313,7 +313,7 @@ init_framework() {
   get_cur_path
   init_logging
   if [ ! -f "${SCRIPT_DIR}/environment.sh" ]; then
-    die "未找到 ${SCRIPT_DIR}/environment.sh（请先执行 00-Cluster-host.sh 生成配置）"
+    die "未找到 ${SCRIPT_DIR}/environment.sh（请先执行 01-Cluster-host.sh 生成配置）"
   fi
   # shellcheck disable=SC1090
   source "${SCRIPT_DIR}/environment.sh"

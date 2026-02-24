@@ -104,6 +104,6 @@ EOF
 
 chmod 600 "${SCRIPT_DIR}/environment.sh"
 log_info "已生成: ${SCRIPT_DIR}/environment.sh"
-log_info "下一步建议：bash 01-Verify-artifacts.sh"
+log_info "下一步建议：bash 02-Download.sh"
 
 
