@@ -20,8 +20,8 @@ K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 # Docker 镜像映射
 
 # declare -A DOCKER_IMAGES=(
-#   ["centos"]=""
-#   ["rocky"]=""
+#   ["centos"]="centos:7"
+#   ["rocky"]="rockylinux:8"
 #   ["almalinux"]="almalinux:8"
 #   ["rhel"]="redhat/ubi8:latest"
 #   ["openeuler"]="openeuler/openeuler:22.03"
