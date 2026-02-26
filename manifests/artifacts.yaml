@@ -249,6 +249,14 @@ artifacts:
     md5: "457c628b31e772b960b781175dd532ad"
     description: "tidb operator values"
 
+  - module: tidb
+    type: tar
+    name: tidb.image.operator.v1.6.1
+    path: /data/download/tidb/tidb-operator-v1.6.1.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/tidb-operator-v1.6.1.tar"
+    md5: "7b4e913b545b7bb47a458094a0a387e1"
+    description: "tidb-operator image tar"
+
   - module: nvidia
     type: file
     name: nvidia.deb.nvidia-container-toolkit.1.17.8-1.amd64
