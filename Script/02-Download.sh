@@ -90,7 +90,7 @@ main() {
 
   log_info "MAAS_MD5_CHECK: ${MAAS_MD5_CHECK:-0}"
   download_from_manifest "${manifest}"
-  log_info "建议下一步：bash 02-Verify-artifacts.sh"
+  log_info "建议下一步：bash 03-Verify-artifacts.sh"
 }
 
 main "$@"
