@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # 校验顺序（GPU 节点才执行）
+# 0) fabricmanager check
 # 1) NVIDIA container toolkit 包是否已安装
 # 2) containerd 配置文件是否存在
 # 3) runtime_type 是否为 io.containerd.runc.v2
@@ -80,6 +81,45 @@ toml_get_value_in_block() {
 kubectl_ok() {
   have_cmd kubectl || return 1
   kubectl version --request-timeout=3s >/dev/null 2>&1
+}
+
+check_fabric_manager() {
+  # 仅在 systemd 存在且 nvidia-fabricmanager 服务已安装时进行检查
+  # https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/nvidia-fabricmanager-dev-570_570.195.03-1_amd64.deb
+  # https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/nvidia-fabricmanager-570_570.195.03-1_amd64.deb
+  if ! have_cmd systemctl; then
+    return 0
+  fi
+
+  if ! systemctl list-unit-files "nvidia-fabricmanager.service" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log_info "检查：NVIDIA Fabric Manager 服务状态（NVSwitch 机型必需组件）"
+
+  local fm_state
+  fm_state="$(systemctl is-active nvidia-fabricmanager || true)"
+
+  if [ "${fm_state}" = "active" ]; then
+    log_info "  ✓ nvidia-fabricmanager.service 处于运行状态"
+    return 0
+  fi
+
+  log_error "  ✗ nvidia-fabricmanager.service 状态异常：${fm_state:-unknown}"
+  print_solution "在升级 GPU 驱动后，需要同步升级 Fabric Manager 并保持版本一致，否则可能导致：
+  - 仅识别部分 GPU（nvidia-smi -L 只显示一张卡）
+  - CUDA 初始化失败（cudaGetDeviceCount Error 802 等），大模型服务无法启动
+
+请在当前机器上安装/升级以下 deb 包（版本需与当前驱动 570.195.03 一致）：
+  cd /data/download/nvidia
+  sudo dpkg -i nvidia-fabricmanager-570_570.195.03-1_amd64.deb nvidia-fabricmanager-dev-570_570.195.03-1_amd64.deb
+安装完成后执行：
+  sudo systemctl enable nvidia-fabricmanager
+  sudo systemctl restart nvidia-fabricmanager
+并重新验证：
+  nvidia-smi -L
+  python -c 'import torch; print(torch.cuda.device_count())'"
 }
 
 find_node_name() {
@@ -302,6 +342,7 @@ main() {
   log_info "检测到 GPU 节点，开始检查..."
   log_info ""
 
+  check_fabric_manager
   check_1_toolkit_packages
   check_2_containerd_config
   check_3_runtime_type
