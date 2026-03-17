@@ -259,35 +259,35 @@ artifacts:
 
   - module: nvidia
     type: file
-    name: nvidia.deb.nvidia-container-toolkit.1.17.8-1.amd64
-    path: /data/download/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb"
-    md5: "83c8f5c09db90fa980ae7b8d6ce745ff"
-    description: "nvidia-container-toolkit deb"
+    name: nvidia.rpm.nvidia-container-toolkit.1.17.8-1.x86_64
+    path: /data/download/nvidia/nvidia-container-toolkit-1.17.8-1.x86_64.rpm
+    url: "https://developer.download.nvidia.cn/compute/cuda/repos/amzn2023/x86_64/nvidia-container-toolkit-1.17.8-1.x86_64.rpm"
+    md5: "6fbe52f6af54ecb015bc3d5cb86b5d30"
+    description: "nvidia-container-toolkit rpm"
 
   - module: nvidia
     type: file
-    name: nvidia.deb.nvidia-container-toolkit-base.1.17.8-1.amd64
-    path: /data/download/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb"
-    md5: "e2cc56a5dd6fe817e4b590223a246b67"
-    description: "nvidia-container-toolkit-base deb"
+    name: nvidia.rpm.nvidia-container-toolkit-base.1.17.8-1.x86_64
+    path: /data/download/nvidia/nvidia-container-toolkit-base-1.17.8-1.x86_64.rpm
+    url: "https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/nvidia-container-toolkit-base-1.17.8-1.x86_64.rpm"
+    md5: "75f758a130af243ef3f725231270f78b"
+    description: "nvidia-container-toolkit-base rpm"
 
   - module: nvidia
     type: file
-    name: nvidia.deb.libnvidia-container-tools.1.17.8.amd64
-    path: /data/download/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb"
-    md5: "1a1d798687a709c9e000b744af03c454"
-    description: "libnvidia-container-tools deb"
+    name: nvidia.rpm.libnvidia-container-tools.1.17.8.x86_64
+    path: /data/download/nvidia/libnvidia-container-tools-1.17.8-1.x86_64.rpm
+    url: "https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/libnvidia-container-tools-1.17.8-1.x86_64.rpm"
+    md5: "58a5243a2c4cc8820d57942788beac92"
+    description: "libnvidia-container-tools rpm"
 
   - module: nvidia
     type: file
-    name: nvidia.deb.libnvidia-container1.1.17.8.amd64
-    path: /data/download/nvidia/libnvidia-container1_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/libnvidia-container1_1.17.8-1_amd64.deb"
-    md5: "39ab68777c6efe50b5817a0ca8fdab51"
-    description: "libnvidia-container1 deb"
+    name: nvidia.rpm.libnvidia-container1.1.17.8.x86_64
+    path: /data/download/nvidia/libnvidia-container1-1.17.8-1.x86_64.rpm
+    url: "https://developer.download.nvidia.cn/compute/cuda/repos/amzn2023/x86_64/libnvidia-container1-1.17.8-1.x86_64.rpm"
+    md5: "4c2bb3a74e5c650e0b36060b26243ee4"
+    description: "libnvidia-container1 rpm"
 
   - module: nvidia
     type: file

@@ -49,14 +49,43 @@ is_gpu_node() {
 }
 
 # check_dpkg_installed <pkgName>
-# 返回 0 表示已安装；返回 1 表示未安装；返回 2 表示无法检查（无 dpkg-query）
+# 仅用于 Debian/Ubuntu，返回 0 表示已安装，非 0 表示未安装或无法检查
 check_dpkg_installed() {
   local pkg="$1"
   if ! have_cmd dpkg-query; then
     log_warn "未找到 dpkg-query，跳过 deb 包安装检查（OS=${OS_ID}）"
-    return 2
+    return 1
   fi
   dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -q "install ok installed"
+}
+
+# check_rpm_installed <pkgName>
+# 仅用于 RHEL/CentOS/Rocky 等 rpm 系，返回 0 表示已安装，非 0 表示未安装或无法检查
+check_rpm_installed() {
+  local pkg="$1"
+  if ! have_cmd rpm; then
+    log_warn "未找到 rpm，跳过 rpm 包安装检查（OS=${OS_ID}）"
+    return 1
+  fi
+  rpm -q "$pkg" >/dev/null 2>&1
+}
+
+# check_pkg_installed <pkgName>
+# 根据 OS_ID 自动选择 dpkg 或 rpm 进行检测
+check_pkg_installed() {
+  local pkg="$1"
+  case "${OS_ID}" in
+    ubuntu|debian)
+      check_dpkg_installed "$pkg"
+      ;;
+    centos|rhel|rocky|almalinux|openeuler|kylin*)
+      check_rpm_installed "$pkg"
+      ;;
+    *)
+      log_warn "未知发行版（OS_ID=${OS_ID}），无法自动检查包 ${pkg} 是否已安装"
+      return 1
+      ;;
+  esac
 }
 
 # toml_get_value_in_block <file> <block> <key>
@@ -87,6 +116,9 @@ check_fabric_manager() {
   # 仅在 systemd 存在且 nvidia-fabricmanager 服务已安装时进行检查
   # https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/nvidia-fabricmanager-dev-570_570.195.03-1_amd64.deb
   # https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/nvidia-fabricmanager-570_570.195.03-1_amd64.deb
+
+  # https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/nvidia-fabric-manager-570.195.03-1.x86_64.rpm
+  # https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/nvidia-fabric-manager-devel-570.195.03-1.x86_64.rpm
   if ! have_cmd systemctl; then
     return 0
   fi
@@ -107,7 +139,11 @@ check_fabric_manager() {
   fi
 
   log_error "  ✗ nvidia-fabricmanager.service 状态异常：${fm_state:-unknown}"
-  print_solution "在升级 GPU 驱动后，需要同步升级 Fabric Manager 并保持版本一致，否则可能导致：
+
+  local msg
+  case "${OS_ID}" in
+    ubuntu|debian)
+      msg="在升级 GPU 驱动后，需要同步升级 Fabric Manager 并保持版本一致，否则可能导致：
   - 仅识别部分 GPU（nvidia-smi -L 只显示一张卡）
   - CUDA 初始化失败（cudaGetDeviceCount Error 802 等），大模型服务无法启动
 
@@ -120,6 +156,37 @@ check_fabric_manager() {
 并重新验证：
   nvidia-smi -L
   python -c 'import torch; print(torch.cuda.device_count())'"
+      ;;
+    centos|rhel|rocky|almalinux|openeuler|kylin*)
+      msg="在升级 GPU 驱动后，需要同步升级 Fabric Manager 并保持版本一致，否则可能导致：
+  - 仅识别部分 GPU（nvidia-smi -L 只显示一张卡）
+  - CUDA 初始化失败（cudaGetDeviceCount Error 802 等），大模型服务无法启动
+
+请在当前机器上安装/升级匹配版本的 Fabric Manager rpm 包（包名和版本请与当前驱动文档对齐），示例：
+  cd /data/download/nvidia
+  sudo yum -y localinstall nvidia-fabric-manager-570.195.03-1.x86_64.rpm nvidia-fabric-manager-devel-570.195.03-1.x86_64.rpm  # 或 dnf localinstall
+安装完成后执行：
+  sudo systemctl enable nvidia-fabricmanager
+  sudo systemctl restart nvidia-fabricmanager
+并重新验证：
+  nvidia-smi -L
+  python -c 'import torch; print(torch.cuda.device_count())'"
+      ;;
+    *)
+      msg="在升级 GPU 驱动后，需要同步升级 Fabric Manager 并保持版本一致，否则可能导致：
+  - 仅识别部分 GPU（nvidia-smi -L 只显示一张卡）
+  - CUDA 初始化失败（cudaGetDeviceCount Error 802 等），大模型服务无法启动
+
+请根据当前发行版的官方文档安装/升级 NVIDIA Fabric Manager，并确保：
+  - nvidia-fabricmanager.service 处于 active
+  - 版本与当前驱动匹配
+并重新验证：
+  nvidia-smi -L
+  python -c 'import torch; print(torch.cuda.device_count())'"
+      ;;
+  esac
+
+  print_solution "${msg}"
 }
 
 find_node_name() {
@@ -163,7 +230,7 @@ check_1_toolkit_packages() {
   )
   local missing_pkgs=0
   for p in "${pkgs[@]}"; do
-    if check_dpkg_installed "$p"; then
+    if check_pkg_installed "$p"; then
       log_info "  ✓ 已安装: ${p}"
     else
       log_error "  ✗ 未安装: ${p}"
@@ -177,7 +244,7 @@ check_1_toolkit_packages() {
     log_info "  ✓ nvidia-ctk 已存在"
   fi
   if [ "$missing_pkgs" -ne 0 ]; then
-    print_solution "离线场景：请补齐并安装 k8s-deploy 清单里的 NVIDIA deb（或自行准备 rpm 并扩展脚本）
+    print_solution "离线场景：请补齐并安装 k8s-deploy 清单里的 NVIDIA 离线包（支持 deb/rpm，需与当前 OS 匹配）
 执行安装脚本：sudo bash ${K8S_DEPLOY_ROOT}/Script/20-Deploy-nvidia.sh"
   else
     log_info "  ✓ 所有必需包已安装"

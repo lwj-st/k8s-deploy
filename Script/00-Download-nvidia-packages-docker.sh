@@ -12,9 +12,9 @@ set -euo pipefail
 # 用法：
 #   bash 00-Download-nvidia-packages-docker.sh [centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu] [输出目录]
 # 示例：
-#   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia/ubuntu
-#   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia/centos
-#   bash 00-Download-nvidia-packages-docker.sh openeuler /data/download/nvidia/openeuler
+#   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia
+#   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia
+#   bash 00-Download-nvidia-packages-docker.sh openeuler /data/download/nvidia
 #
 # 说明：
 #   - RPM 系（含 openeuler/kylin）使用 NVIDIA stable/rpm 通用仓库，版本固定 1.17.8-1

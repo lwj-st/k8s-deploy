@@ -21,39 +21,103 @@ load_manifest() {
 }
 
 ################################################################################
-# Function: collect_nvidia_debs
-# Description: 从清单中收集所有 nvidia deb 路径
+# Function: collect_nvidia_pkgs
+# Description: 从清单中收集当前 OS 对应的 nvidia 离线包路径（deb 或 rpm）
 ################################################################################
-collect_nvidia_debs() {
-  deb_list=()
+collect_nvidia_pkgs() {
+  nvidia_pkgs=()
+
+  # 根据 OS_ID 选择后缀
+  local suffix
+  case "${OS_ID}" in
+    ubuntu|debian)
+      suffix=".deb"
+      ;;
+    centos|rhel|rocky|almalinux|openeuler|kylin*)
+      suffix=".rpm"
+      ;;
+    *)
+      die "不支持的 OS_ID=${OS_ID}，请在脚本中增加对应的 nvidia 离线包收集逻辑"
+      ;;
+  esac
+
   while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
     [ "${module}" = "nvidia" ] || continue
     [ "${type}" = "file" ] || continue
-    [[ "${path}" == *.deb ]] || continue
-    deb_list+=("${path}")
+    [[ "${path}" == *"${suffix}" ]] || continue
+    nvidia_pkgs+=("${path}")
   done < <(parse_artifacts_yaml "${manifest}")
 
-  [ "${#deb_list[@]}" -gt 0 ] || die "制品清单中未找到 nvidia deb（module=nvidia,type=file,*.deb）"
+  [ "${#nvidia_pkgs[@]}" -gt 0 ] || die "制品清单中未找到 nvidia ${suffix}（module=nvidia,type=file,*${suffix}）"
 
   local f
-  for f in "${deb_list[@]}"; do
+  for f in "${nvidia_pkgs[@]}"; do
     [ -f "$f" ] || die "缺少制品: $f"
   done
 }
 
 ################################################################################
-# Function: install_nvidia_toolkit
+# Function: install_nvidia_toolkit_deb
 # Description: 离线安装 NVIDIA container toolkit 相关 deb
 ################################################################################
-install_nvidia_toolkit() {
+install_nvidia_toolkit_deb() {
   if ! have dpkg; then
-    die "当前系统不支持 dpkg，nvidia 离线包请准备 rpm 并扩展脚本"
+    die "当前系统不支持 dpkg，请确认系统为 Debian/Ubuntu 或改用 rpm 流程"
   fi
 
   log_info "安装 NVIDIA container toolkit（离线 deb）..."
-  log_command "dpkg -i ${deb_list[*]}"
+  log_command "dpkg -i ${nvidia_pkgs[*]}"
 
   have nvidia-ctk || die "未找到 nvidia-ctk（deb 安装失败或依赖缺失）"
+}
+
+################################################################################
+# Function: install_nvidia_toolkit_rpm
+# Description: 离线安装 NVIDIA container toolkit 相关 rpm
+################################################################################
+install_nvidia_toolkit_rpm() {
+  # 这里只做最小假设：节点上至少有 rpm，优先使用 dnf/yum localinstall
+  if ! have rpm; then
+    die "当前系统未找到 rpm，无法安装 NVIDIA rpm 包"
+  fi
+
+  local installer=""
+  if have dnf; then
+    installer="dnf"
+  elif have yum; then
+    installer="yum"
+  fi
+
+  log_info "安装 NVIDIA container toolkit（离线 rpm）..."
+
+  if [ -n "${installer}" ]; then
+    # dnf/yum 会自动处理依赖关系，比裸 rpm -ivh 更安全
+    log_command "${installer} -y localinstall ${nvidia_pkgs[*]}"
+  else
+    # 兜底：仅在没有 dnf/yum 的极简环境使用 rpm -ivh
+    log_warn "未检测到 dnf/yum，改用 rpm -ivh 安装，可能需要你手动解决依赖"
+    log_command "rpm -ivh ${nvidia_pkgs[*]}"
+  fi
+
+  have nvidia-ctk || die "未找到 nvidia-ctk（rpm 安装失败或依赖缺失）"
+}
+
+################################################################################
+# Function: install_nvidia_toolkit
+# Description: 根据 OS_ID 自动选择 deb/rpm 安装流程
+################################################################################
+install_nvidia_toolkit() {
+  case "${OS_ID}" in
+    ubuntu|debian)
+      install_nvidia_toolkit_deb
+      ;;
+    centos|rhel|rocky|almalinux|openeuler|kylin*)
+      install_nvidia_toolkit_rpm
+      ;;
+    *)
+      die "不支持的 OS_ID=${OS_ID}，请在 install_nvidia_toolkit 中增加对应分支"
+      ;;
+  esac
 }
 
 ################################################################################
@@ -102,7 +166,7 @@ main() {
   export KUBECONFIG=/etc/kubernetes/admin.conf
 
   load_manifest
-  collect_nvidia_debs
+  collect_nvidia_pkgs
   install_nvidia_toolkit
   configure_containerd_runtime
   deploy_nvidia_device_plugin
