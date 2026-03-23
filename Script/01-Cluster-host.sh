@@ -31,9 +31,9 @@ SERVICE_CIDR="${SERVICE_CIDR:-10.96.0.0/12}"
 # 示例：
 #   interface=enp65s0f1
 #   can-reach=10.0.0.1
-# 默认: interface=bond1（如不符合你环境，请在此处修改）
-read -r -p "Calico IP 网卡名 (默认: interface=bond1): " CALICO_IP_AUTODETECTION_METHOD
-CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD:-interface=bond1}"
+# 默认: interface=bond0（如不符合你环境，请在此处修改）
+read -r -p "Calico IP 网卡名 (默认: bond0): " CALICO_IP_AUTODETECTION_METHOD
+CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD:bond0}"
 
 ip_guess="$(default_ip || true)"
 read -r -p "API advertise 地址 (默认: ${ip_guess:-空，需要你填}): " API_ADVERTISE_ADDRESS
@@ -114,5 +114,4 @@ EOF
 chmod 600 "${SCRIPT_DIR}/environment.sh"
 log_info "已生成: ${SCRIPT_DIR}/environment.sh"
 log_info "下一步建议：bash 02-Download.sh"
-
 
