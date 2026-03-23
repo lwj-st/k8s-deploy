@@ -33,7 +33,7 @@ collect_nvidia_pkgs() {
     ubuntu|debian)
       suffix=".deb"
       ;;
-    centos|rhel|rocky|almalinux|openeuler|kylin*)
+    centos|rocky|openeuler|kylin*)
       suffix=".rpm"
       ;;
     *)
@@ -111,7 +111,7 @@ install_nvidia_toolkit() {
     ubuntu|debian)
       install_nvidia_toolkit_deb
       ;;
-    centos|rhel|rocky|almalinux|openeuler|kylin*)
+    centos|rocky|openeuler|kylin*)
       install_nvidia_toolkit_rpm
       ;;
     *)

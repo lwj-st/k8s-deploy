@@ -3,17 +3,27 @@ set -euo pipefail
 
 # 使用 Docker 容器下载 Kubernetes 离线安装包（适用于没有对应 OS 环境的情况） 可选
 # 用法：
-#   bash 00-Download-k8s-packages-docker.sh [centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu] [输出目录] [K8S版本]
+#   bash 00-Download-k8s-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录] [K8S版本]
 #
 # 示例：
-#   bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
-#   bash 00-Download-k8s-packages-docker.sh ubuntu /data/download/packages/ubuntu/kubernetes 1.31.11
+#   bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/kubernetes/centos 1.31.11
+#   bash 00-Download-k8s-packages-docker.sh ubuntu /data/download/packages/kubernetes/ubuntu 1.31.11
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
 OS_TYPE="${1:-centos}"
-OUTPUT_DIR="${2:-/data/download/packages/${OS_TYPE}/kubernetes}"
+K8S_OS_DIR="${OS_TYPE}"
+if [ "${OS_TYPE}" = "debian" ]; then
+  # debian 与 ubuntu 共享同一套 .deb
+  K8S_OS_DIR="ubuntu"
+fi
+DOWNLOAD_OS_TYPE="${OS_TYPE}"
+if [ "${OS_TYPE}" = "debian" ]; then
+  # 让容器内下载逻辑走 ubuntu/apt 分支
+  DOWNLOAD_OS_TYPE="ubuntu"
+fi
+OUTPUT_DIR="${2:-/data/download/packages/kubernetes/${K8S_OS_DIR}}"
 K8S_VERSION="${3:-1.31.11}"
 K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 
@@ -22,8 +32,6 @@ K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 # declare -A DOCKER_IMAGES=(
 #   ["centos"]="centos:7"
 #   ["rocky"]="rockylinux:8"
-#   ["almalinux"]="almalinux:8"
-#   ["rhel"]="redhat/ubi8:latest"
 #   ["openeuler"]="openeuler/openeuler:22.03"
 #   ["kylin"]="macrosan/kylin:v10-sp3-2403"
 #   ["ubuntu"]="ubuntu:22.04"
@@ -32,15 +40,14 @@ K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
   ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
-  ["almalinux"]="almalinux:8"
-  ["rhel"]="redhat/ubi8:latest"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
+  ["debian"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
 )
 
 if [ -z "${DOCKER_IMAGES[${OS_TYPE}]:-}" ]; then
-  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu"
+  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|openeuler|kylin|ubuntu|debian"
 fi
 
 DOCKER_IMAGE="${DOCKER_IMAGES[${OS_TYPE}]}"
@@ -74,7 +81,7 @@ else
     sudo systemctl start docker
     sudo systemctl enable docker
 
-  CentOS/RHEL/Rocky:
+  CentOS/Rocky:
     sudo yum install -y docker
     sudo systemctl start docker
     sudo systemctl enable docker
@@ -118,8 +125,8 @@ mkdir -p "${OUTPUT_DIR}"
 ################################################################################
 # Ubuntu/Debian：apt 下载 .deb
 ################################################################################
-if [ "${OS_TYPE}" = "ubuntu" ]; then
-  log "检测到 Ubuntu，使用 apt 下载 Kubernetes .deb 包..."
+if [ "${OS_TYPE}" = "ubuntu" ] || [ "${OS_TYPE}" = "debian" ]; then
+  log "检测到 Ubuntu/Debian，使用 apt 下载 Kubernetes .deb 包..."
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq || true
   apt-get install -y -qq curl ca-certificates gpg 2>/dev/null || true
@@ -369,7 +376,7 @@ if [ "${DOCKER_CMD}" = "podman" ]; then
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
@@ -380,7 +387,7 @@ else
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败"
     }
@@ -390,7 +397,7 @@ else
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可能需要将当前用户添加到 docker 组：sudo usermod -aG docker $USER）"
     }
@@ -401,7 +408,7 @@ rm -f "${TMP_SCRIPT}"
 
 # 统计结果（按 OS 区分 .rpm / .deb）
 shopt -s nullglob
-if [ "${OS_TYPE}" = "ubuntu" ]; then
+if [ "${OS_TYPE}" = "ubuntu" ] || [ "${OS_TYPE}" = "debian" ]; then
   HOST_PKG_FILES=("${OUTPUT_DIR}"/*.deb)
   PKG_EXT="deb"
 else
@@ -426,7 +433,7 @@ log_info ""
 log_info "下一步："
 log_info "1. 将 ${OUTPUT_DIR} 目录复制到离线环境"
 log_info "2. 确保 artifacts.yaml 中的 path 指向正确路径"
-if [ "${OS_TYPE}" = "ubuntu" ]; then
+if [ "${OS_TYPE}" = "ubuntu" ] || [ "${OS_TYPE}" = "debian" ]; then
   log_info "3. 离线安装: dpkg -i *.deb 或 apt install ./*.deb（需与 13-Install-k8s-packages 等脚本配合）"
 else
   log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装"

@@ -3,33 +3,39 @@ set -uo pipefail
 
 # 使用 Docker 容器下载常用工具离线安装包（适用于没有对应 OS 环境的情况） 可选
 # 用法：
-#   bash 00-Download-tools-packages-docker.sh [centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu] [输出目录]
+#   bash 00-Download-tools-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录]
 #
 # 示例：
-#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/centos/tools
-#   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/rocky/tools
-#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/ubuntu/tools
+#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/tools/centos
+#   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/tools/rocky
+#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/tools/ubuntu
 
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
 OS_TYPE="${1:-centos}"
-OUTPUT_DIR="${2:-/data/download/packages/${OS_TYPE}/tools}"
+TOOLS_OS_DIR="${OS_TYPE}"
+DOWNLOAD_OS_TYPE="${OS_TYPE}"
+if [ "${OS_TYPE}" = "debian" ]; then
+  # debian 与 ubuntu 共用目录与 apt 逻辑
+  TOOLS_OS_DIR="ubuntu"
+  DOWNLOAD_OS_TYPE="ubuntu"
+fi
+OUTPUT_DIR="${2:-/data/download/packages/tools/${TOOLS_OS_DIR}}"
 
 # Docker 镜像映射（RPM 系与 00-Download-k8s-packages-docker.sh 一致；ubuntu 为官方镜像）
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
   ["rocky"]="rockylinux:8"
-  ["almalinux"]="almalinux:8"
-  ["rhel"]="redhat/ubi8:latest"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
+  ["debian"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
 )
 
 if [ -z "${DOCKER_IMAGES[${OS_TYPE}]:-}" ]; then
-  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu"
+  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|openeuler|kylin|ubuntu|debian"
 fi
 
 DOCKER_IMAGE="${DOCKER_IMAGES[${OS_TYPE}]}"
@@ -184,10 +190,10 @@ REPO_EOF
   fi
 fi
 
-# Rocky/AlmaLinux/RHEL 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
+# Rocky/RHEL-like 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
 if command -v dnf &>/dev/null; then
   case "${OS_TYPE}" in
-    rocky|almalinux|rhel|centos)
+    rocky|centos)
       if ! rpm -q epel-release &>/dev/null; then
         log "尝试启用 EPEL..."
         dnf install -y epel-release || true
@@ -275,7 +281,7 @@ run_container() {
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${OS_TYPE}" || {
+    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
@@ -292,7 +298,7 @@ else
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${OS_TYPE}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可尝试: sudo usermod -aG docker $USER）"
     }
