@@ -25,7 +25,7 @@ install_offline_rpms() {
   shopt -u nullglob
   [ ${#pkgs[@]} -gt 0 ] || die "离线 rpm 目录为空: $dir"
   if have dnf; then
-    log_command "dnf -y install \"$dir\"/*.rpm"
+    log_command "dnf -y install --allowerasing \"$dir\"/*.rpm"
   else
     log_command "yum -y localinstall \"$dir\"/*.rpm"
   fi
