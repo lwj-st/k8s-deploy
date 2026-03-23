@@ -49,13 +49,15 @@ case "${OS_ID}" in
       die "缺少离线包目录：${deb_dir}（并且 ALLOW_ONLINE=no）"
     fi
     ;;
-  centos|rhel|rocky|almalinux|openeuler|kylin*)
+  centos|rocky|openeuler|kylin*)
     # 统一走 rpm 目录（从清单中按 os_id 取）
     rpm_dir=""
     if [ "${OS_ID}" = "openeuler" ]; then
       rpm_dir="$(artifact_get_os_kubernetes_dir "openeuler")"
     elif [[ "${OS_ID}" == kylin* ]]; then
       rpm_dir="$(artifact_get_os_kubernetes_dir "kylin")"
+    elif [ "${OS_ID}" = "rocky" ]; then
+      rpm_dir="$(artifact_get_os_kubernetes_dir "rocky")"
     else
       rpm_dir="$(artifact_get_os_kubernetes_dir "centos")"
     fi
@@ -70,7 +72,7 @@ case "${OS_ID}" in
     fi
     ;;
   *)
-    die "不支持的 OS_ID=${OS_ID}，请完善 ${DOWNLOAD_DIR}/packages/<os>/kubernetes 离线包目录并扩展脚本"
+    die "不支持的 OS_ID=${OS_ID}，请完善 /data/download/packages/kubernetes/<os> 离线包目录并扩展脚本"
     ;;
 esac
 
