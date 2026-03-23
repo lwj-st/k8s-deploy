@@ -15,8 +15,13 @@ log_info "部署 Calico CNI..."
 log_command "kubectl apply -f \"${calico}\""
 
 if [ -n "${CALICO_IP_AUTODETECTION_METHOD:-}" ]; then
-  log_info "为 calico-node 设置 IP_AUTODETECTION_METHOD=${CALICO_IP_AUTODETECTION_METHOD}"
-  log_command "kubectl -n kube-system set env daemonset/calico-node IP_AUTODETECTION_METHOD=\"${CALICO_IP_AUTODETECTION_METHOD}\""
+  autodetect_method="${CALICO_IP_AUTODETECTION_METHOD}"
+  # 自动补全为 interface=<name>
+  if [[ "${autodetect_method}" != *=* ]]; then
+    autodetect_method="interface=${autodetect_method}"
+  fi
+  log_info "为 calico-node 设置 IP_AUTODETECTION_METHOD=${autodetect_method}"
+  log_command "kubectl -n kube-system set env daemonset/calico-node IP_AUTODETECTION_METHOD=\"${autodetect_method}\""
 else
   log_info "未设置 CALICO_IP_AUTODETECTION_METHOD，保留 Calico 默认 IP 探测方式"
 fi
