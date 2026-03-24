@@ -27,6 +27,14 @@ POD_CIDR="${POD_CIDR:-10.112.0.0/16}"
 read -r -p "Service CIDR (默认: 10.96.0.0/12): " SERVICE_CIDR
 SERVICE_CIDR="${SERVICE_CIDR:-10.96.0.0/12}"
 
+# Calico IP 自动探测方式（可选）
+# 示例：
+#   interface=enp65s0f1
+#   can-reach=10.0.0.1
+# 默认: interface=bond0（如不符合你环境，请在此处修改）
+read -r -p "Calico IP 网卡名 (默认: bond0): " CALICO_IP_AUTODETECTION_METHOD
+CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD:-bond0}"
+
 ip_guess="$(default_ip || true)"
 read -r -p "API advertise 地址 (默认: ${ip_guess:-空，需要你填}): " API_ADVERTISE_ADDRESS
 API_ADVERTISE_ADDRESS="${API_ADVERTISE_ADDRESS:-$ip_guess}"
@@ -91,6 +99,7 @@ export POD_CIDR="${POD_CIDR}"
 export SERVICE_CIDR="${SERVICE_CIDR}"
 export API_ADVERTISE_ADDRESS="${API_ADVERTISE_ADDRESS}"
 export IMAGE_REPOSITORY="${IMAGE_REPOSITORY}"
+export CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD}"
 export ALLOW_ONLINE="${ALLOW_ONLINE}"
 export INGRESS_NODE_NAME="${INGRESS_NODE_NAME}"
 export MAAS_MD5_CHECK="${MAAS_MD5_CHECK}"
@@ -105,5 +114,4 @@ EOF
 chmod 600 "${SCRIPT_DIR}/environment.sh"
 log_info "已生成: ${SCRIPT_DIR}/environment.sh"
 log_info "下一步建议：bash 02-Download.sh"
-
 
