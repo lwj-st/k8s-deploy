@@ -13,6 +13,8 @@ init_logging
 detect_os
 
 TARGET_NOFILE=65535
+INGRESS_NS="${INGRESS_NS:-ingress-nginx}"
+INGRESS_LABEL_SELECTOR="${INGRESS_LABEL_SELECTOR:-app.kubernetes.io/component=controller}"
 
 have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
@@ -28,7 +30,7 @@ print_solution() {
 
 check_shell_ulimit() {
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log_info "检查 1/3：当前 shell 进程的 nofile 限制（ulimit -n）"
+  log_info "检查 1/4：当前 shell 进程的 nofile 限制（ulimit -n）"
 
   local cur
   if cur="$(ulimit -n 2>/dev/null)"; then
@@ -49,7 +51,7 @@ check_shell_ulimit() {
 
 check_proc_limits() {
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log_info "检查 2/3：/proc/self/limits 中的 Max open files（软/硬限制）"
+  log_info "检查 2/4：/proc/self/limits 中的 Max open files（软/硬限制）"
 
   if [ ! -r /proc/self/limits ]; then
     log_warn "  ⚠ 无法读取 /proc/self/limits"
@@ -94,7 +96,7 @@ check_proc_limits() {
 
 check_systemd_limits() {
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  log_info "检查 3/3：systemd 级别的 NOFILE 限制（全局 + kubelet/containerd 单元）"
+  log_info "检查 3/4：systemd 级别的 NOFILE 限制（全局 + kubelet/containerd 单元）"
 
   if ! have_cmd systemctl; then
     log_warn "  ⚠ 未发现 systemctl，跳过 systemd 相关检查"
@@ -139,17 +141,68 @@ check_systemd_limits() {
    LimitNOFILE=${TARGET_NOFILE}
 
 3) 重新加载 systemd 配置并重启服务（会重启节点上 Pod，请在维护窗口操作）：
+   sudo systemctl daemon-reexec
    sudo systemctl daemon-reload
    sudo systemctl restart kubelet
    sudo systemctl restart containerd
 
 4) 重启后，删除相关 Pod 让其重新拉起（例如 ingress-nginx-controller）：
-   kubectl -n ingress-nginx delete pod -l app.kubernetes.io/name=ingress-nginx-controller"
+   kubectl -n ${INGRESS_NS} delete pod -l ${INGRESS_LABEL_SELECTOR}"
       fi
     else
       log_warn "  ⚠ 未发现 systemd 单元：${unit}，跳过该服务的 LimitNOFILE 检查"
     fi
   done
+}
+
+check_ingress_fd_keyword() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log_info "检查 4/4：ingress-nginx 日志关键字（No file descriptors available）"
+
+  if ! have_cmd kubectl; then
+    log_warn "  ⚠ 未发现 kubectl，跳过 ingress 日志关键字检查"
+    return
+  fi
+  if ! kubectl version --request-timeout=3s >/dev/null 2>&1; then
+    log_warn "  ⚠ 集群不可达，跳过 ingress 日志关键字检查"
+    return
+  fi
+
+  local pods
+  pods="$(kubectl -n "${INGRESS_NS}" get pod -l "${INGRESS_LABEL_SELECTOR}" -o name 2>/dev/null || true)"
+  if [ -z "${pods}" ]; then
+    log_warn "  ⚠ 未找到 ingress controller Pod（ns=${INGRESS_NS}, selector=${INGRESS_LABEL_SELECTOR}）"
+    return
+  fi
+
+  local hit=0
+  local pod
+  for pod in ${pods}; do
+    if kubectl -n "${INGRESS_NS}" logs "${pod#pod/}" --tail=300 2>/dev/null | grep -qiE 'no file descriptors available|socket\(\).*failed \(24:'; then
+      log_error "  ✗ 在 ${pod} 日志中命中 FD 耗尽关键字"
+      hit=1
+    else
+      log_info "  ✓ ${pod} 最近日志未命中 FD 耗尽关键字"
+    fi
+  done
+
+  if [ "${hit}" -eq 1 ]; then
+    print_solution "典型报错表现（示例）：
+  - ingress-nginx-controller 日志中出现：\"no file descriptors available\"
+  - 业务 Pod 无法建立新连接、偶发 I/O 失败
+
+建议：
+1) 编辑 /etc/systemd/system.conf ，取消注释或添加：
+   DefaultLimitNOFILE=${TARGET_NOFILE}
+
+2) 重新加载 systemd 配置并重启服务（会重启节点上 Pod，请在维护窗口操作）：
+   systemctl daemon-reexec
+   systemctl daemon-reload
+   systemctl restart containerd
+
+4) 重启后，删除相关 Pod 让其重新拉起（例如 ingress-nginx-controller）：
+   kubectl -n ${INGRESS_NS} delete pod -l ${INGRESS_LABEL_SELECTOR}"
+  fi
 }
 
 main() {
@@ -162,6 +215,7 @@ main() {
   check_shell_ulimit
   check_proc_limits
   check_systemd_limits
+  check_ingress_fd_keyword
 
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查完成（如有 ✗ 项，请按对应 [解决方案] 调整后重试）"
@@ -169,4 +223,3 @@ main() {
 }
 
 main "$@"
-
