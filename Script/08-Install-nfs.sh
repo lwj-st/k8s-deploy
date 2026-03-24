@@ -31,9 +31,6 @@ case "${OS_ID}" in
     nfs_pkg_name="nfs-kernel-server"
     tools_subdir="nfs-kernel-server"
     ;;
-  rhel|almalinux)
-    die "OS_ID=${OS_ID} 已剔除：不再提供离线 NFS 安装包"
-    ;;
   centos|rocky|openeuler|kylin*)
     if rpm -q nfs-utils &>/dev/null; then
       nfs_installed=1

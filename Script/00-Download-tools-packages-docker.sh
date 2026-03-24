@@ -190,7 +190,7 @@ REPO_EOF
   fi
 fi
 
-# Rocky/RHEL-like 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
+# Rocky 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
 if command -v dnf &>/dev/null; then
   case "${OS_TYPE}" in
     rocky|centos)

@@ -27,7 +27,7 @@ collect_nvidia_pkgs() {
     nvidia_pkg_dir="${NVIDIA_TOOLKIT_DIR}"
     case "${OS_ID}" in
       ubuntu|debian) suffix=".deb" ;;
-      centos|rocky|almalinux|rhel|openeuler|kylin*) suffix=".rpm" ;;
+      centos|rocky|openeuler|kylin*) suffix=".rpm" ;;
       *) die "不支持的 OS_ID=${OS_ID}（使用 NVIDIA_TOOLKIT_DIR 时仍需合法 OS 以选择 deb/rpm）" ;;
     esac
     log_info "使用 NVIDIA_TOOLKIT_DIR=${nvidia_pkg_dir}"
@@ -41,7 +41,7 @@ collect_nvidia_pkgs() {
         os_key="centos"
         suffix=".rpm"
         ;;
-      rocky|almalinux|rhel)
+      rocky)
         os_key="rocky"
         suffix=".rpm"
         ;;

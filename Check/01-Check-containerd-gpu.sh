@@ -60,7 +60,7 @@ check_dpkg_installed() {
 }
 
 # check_rpm_installed <pkgName>
-# 仅用于 RHEL/CentOS/Rocky 等 rpm 系，返回 0 表示已安装，非 0 表示未安装或无法检查
+# 仅用于 CentOS/Rocky 等 rpm 系，返回 0 表示已安装，非 0 表示未安装或无法检查
 check_rpm_installed() {
   local pkg="$1"
   if ! have_cmd rpm; then
@@ -78,7 +78,7 @@ check_pkg_installed() {
     ubuntu|debian)
       check_dpkg_installed "$pkg"
       ;;
-    centos|rhel|rocky|almalinux|openeuler|kylin*)
+    centos|rocky|openeuler|kylin*)
       check_rpm_installed "$pkg"
       ;;
     *)
@@ -157,7 +157,7 @@ check_fabric_manager() {
   nvidia-smi -L
   python -c 'import torch; print(torch.cuda.device_count())'"
       ;;
-    centos|rhel|rocky|almalinux|openeuler|kylin*)
+    centos|rocky|openeuler|kylin*)
       msg="在升级 GPU 驱动后，需要同步升级 Fabric Manager 并保持版本一致，否则可能导致：
   - 仅识别部分 GPU（nvidia-smi -L 只显示一张卡）
   - CUDA 初始化失败（cudaGetDeviceCount Error 802 等），大模型服务无法启动

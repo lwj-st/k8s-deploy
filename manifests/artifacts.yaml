@@ -283,47 +283,9 @@ artifacts:
 
   - module: os
     type: dir
-    os_id: ubuntu
-    name: os.dir.kubernetes.ubuntu
-    path: /data/download/packages/kubernetes/ubuntu
+    name: os.dir.kubernetes
+    path: /data/download/packages/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline deb dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: centos
-    name: os.dir.kubernetes.centos
-    path: /data/download/packages/kubernetes/centos
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: rocky
-    name: os.dir.kubernetes.rocky
-    path: /data/download/packages/kubernetes/rocky
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: kylin
-    name: os.dir.kubernetes.kylin
-    path: /data/download/packages/kubernetes/kylin
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: openeuler
-    name: os.dir.kubernetes.openeuler
-    path: /data/download/packages/kubernetes/openeuler
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
+    description: "offline kube packages base dir; append /<os> in artifact_get_os_kubernetes_dir"
 
