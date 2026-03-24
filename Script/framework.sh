@@ -309,6 +309,39 @@ artifact_get_os_kubernetes_dir() {
   printf '%s\n' "${found}"
 }
 
+################################################################################
+# Function: artifact_get_nvidia_toolkit_base_dir
+# Description: 从清单读取 nvidia toolkit 离线包基目录（恰好 1 条 module=nvidia,type=dir）；
+#              path 以 /data/download 开头时替换为 ${DOWNLOAD_DIR}；不含 OS 子目录，由调用方拼接 /<os>
+################################################################################
+artifact_get_nvidia_toolkit_base_dir() {
+  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
+  [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
+  if [ -z "${DOWNLOAD_DIR:-}" ]; then
+    die "environment.sh 未设置 DOWNLOAD_DIR，无法解析 nvidia toolkit 基目录"
+  fi
+
+  local cnt=0
+  local base_from_yaml=""
+  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
+    [ "${m}" = "nvidia" ] || continue
+    [ "${t}" = "dir" ] || continue
+    cnt=$((cnt + 1))
+    base_from_yaml="${artifact_path}"
+  done < <(parse_artifacts_yaml "${manifest}")
+
+  if [ "${cnt}" -ne 1 ]; then
+    die "制品清单应恰好 1 条 module=nvidia type=dir（toolkit 基目录），当前匹配数=${cnt}"
+  fi
+  [ -n "${base_from_yaml}" ] || die "制品清单 nvidia dir 的 path 为空"
+
+  local base="${base_from_yaml}"
+  if [[ "${base}" == /data/download/* ]]; then
+    base="${DOWNLOAD_DIR}${base#/data/download}"
+  fi
+  printf '%s\n' "${base}"
+}
+
 init_framework() {
   get_cur_path
   init_logging

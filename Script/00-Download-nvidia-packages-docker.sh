@@ -12,9 +12,9 @@ set -euo pipefail
 # 用法：
 #   bash 00-Download-nvidia-packages-docker.sh [centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu] [输出目录]
 # 示例：
-#   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia
-#   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia
-#   bash 00-Download-nvidia-packages-docker.sh openeuler /data/download/nvidia
+#   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia/ubuntu
+#   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia/centos
+#   bash 00-Download-nvidia-packages-docker.sh openeuler /data/download/nvidia/openeuler
 #
 # 说明：
 #   - RPM 系（含 openeuler/kylin）使用 NVIDIA stable/rpm 通用仓库，版本固定 1.17.8-1
@@ -28,8 +28,6 @@ OUTPUT_DIR="${2:-/data/download/nvidia/${OS_TYPE}}"
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
   ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
-  ["almalinux"]="almalinux:8"
-  ["rhel"]="redhat/ubi8:latest"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
