@@ -38,6 +38,29 @@ verify_manifest() {
       fi
     fi
 
+    # nvidia toolkit：清单为基目录，校验当前 OS 对应 <基目录>/<os>/
+    if [ "${module}" = "nvidia" ] && [ "${type}" = "dir" ]; then
+      local sub=""
+      case "${OS_ID}" in
+        ubuntu|debian) sub="ubuntu" ;;
+        centos) sub="centos" ;;
+        rocky) sub="rocky" ;;
+        openeuler) sub="openeuler" ;;
+        kylin*) sub="kylin" ;;
+        *) continue ;;
+      esac
+      local nb="${path}"
+      if [[ "${nb}" == /data/download/* ]]; then
+        nb="${DOWNLOAD_DIR}${nb#/data/download}"
+      fi
+      local nd="${nb}/${sub}"
+      if [ ! -d "${nd}" ]; then
+        log_error "[MISSING] nvidia toolkit dir: ${nd}\tname=${name}\t${desc}"
+        missing=$((missing + 1))
+      fi
+      continue
+    fi
+
     if [ "${type}" = "dir" ]; then
       if [ ! -d "${path}" ]; then
         log_error "[MISSING] ${module} dir: ${path}\tname=${name}\t${desc}"

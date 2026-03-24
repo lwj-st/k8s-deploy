@@ -27,7 +27,7 @@ OUTPUT_DIR="${2:-/data/download/packages/tools/${TOOLS_OS_DIR}}"
 # Docker 镜像映射（RPM 系与 00-Download-k8s-packages-docker.sh 一致；ubuntu 为官方镜像）
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
-  ["rocky"]="rockylinux:8"
+  ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"

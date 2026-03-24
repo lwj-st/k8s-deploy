@@ -12,43 +12,65 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
 ################################################################################
-# Function: load_manifest
-# Description: 加载 manifests/artifacts.yaml，准备后续使用
-################################################################################
-load_manifest() {
-  manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
-  [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
-}
-
-################################################################################
 # Function: collect_nvidia_pkgs
-# Description: 从清单中收集当前 OS 对应的 nvidia 离线包路径（deb 或 rpm）
+# Description: toolkit 基目录来自 artifacts.yaml（nvidia.dir.toolkit）；本脚本仅拼接 /<os>/ 再找包
+#              可选 NVIDIA_TOOLKIT_DIR 覆盖为单一目录（非空则直接使用）
 ################################################################################
 collect_nvidia_pkgs() {
   nvidia_pkgs=()
 
-  # 根据 OS_ID 选择后缀
+  local nvidia_pkg_dir=""
   local suffix
-  case "${OS_ID}" in
-    ubuntu|debian)
-      suffix=".deb"
-      ;;
-    centos|rocky|openeuler|kylin*)
-      suffix=".rpm"
-      ;;
-    *)
-      die "不支持的 OS_ID=${OS_ID}，请在脚本中增加对应的 nvidia 离线包收集逻辑"
-      ;;
-  esac
+  local os_key=""
 
-  while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
-    [ "${module}" = "nvidia" ] || continue
-    [ "${type}" = "file" ] || continue
-    [[ "${path}" == *"${suffix}" ]] || continue
-    nvidia_pkgs+=("${path}")
-  done < <(parse_artifacts_yaml "${manifest}")
+  if [ -n "${NVIDIA_TOOLKIT_DIR:-}" ]; then
+    nvidia_pkg_dir="${NVIDIA_TOOLKIT_DIR}"
+    case "${OS_ID}" in
+      ubuntu|debian) suffix=".deb" ;;
+      centos|rocky|almalinux|rhel|openeuler|kylin*) suffix=".rpm" ;;
+      *) die "不支持的 OS_ID=${OS_ID}（使用 NVIDIA_TOOLKIT_DIR 时仍需合法 OS 以选择 deb/rpm）" ;;
+    esac
+    log_info "使用 NVIDIA_TOOLKIT_DIR=${nvidia_pkg_dir}"
+  else
+    case "${OS_ID}" in
+      ubuntu|debian)
+        os_key="ubuntu"
+        suffix=".deb"
+        ;;
+      centos)
+        os_key="centos"
+        suffix=".rpm"
+        ;;
+      rocky|almalinux|rhel)
+        os_key="rocky"
+        suffix=".rpm"
+        ;;
+      openeuler)
+        os_key="openeuler"
+        suffix=".rpm"
+        ;;
+      kylin*)
+        os_key="kylin"
+        suffix=".rpm"
+        ;;
+      *)
+        die "不支持的 OS_ID=${OS_ID}，请在 collect_nvidia_pkgs 中增加 os_id 映射或设置 NVIDIA_TOOLKIT_DIR"
+        ;;
+    esac
+    nvidia_pkg_dir="$(artifact_get_nvidia_toolkit_base_dir)/${os_key}"
+    log_info "NVIDIA toolkit 离线目录: ${nvidia_pkg_dir}（基目录来自清单 + os=${os_key}）"
+  fi
 
-  [ "${#nvidia_pkgs[@]}" -gt 0 ] || die "制品清单中未找到 nvidia ${suffix}（module=nvidia,type=file,*${suffix}）"
+  [ -d "${nvidia_pkg_dir}" ] || die "缺少 NVIDIA 离线包目录: ${nvidia_pkg_dir}"
+
+  shopt -s nullglob
+  local pat="${nvidia_pkg_dir}/*${suffix}"
+  local files=(${pat})
+  shopt -u nullglob
+
+  [ "${#files[@]}" -gt 0 ] || die "目录为空，未找到 *${suffix}: ${nvidia_pkg_dir}"
+
+  nvidia_pkgs=("${files[@]}")
 
   local f
   for f in "${nvidia_pkgs[@]}"; do
@@ -165,7 +187,6 @@ main() {
   require_root
   export KUBECONFIG=/etc/kubernetes/admin.conf
 
-  load_manifest
   collect_nvidia_pkgs
   install_nvidia_toolkit
   configure_containerd_runtime

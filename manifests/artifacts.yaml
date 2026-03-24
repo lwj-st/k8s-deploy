@@ -258,36 +258,12 @@ artifacts:
     description: "tidb operator image tar"
 
   - module: nvidia
-    type: file
-    name: nvidia.rpm.nvidia-container-toolkit.1.17.8-1.x86_64
-    path: /data/download/nvidia/nvidia-container-toolkit-1.17.8-1.x86_64.rpm
-    url: "https://developer.download.nvidia.cn/compute/cuda/repos/amzn2023/x86_64/nvidia-container-toolkit-1.17.8-1.x86_64.rpm"
-    md5: "6fbe52f6af54ecb015bc3d5cb86b5d30"
-    description: "nvidia-container-toolkit rpm"
-
-  - module: nvidia
-    type: file
-    name: nvidia.rpm.nvidia-container-toolkit-base.1.17.8-1.x86_64
-    path: /data/download/nvidia/nvidia-container-toolkit-base-1.17.8-1.x86_64.rpm
-    url: "https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/nvidia-container-toolkit-base-1.17.8-1.x86_64.rpm"
-    md5: "75f758a130af243ef3f725231270f78b"
-    description: "nvidia-container-toolkit-base rpm"
-
-  - module: nvidia
-    type: file
-    name: nvidia.rpm.libnvidia-container-tools.1.17.8.x86_64
-    path: /data/download/nvidia/libnvidia-container-tools-1.17.8-1.x86_64.rpm
-    url: "https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/libnvidia-container-tools-1.17.8-1.x86_64.rpm"
-    md5: "58a5243a2c4cc8820d57942788beac92"
-    description: "libnvidia-container-tools rpm"
-
-  - module: nvidia
-    type: file
-    name: nvidia.rpm.libnvidia-container1.1.17.8.x86_64
-    path: /data/download/nvidia/libnvidia-container1-1.17.8-1.x86_64.rpm
-    url: "https://developer.download.nvidia.cn/compute/cuda/repos/amzn2023/x86_64/libnvidia-container1-1.17.8-1.x86_64.rpm"
-    md5: "4c2bb3a74e5c650e0b36060b26243ee4"
-    description: "libnvidia-container1 rpm"
+    type: dir
+    name: nvidia.dir.toolkit
+    path: /data/download/nvidia
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline base dir; append /<os> in 20-Deploy-nvidia.sh"
 
   - module: nvidia
     type: file
