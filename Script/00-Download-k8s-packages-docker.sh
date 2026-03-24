@@ -91,7 +91,7 @@ else
     sudo apt-get update
     sudo apt-get install -y podman
 
-  CentOS/RHEL/Rocky:
+  CentOS/Rocky:
     sudo yum install -y podman
 
 方式 3: 使用非 Docker 方式下载（需要对应 OS 环境）
