@@ -289,3 +289,157 @@ artifacts:
     md5: "__DIR__"
     description: "offline kube packages base dir; append /<os> in artifact_get_os_kubernetes_dir"
 
+  - module: minio
+    type: tar
+    name: minio.image.amd64.20250524
+    path: /data/download/minio/minio_20250524_amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/minio_20250524_amd64.tar"
+    md5: "65e9448aca12e18236817062dee59740"
+    description: "minio container image tar"
+
+  - module: minio
+    type: file
+    name: minio.manifest.pvc
+    path: /data/download/minio/minio-pvc.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-pvc.yaml"
+    md5: "d06c8cbf634bb73d689b742af2f6c1f2"
+    description: "minio pvc manifest"
+
+  - module: minio
+    type: file
+    name: minio.manifest.secret
+    path: /data/download/minio/minio-secret.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-secret.yaml"
+    md5: "da2265fdf42d60d5293e50e0111b2575"
+    description: "minio secret manifest"
+
+  - module: minio
+    type: file
+    name: minio.manifest.service-account
+    path: /data/download/minio/minio-service-account.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-service-account.yaml"
+    md5: "a4518fd145b53a0b5b484b904b79f5d6"
+    description: "minio service account manifest"
+
+  - module: minio
+    type: file
+    name: minio.manifest.deploy
+    path: /data/download/minio/minio-deploy.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-deploy.yaml"
+    md5: "0a0d29abc828d3dbd8724d37daf9fb1c"
+    description: "minio deployment manifest"
+
+  - module: minio
+    type: file
+    name: minio.manifest.svc
+    path: /data/download/minio/minio-svc.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-svc.yaml"
+    md5: "13222c6feef6ff854170fda1c54596de"
+    description: "minio service manifest"
+
+  # --- juicefs-csi-driver ---
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.csi-dashboard.v0.28.1
+    path: /data/download/juicefs/csi-dashboard-v0.28.1-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-dashboard-v0.28.1-amd64.tar"
+    md5: "837f6b2337a03d40daea33c38fe64692"
+    description: "juicefs csi dashboard image tar"
+
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.csi-node-driver-registrar.v2.13.0
+    path: /data/download/juicefs/csi-node-driver-registrar-v2.13.0-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-node-driver-registrar-v2.13.0-amd64.tar"
+    md5: "cd1c159df25af6cc3002cd183e349b0a"
+    description: "csi node driver registrar image tar"
+
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.csi-provisioner.v2.2.2
+    path: /data/download/juicefs/csi-provisioner-v2.2.2-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-provisioner-v2.2.2-amd64.tar"
+    md5: "3d4bcece68c379b0fe4a7de24c24952a"
+    description: "csi provisioner image tar"
+
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.csi-resizer.v1.9.0
+    path: /data/download/juicefs/csi-resizer-v1.9.0-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-resizer-v1.9.0-amd64.tar"
+    md5: "7075e30be3be60dbb4695104fdbd4190"
+    description: "csi resizer image tar"
+
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.juicefs-csi-driver.v0.28.1
+    path: /data/download/juicefs/juicefs-csi-driver-v0.28.1-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/juicefs-csi-driver-v0.28.1-amd64.tar"
+    md5: "4c7b67468e38be2f7d673c859de93bc9"
+    description: "juicefs csi driver image tar"
+
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.livenessprobe.v2.12.0
+    path: /data/download/juicefs/livenessprobe-v2.12.0-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/livenessprobe-v2.12.0-amd64.tar"
+    md5: "6282660bb45ddeffd9aaf63438827e09"
+    description: "livenessprobe image tar"
+
+  - module: juicefs-csi
+    type: tar
+    name: juicefs.image.mount-ce.v1.2.3
+    path: /data/download/juicefs/mount-ce-v1.2.3-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/mount-ce-v1.2.3-amd64.tar"
+    md5: "58fa019845e57d5a372e626df67c9f44"
+    description: "juicefs mount-ce image tar"
+
+  - module: juicefs-csi
+    type: file
+    name: juicefs.chart.csi-driver.v0.28.1
+    path: /data/download/juicefs/juicefs-csi-driver-0.28.1.tgz
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/juicefs-csi-driver-0.28.1.tgz"
+    md5: "7ffb06707f77c76bae51886c34310263"
+    description: "juicefs csi driver helm chart"
+
+  - module: juicefs-csi
+    type: file
+    name: juicefs.values.csi-driver.yaml
+    path: /data/download/juicefs/juicefs-values.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/juicefs-values.yaml"
+    md5: "0558c4918fe61b3d6769f82fd083b97f"
+    description: "juicefs csi helm values"
+
+  # --- dragonfly-operator ---
+  - module: dragonfly-operator
+    type: tar
+    name: dragonfly.image.kube-rbac-proxy.v0.16.0
+    path: /data/download/dragonfly/kube-rbac-proxy-v0.16.0-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-rbac-proxy-v0.16.0-amd64.tar"
+    md5: "db6d5400560528363dd158baafe825dd"
+    description: "kube-rbac-proxy image tar for dragonfly-operator"
+
+  - module: dragonfly-operator
+    type: tar
+    name: dragonfly.image.operator.v1.1.8
+    path: /data/download/dragonfly/dragonfly-operator-v1.1.8-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/dragonfly-operator-v1.1.8-amd64.tar"
+    md5: "751b358331b0bdc9306cf64132cf3041"
+    description: "dragonfly-operator image tar"
+
+  - module: dragonfly-operator
+    type: file
+    name: dragonfly.chart.operator.v1.1.8
+    path: /data/download/dragonfly/dragonfly-operator-1.1.8.tgz
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/dragonfly-operator-1.1.8.tgz"
+    md5: "c17cb38c836405132ef4e5804734149b"
+    description: "dragonfly-operator helm chart"
+
+  - module: dragonfly-operator
+    type: file
+    name: dragonfly.values.operator.yaml
+    path: /data/download/dragonfly/dragonfly-operator-values.yaml
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/dragonfly-operator-values.yaml"
+    md5: "26641eb74c288aa9dd352a3d5591cf6d"
+    description: "dragonfly-operator helm values"
+
