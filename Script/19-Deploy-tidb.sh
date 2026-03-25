@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    19-Deploy-tidb.sh
+## Filename:    19-Deploy-tidb-operator.sh
 ## Description: 部署 TiDB Operator（不自动部署具体 TiDB 集群实例）
 ## Notes:
 ##   - 仅安装 CRD + Operator，tidb-cluster.yaml 等由用户按需手动 apply

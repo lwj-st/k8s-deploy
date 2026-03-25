@@ -18,8 +18,11 @@
 - `Script/16-Deploy-ingress.sh`
 - `Script/17-Deploy-local-path.sh`
 - `Script/18-Deploy-nfs-provisioner.sh`
-- `Script/19-Deploy-tidb.sh`：部署tidb operator
+- `Script/19-Deploy-tidb-operator.sh`：部署tidb operator
 - `Script/20-Deploy-nvidia.sh`：部署nvidia plugin
+- `Script/21-Deploy-minio.sh`：部署 MinIO
+- `Script/22-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
+- `Script/23-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
 - `Script/90-Shovel-k8s.sh`：清理集群（kubeadm reset + 只清 KUBE/CALI 相关链）
 - `Script/91-Cleanup-host.sh`：回滚“脚本改动过的地方”，恢复宿主机干净环境（尽可能）
 
@@ -113,8 +116,9 @@ sudo bash 15-Deploy-cni.sh
 sudo bash 16-Deploy-ingress.sh
 sudo bash 17-Deploy-local-path.sh
 sudo bash 18-Deploy-nfs-provisioner.sh   # 可选：仅当你在 01-Cluster-host.sh 里选择 DEPLOY_NFS=yes
-sudo bash 19-Deploy-tidb.sh              # 可选
+sudo bash 19-Deploy-tidb-operator.sh              # 可选
 sudo bash 20-Deploy-nvidia.sh            # 可选：仅 NVIDIA
+...
 ```
 
 ## 添加工作节点到集群
