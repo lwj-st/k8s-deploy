@@ -10,7 +10,7 @@ set -euo pipefail
 # rpm -q nvidia-container-toolkit nvidia-container-toolkit-base libnvidia-container-tools libnvidia-container1
 #
 # 用法：
-#   bash 00-Download-nvidia-packages-docker.sh [centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu] [输出目录]
+#   bash 00-Download-nvidia-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu] [输出目录]
 # 示例：
 #   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia/ubuntu
 #   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia/centos
@@ -28,15 +28,13 @@ OUTPUT_DIR="${2:-/data/download/nvidia/${OS_TYPE}}"
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
   ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
-  ["almalinux"]="almalinux:8"
-  ["rhel"]="redhat/ubi8:latest"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
 )
 
 if [ -z "${DOCKER_IMAGES[${OS_TYPE}]:-}" ]; then
-  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu"
+  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|openeuler|kylin|ubuntu"
 fi
 
 DOCKER_IMAGE="${DOCKER_IMAGES[${OS_TYPE}]}"
@@ -136,7 +134,7 @@ fi
 ################################################################################
 # RPM 系：dnf/yum 下载 NVIDIA container toolkit 相关 rpm
 ################################################################################
-if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" = "almalinux" ] || [ "${OS_TYPE}" = "rhel" ] || [ "${OS_TYPE}" = "openeuler" ] || [ "${OS_TYPE}" = "kylin" ]; then
+if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" = "openeuler" ] || [ "${OS_TYPE}" = "kylin" ]; then
   log "检测到 RPM 系 (${OS_TYPE})，使用 dnf/yum 下载 nvidia-container-toolkit 相关 rpm..."
 
   if command -v dnf &>/dev/null; then
@@ -235,7 +233,7 @@ REPO_EOF
   cat > "${OUTPUT_DIR}/README.txt" <<'RPM_EOF'
 本目录为通过 YUM/DNF 源离线下载的 NVIDIA container toolkit 相关 rpm 包。
 
-在离线 RPM 系节点（CentOS/Rocky/AlmaLinux/RHEL）上使用示例：
+在离线 RPM 系节点（CentOS/Rocky）上使用示例：
   sudo yum localinstall -y ./*.rpm
 或：
   sudo dnf install -y ./*.rpm
@@ -244,7 +242,7 @@ RPM_EOF
   exit 0
 fi
 
-log "错误: OS_TYPE=${OS_TYPE} 未在脚本内部支持（仅支持 ubuntu|centos|rocky|almalinux|rhel|openeuler|kylin）"
+log "错误: OS_TYPE=${OS_TYPE} 未在脚本内部支持（仅支持 ubuntu|centos|rocky|openeuler|kylin）"
 exit 1
 SCRIPT_EOF
 

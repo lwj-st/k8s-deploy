@@ -1,75 +1,75 @@
-# 自动测试 00-Download-k8s-packages-docker.sh 与 00-Download-tools-packages-docker.sh
-# 按 OS 顺序执行：每个 OS 先测 K8S 下载，通过后删除再测 tools 下载，通过后删除再测下一个 OS，节省 runner 空间
-name: Test download scripts (all OS)
+# 按「脚本 × OS」拆分 job，便于在 Actions 里按名称过滤日志
+# 脚本：k8s / tools / nvidia（均为 *-packages-docker.sh）
+name: Test download scripts
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
     paths:
       - 'Script/00-Download-k8s-packages-docker.sh'
       - 'Script/00-Download-tools-packages-docker.sh'
+      - 'Script/00-Download-nvidia-packages-docker.sh'
       - '.github/workflows/download-scripts.yml'
 
 jobs:
-  download-test:
+  download:
+    name: "${{ matrix.script }} / ${{ matrix.os }}"
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        script: [k8s, tools, nvidia]
+        os: [centos, rocky, openeuler, kylin, ubuntu]
+    env:
+      K8S_VERSION: "1.31.11"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare test env
-        run: |
-          # 使用当前用户可写的目录，避免 sudo 导致后续步骤无权限
-          mkdir -p "$RUNNER_TEMP/k8s-deploy-test"
-          echo "BASE=$RUNNER_TEMP/k8s-deploy-test" >> $GITHUB_ENV
-
-      - name: Test each OS (K8S + tools, then delete)
-        env:
-          K8S_VERSION: "1.31.11"
+      - name: Run download and verify
         run: |
           set -e
-          BASE="${BASE:-$RUNNER_TEMP/k8s-deploy-test}"
-          # 与脚本支持的 OS 一致；顺序执行以节省空间
-          for os in centos rocky almalinux  openeuler kylin ubuntu; do
-            echo "========== OS: $os =========="
-            k8s_out="$BASE/$os/kubernetes"
-            tools_out="$BASE/$os/tools"
-            mkdir -p "$k8s_out" "$tools_out"
+          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
 
-            echo "[$os] 1/2 测试 K8S 下载..."
-            bash Script/00-Download-k8s-packages-docker.sh "$os" "$k8s_out" "$K8S_VERSION"
-            if [ "$os" = "ubuntu" ]; then
-              count=$(find "$k8s_out" -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
-            else
-              count=$(find "$k8s_out" -maxdepth 1 -name '*.rpm' 2>/dev/null | wc -l)
-            fi
-            if [ "${count:-0}" -lt 1 ]; then
-              echo "ERROR [$os] K8S 下载后无包: $k8s_out"
+          case "${{ matrix.script }}" in
+            k8s)
+              bash Script/00-Download-k8s-packages-docker.sh "${{ matrix.os }}" "$OUT" "$K8S_VERSION"
+              ;;
+            tools)
+              bash Script/00-Download-tools-packages-docker.sh "${{ matrix.os }}" "$OUT"
+              ;;
+            nvidia)
+              bash Script/00-Download-nvidia-packages-docker.sh "${{ matrix.os }}" "$OUT"
+              ;;
+            *)
+              echo "unknown matrix.script"
               exit 1
-            fi
-            echo "[$os] K8S 通过 (${count} 个包)，删除输出目录..."
-            sudo rm -rf "$BASE/$os"
+              ;;
+          esac
 
-            echo "[$os] 2/2 测试 tools 下载..."
-            mkdir -p "$tools_out"
-            bash Script/00-Download-tools-packages-docker.sh "$os" "$tools_out"
-            if [ "$os" = "ubuntu" ]; then
-              # tools 脚本已改为：baseos/ 与按工具分目录存放 .deb，这里统计二级目录内的包数量
-              count=$(find "$tools_out" -mindepth 2 -maxdepth 2 -name '*.deb' 2>/dev/null | wc -l)
+          if [ "${{ matrix.script }}" = "tools" ]; then
+            if [ "${{ matrix.os }}" = "ubuntu" ]; then
+              count=$(find "$OUT" -mindepth 2 -maxdepth 2 -name '*.deb' 2>/dev/null | wc -l)
             else
-              # RPM 系同样采用 baseos/ + 各工具子目录结构，统计二级目录内的 .rpm
-              count=$(find "$tools_out" -mindepth 2 -maxdepth 2 -name '*.rpm' 2>/dev/null | wc -l)
+              count=$(find "$OUT" -mindepth 2 -maxdepth 2 -name '*.rpm' 2>/dev/null | wc -l)
             fi
-            if [ "${count:-0}" -lt 1 ]; then
-              echo "ERROR [$os] tools 下载后无包: $tools_out"
-              exit 1
+          else
+            if [ "${{ matrix.os }}" = "ubuntu" ]; then
+              count=$(find "$OUT" -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
+            else
+              count=$(find "$OUT" -maxdepth 1 -name '*.rpm' 2>/dev/null | wc -l)
             fi
-            echo "[$os] tools 通过 (${count} 个包)，删除输出目录..."
-            sudo rm -rf "$BASE/$os"
-          done
-          echo "========== 全部 OS 测试通过 =========="
+          fi
+
+          if [ "${count:-0}" -lt 1 ]; then
+            echo "ERROR: 下载后无包 script=${{ matrix.script }} os=${{ matrix.os }} dir=$OUT"
+            exit 1
+          fi
+          echo "OK: ${count} 个包"
+          sudo rm -rf "$OUT"
 
       - name: Cleanup
         if: always()
-        run: sudo rm -rf "$RUNNER_TEMP/k8s-deploy-test"
+        run: sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}"

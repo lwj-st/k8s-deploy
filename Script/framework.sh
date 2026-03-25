@@ -277,36 +277,73 @@ artifact_get_path() {
 
 ################################################################################
 # Function: artifact_get_os_kubernetes_dir
-# Description: 获取当前 OS 对应的 kube 离线包目录（module=os,type=dir,os_id 匹配）
+# Description: 清单中一条 module=os,name=os.dir.kubernetes,type=dir 声明基目录；
+#              返回 ${基目录}/${os_id}，path 中 /data/download 前缀替换为 DOWNLOAD_DIR
 # Parameter:
-#   input:
-#     $1 os_id  - ubuntu/centos/kylin/openeuler...
-#   output:
-#     stdout: path
+#   $1 os_id  - ubuntu/centos/rocky/kylin/openeuler...
 ################################################################################
 artifact_get_os_kubernetes_dir() {
   local os_id="$1"
+  [ -n "${os_id}" ] || die "artifact_get_os_kubernetes_dir: os_id 不能为空"
   local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
   [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
+  if [ -z "${DOWNLOAD_DIR:-}" ]; then
+    die "environment.sh 未设置 DOWNLOAD_DIR，无法解析 kubernetes 离线包目录"
+  fi
 
-  local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r m t n p url md5 d oid; do
+  local base_from_yaml=""
+  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
     [ "${m}" = "os" ] || continue
     [ "${t}" = "dir" ] || continue
-    [ -n "${oid}" ] || continue
-    [ "${oid}" = "${os_id}" ] || continue
-    found="${p}"
-    cnt=$((cnt+1))
+    [ "${n}" = "os.dir.kubernetes" ] || continue
+    cnt=$((cnt + 1))
+    base_from_yaml="${artifact_path}"
   done < <(parse_artifacts_yaml "${manifest}")
 
-  if [ "${cnt}" -eq 0 ]; then
-    die "制品清单未找到 OS 离线包目录：module=os type=dir os_id=${os_id}"
+  if [ "${cnt}" -ne 1 ]; then
+    die "制品清单应恰好 1 条 name=os.dir.kubernetes（module=os type=dir），当前匹配数=${cnt}"
   fi
-  if [ "${cnt}" -gt 1 ]; then
-    die "制品清单存在重复 OS 离线包目录：os_id=${os_id}（匹配数量=${cnt}）"
+  [ -n "${base_from_yaml}" ] || die "制品清单 os.dir.kubernetes 的 path 为空"
+
+  local base="${base_from_yaml}"
+  if [[ "${base}" == /data/download/* ]]; then
+    base="${DOWNLOAD_DIR}${base#/data/download}"
   fi
-  printf '%s\n' "${found}"
+  printf '%s\n' "${base}/${os_id}"
+}
+
+################################################################################
+# Function: artifact_get_nvidia_toolkit_base_dir
+# Description: 从清单读取 nvidia toolkit 离线包基目录（恰好 1 条 module=nvidia,type=dir）；
+#              path 以 /data/download 开头时替换为 ${DOWNLOAD_DIR}；不含 OS 子目录，由调用方拼接 /<os>
+################################################################################
+artifact_get_nvidia_toolkit_base_dir() {
+  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
+  [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
+  if [ -z "${DOWNLOAD_DIR:-}" ]; then
+    die "environment.sh 未设置 DOWNLOAD_DIR，无法解析 nvidia toolkit 基目录"
+  fi
+
+  local cnt=0
+  local base_from_yaml=""
+  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
+    [ "${m}" = "nvidia" ] || continue
+    [ "${t}" = "dir" ] || continue
+    cnt=$((cnt + 1))
+    base_from_yaml="${artifact_path}"
+  done < <(parse_artifacts_yaml "${manifest}")
+
+  if [ "${cnt}" -ne 1 ]; then
+    die "制品清单应恰好 1 条 module=nvidia type=dir（toolkit 基目录），当前匹配数=${cnt}"
+  fi
+  [ -n "${base_from_yaml}" ] || die "制品清单 nvidia dir 的 path 为空"
+
+  local base="${base_from_yaml}"
+  if [[ "${base}" == /data/download/* ]]; then
+    base="${DOWNLOAD_DIR}${base#/data/download}"
+  fi
+  printf '%s\n' "${base}"
 }
 
 init_framework() {
