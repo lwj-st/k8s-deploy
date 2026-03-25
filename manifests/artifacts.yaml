@@ -258,36 +258,12 @@ artifacts:
     description: "tidb operator image tar"
 
   - module: nvidia
-    type: file
-    name: nvidia.deb.nvidia-container-toolkit.1.17.8-1.amd64
-    path: /data/download/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/nvidia-container-toolkit_1.17.8-1_amd64.deb"
-    md5: "83c8f5c09db90fa980ae7b8d6ce745ff"
-    description: "nvidia-container-toolkit deb"
-
-  - module: nvidia
-    type: file
-    name: nvidia.deb.nvidia-container-toolkit-base.1.17.8-1.amd64
-    path: /data/download/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/nvidia-container-toolkit-base_1.17.8-1_amd64.deb"
-    md5: "e2cc56a5dd6fe817e4b590223a246b67"
-    description: "nvidia-container-toolkit-base deb"
-
-  - module: nvidia
-    type: file
-    name: nvidia.deb.libnvidia-container-tools.1.17.8.amd64
-    path: /data/download/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/libnvidia-container-tools_1.17.8-1_amd64.deb"
-    md5: "1a1d798687a709c9e000b744af03c454"
-    description: "libnvidia-container-tools deb"
-
-  - module: nvidia
-    type: file
-    name: nvidia.deb.libnvidia-container1.1.17.8.amd64
-    path: /data/download/nvidia/libnvidia-container1_1.17.8-1_amd64.deb
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nvidia/libnvidia-container1_1.17.8-1_amd64.deb"
-    md5: "39ab68777c6efe50b5817a0ca8fdab51"
-    description: "libnvidia-container1 deb"
+    type: dir
+    name: nvidia.dir.toolkit
+    path: /data/download/nvidia
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline base dir; append /<os> in 20-Deploy-nvidia.sh"
 
   - module: nvidia
     type: file
@@ -307,38 +283,9 @@ artifacts:
 
   - module: os
     type: dir
-    os_id: ubuntu
-    name: os.dir.kubernetes.ubuntu
-    path: /data/download/packages/ubuntu/kubernetes
+    name: os.dir.kubernetes
+    path: /data/download/packages/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline deb dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: centos
-    name: os.dir.kubernetes.centos
-    path: /data/download/packages/centos/kubernetes
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: kylin
-    name: os.dir.kubernetes.kylin
-    path: /data/download/packages/kylin/kubernetes
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
-  - module: os
-    type: dir
-    os_id: openeuler
-    name: os.dir.kubernetes.openeuler
-    path: /data/download/packages/openeuler/kubernetes
-    url: ""
-    md5: "__DIR__"
-    description: "offline rpm dir: kubeadm/kubelet/kubectl v1.31.11 + deps"
-
+    description: "offline kube packages base dir; append /<os> in artifact_get_os_kubernetes_dir"
 

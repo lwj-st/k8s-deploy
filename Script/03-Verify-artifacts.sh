@@ -22,15 +22,39 @@ verify_manifest() {
   while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
     [ -n "${module}" ] || continue
 
-    # os 模块：只校验当前 OS 的目录
+    # kubernetes 离线目录：单条基路径 + /<os>（与 artifact_get_os_kubernetes_dir 一致）
+    if [ "${module}" = "os" ] && [ "${type}" = "dir" ] && [ "${name}" = "os.dir.kubernetes" ]; then
+      if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+        continue
+      fi
+      local ksub=""
+      case "${OS_ID}" in
+        ubuntu|debian) ksub="ubuntu" ;;
+        centos) ksub="centos" ;;
+        rocky) ksub="rocky" ;;
+        openeuler) ksub="openeuler" ;;
+        kylin*) ksub="kylin" ;;
+        *) continue ;;
+      esac
+      local kb="${path}"
+      if [[ "${kb}" == /data/download/* ]]; then
+        kb="${DOWNLOAD_DIR}${kb#/data/download}"
+      fi
+      local kd="${kb}/${ksub}"
+      if [ ! -d "${kd}" ]; then
+        log_error "[MISSING] kubernetes offline 目录不存在: ${kd} (清单项: ${name}; ${desc})"
+        missing=$((missing + 1))
+      fi
+      continue
+    fi
+
+    # 其它 os 模块 dir（若将来仍带 os_id 分条）
     if [ "${module}" = "os" ]; then
-      # 如果允许在线安装，则不要求离线 OS 包目录存在
       if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
         continue
       fi
       [ -n "${os_id}" ] || continue
       if [ "${OS_ID}" != "${os_id}" ]; then
-        # kylin 可能是 kylin*，允许前缀匹配
         case "${OS_ID}" in
           kylin*) [ "${os_id}" = "kylin" ] || continue ;;
           *) continue ;;
@@ -38,16 +62,39 @@ verify_manifest() {
       fi
     fi
 
+    # nvidia toolkit：清单为基目录，校验当前 OS 对应 <基目录>/<os>/
+    if [ "${module}" = "nvidia" ] && [ "${type}" = "dir" ]; then
+      local sub=""
+      case "${OS_ID}" in
+        ubuntu|debian) sub="ubuntu" ;;
+        centos) sub="centos" ;;
+        rocky) sub="rocky" ;;
+        openeuler) sub="openeuler" ;;
+        kylin*) sub="kylin" ;;
+        *) continue ;;
+      esac
+      local nb="${path}"
+      if [[ "${nb}" == /data/download/* ]]; then
+        nb="${DOWNLOAD_DIR}${nb#/data/download}"
+      fi
+      local nd="${nb}/${sub}"
+      if [ ! -d "${nd}" ]; then
+        log_error "[MISSING] nvidia toolkit 目录不存在: ${nd} (清单项: ${name}; ${desc})"
+        missing=$((missing + 1))
+      fi
+      continue
+    fi
+
     if [ "${type}" = "dir" ]; then
       if [ ! -d "${path}" ]; then
-        log_error "[MISSING] ${module} dir: ${path}\tname=${name}\t${desc}"
+        log_error "[MISSING] ${module} 目录不存在: ${path} (清单项: ${name}; ${desc})"
         missing=$((missing+1))
       fi
       continue
     fi
 
     if [ ! -f "${path}" ]; then
-      log_error "[MISSING] ${module} file: ${path}\tname=${name}\t${desc}"
+      log_error "[MISSING] ${module} 文件不存在: ${path} (清单项: ${name}; ${desc})"
       missing=$((missing+1))
       continue
     fi

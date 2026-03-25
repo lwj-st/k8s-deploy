@@ -6,7 +6,7 @@ set -euo pipefail
 ## - 18-Deploy-nfs-provisioner.sh 脚本前置条件
 ## - 若 NFS_SERVER 为空则跳过（未配置 NFS）
 ## - 若已安装 NFS 服务端包则跳过
-## - 否则从 DOWNLOAD_DIR/packages/<os>/tools/ 下对应子目录离线安装
+## - 否则从 DOWNLOAD_DIR/packages/tools/<os>/ 下对应子目录离线安装
 ################################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,7 +31,7 @@ case "${OS_ID}" in
     nfs_pkg_name="nfs-kernel-server"
     tools_subdir="nfs-kernel-server"
     ;;
-  centos|rhel|rocky|almalinux|openeuler|kylin*)
+  centos|rocky|openeuler|kylin*)
     if rpm -q nfs-utils &>/dev/null; then
       nfs_installed=1
     fi
@@ -47,22 +47,25 @@ esac
 if [ "$nfs_installed" -eq 1 ]; then
   log_info "NFS 服务端（${nfs_pkg_name}）已安装，跳过安装步骤"
 else
-  # 确定离线包目录：DOWNLOAD_DIR/packages/<os_id>/tools/<子目录>
+  # 确定离线包目录：DOWNLOAD_DIR/packages/tools/<os_id>
   case "${OS_ID}" in
     ubuntu|debian)
-      tools_base="${DOWNLOAD_DIR}/packages/ubuntu/tools"
+      tools_base="${DOWNLOAD_DIR}/packages/tools/ubuntu"
+      ;;
+    centos)
+      tools_base="${DOWNLOAD_DIR}/packages/tools/centos"
+      ;;
+    rocky)
+      tools_base="${DOWNLOAD_DIR}/packages/tools/rocky"
       ;;
     openeuler)
-      tools_base="${DOWNLOAD_DIR}/packages/openeuler/tools"
+      tools_base="${DOWNLOAD_DIR}/packages/tools/openeuler"
       ;;
     kylin*)
-      tools_base="${DOWNLOAD_DIR}/packages/kylin/tools"
-      ;;
-    centos|rhel|rocky|almalinux)
-      tools_base="${DOWNLOAD_DIR}/packages/centos/tools"
+      tools_base="${DOWNLOAD_DIR}/packages/tools/kylin"
       ;;
     *)
-      tools_base="${DOWNLOAD_DIR}/packages/${OS_ID}/tools"
+      die "未识别的 OS_ID=${OS_ID}：请补齐 /packages/tools/<os_id> 离线工具目录"
       ;;
   esac
 

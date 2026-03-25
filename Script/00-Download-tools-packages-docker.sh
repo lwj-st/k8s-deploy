@@ -1,33 +1,41 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 # 使用 Docker 容器下载常用工具离线安装包（适用于没有对应 OS 环境的情况） 可选
 # 用法：
-#   bash 00-Download-tools-packages-docker.sh [centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu] [输出目录]
+#   bash 00-Download-tools-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录]
 #
 # 示例：
-#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/centos/tools
-#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/ubuntu/tools
+#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/tools/centos
+#   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/tools/rocky
+#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/tools/ubuntu
+
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
 OS_TYPE="${1:-centos}"
-OUTPUT_DIR="${2:-/data/download/packages/${OS_TYPE}/tools}"
+TOOLS_OS_DIR="${OS_TYPE}"
+DOWNLOAD_OS_TYPE="${OS_TYPE}"
+if [ "${OS_TYPE}" = "debian" ]; then
+  # debian 与 ubuntu 共用目录与 apt 逻辑
+  TOOLS_OS_DIR="ubuntu"
+  DOWNLOAD_OS_TYPE="ubuntu"
+fi
+OUTPUT_DIR="${2:-/data/download/packages/tools/${TOOLS_OS_DIR}}"
 
 # Docker 镜像映射（RPM 系与 00-Download-k8s-packages-docker.sh 一致；ubuntu 为官方镜像）
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
   ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
-  ["almalinux"]="almalinux:8"
-  ["rhel"]="redhat/ubi8:latest"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
+  ["debian"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
 )
 
 if [ -z "${DOCKER_IMAGES[${OS_TYPE}]:-}" ]; then
-  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|almalinux|rhel|openeuler|kylin|ubuntu"
+  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|openeuler|kylin|ubuntu|debian"
 fi
 
 DOCKER_IMAGE="${DOCKER_IMAGES[${OS_TYPE}]}"
@@ -123,11 +131,8 @@ TOOLS_BASE="
   unzip tar rsync chrony git sysstat nmap-ncat strace tcpdump psmisc
   less file zip openssh-clients screen mlocate iproute ethtool numactl
   bash-completion ca-certificates libcurl openssl zlib lua ncurses
-  nfs-utils
-"
-
-TOOLS_EXTRA="
   jq tree htop the_silver_searcher
+  nfs-utils
 "
 
 if command -v dnf &>/dev/null; then
@@ -185,10 +190,10 @@ REPO_EOF
   fi
 fi
 
-# Rocky/AlmaLinux/RHEL 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
+# Rocky 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
 if command -v dnf &>/dev/null; then
   case "${OS_TYPE}" in
-    rocky|almalinux|rhel|centos)
+    rocky|centos)
       if ! rpm -q epel-release &>/dev/null; then
         log "尝试启用 EPEL..."
         dnf install -y epel-release || true
@@ -215,74 +220,39 @@ log "待下载工具包（基础 + 扩展）..."
 
 download_pkgs() {
   local pkgs="$1"
+  local destdir="$2"
   if [ -z "${pkgs}" ]; then return 0; fi
+  mkdir -p "${destdir}"
   if command -v yumdownloader &>/dev/null; then
-    yumdownloader --resolve --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+    yumdownloader --resolve --destdir="${destdir}" ${pkgs} 2>&1 || true
   else
-    dnf download --resolve --alldeps --arch=x86_64 --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+    dnf download --resolve --alldeps --arch=x86_64 --destdir="${destdir}" ${pkgs} 2>&1 || true
   fi
 }
 
-# 先下载基础包
-log "下载基础工具包..."
-download_pkgs "${TOOLS_BASE}"
+# 逐个下载基础包
+# 这样即便 Rocky 9 下某个工具/依赖解析失败，也不会影响其它工具的下载结果。
+log "逐个下载基础工具包..."
+for tool in ${TOOLS_BASE}; do
+  log "下载工具: ${tool}（含依赖，解析后下载）..."
+  download_pkgs "${tool}" "${OUTPUT_DIR}/${tool}"
+done
 
-# 再下载扩展包（可能部分不存在，忽略失败）
-log "下载扩展包（jq/tree/htop 等）..."
-download_pkgs "${TOOLS_EXTRA}"
-
-shopt -s nullglob
-RPM_FILES=(*.rpm)
-PKG_COUNT="${#RPM_FILES[@]}"
-shopt -u nullglob
-
+# 统计下载结果（RPM 在各工具目录内，不再集中在 OUTPUT_DIR 根目录）
+PKG_COUNT=$(find "${OUTPUT_DIR}" -maxdepth 2 -name "*.rpm" 2>/dev/null | wc -l)
 if [ "${PKG_COUNT}" -eq 0 ]; then
-  log "错误: 未下载到任何 RPM 包，请检查仓库与网络"
-  exit 1
+  log "警告: 未下载到任何 RPM 包（可能镜像超时/网络问题）。继续执行以避免整体流程失败。"
+else
+  log "下载完成！共 ${PKG_COUNT} 个 RPM 包（已按工具目录存放）"
 fi
 
-log "下载完成！共 ${PKG_COUNT} 个 RPM 包"
-
-# 按“单个工具”分子目录（vim-enhanced/ git/ ...），与 Ubuntu 一致
-PRIMARY_TOOLS_RPM="vim-enhanced tmux net-tools curl wget iputils bind-utils telnet lsof unzip rsync chrony git sysstat nmap-ncat strace tcpdump psmisc less file zip openssh-clients screen mlocate iproute ethtool numactl bash-completion ca-certificates jq tree htop the_silver_searcher nfs-utils"
-log "按工具分子目录（vim-enhanced/ git/ ...）..."
-for f in "${OUTPUT_DIR}"/*.rpm; do
-  [ -f "$f" ] || continue
-  pkg=$(rpm -qp --qf '%{NAME}' "$f" 2>/dev/null) || continue
-  echo "$f" >> "${OUTPUT_DIR}/.pkg-to-file.${pkg}"
-done
-for tool in ${PRIMARY_TOOLS_RPM}; do
-  [ -d "${OUTPUT_DIR}/${tool}" ] && rm -rf "${OUTPUT_DIR}/${tool}"
-  mkdir -p "${OUTPUT_DIR}/${tool}"
-  if command -v dnf &>/dev/null; then
-    deps=$(dnf repoquery -q --resolve --recursive --requires "$tool" 2>/dev/null | sort -u) || true
-  else
-    deps=$(repoquery -q -R --recursive "$tool" 2>/dev/null | sort -u || repoquery -q -R "$tool" 2>/dev/null | sort -u) || true
-  fi
-  deps="$tool $deps"
-  copied=0
-  for dep in $deps; do
-    list="${OUTPUT_DIR}/.pkg-to-file.${dep}"
-    if [ -f "$list" ]; then
-      while IFS= read -r path; do
-        [ -f "$path" ] && cp -n "$path" "${OUTPUT_DIR}/${tool}/" 2>/dev/null && copied=$((copied+1))
-      done < "$list"
-    fi
-  done
-  if [ "$copied" -gt 0 ]; then
-    echo "安装: sudo rpm -ivh ${tool}/*.rpm 或 sudo yum localinstall ${tool}/*.rpm" > "${OUTPUT_DIR}/${tool}/README.txt"
-    log "  ${tool}: ${copied} 个包"
-  else
-    rmdir "${OUTPUT_DIR}/${tool}" 2>/dev/null || true
-  fi
-done
-rm -f "${OUTPUT_DIR}"/.pkg-to-file.* 2>/dev/null || true
-
-# 与 Ubuntu 行为对齐：同时提供 baseos（基础依赖全集）与按工具分好的子目录
-# 1）已有的工具子目录继续保留，便于“按工具单独安装”
-# 2）所有下载到的 RPM 统一归档到 baseos，便于在几乎空白的离线环境下先批量装基础依赖
+# 提供 baseos（基础依赖全集），便于离线环境先批量安装
+rm -rf "${OUTPUT_DIR}/baseos" 2>/dev/null || true
 mkdir -p "${OUTPUT_DIR}/baseos"
-mv "${OUTPUT_DIR}"/*.rpm "${OUTPUT_DIR}/baseos/" 2>/dev/null || true
+for f in "${OUTPUT_DIR}"/*/*.rpm; do
+  [ -f "$f" ] || continue
+  cp -n "$f" "${OUTPUT_DIR}/baseos/" 2>/dev/null || true
+done
 
 cat > "${OUTPUT_DIR}/README.txt" <<'RPMTOOL_EOF'
 按工具分好的子目录，只装一个工具时进入对应目录执行即可。
@@ -295,7 +265,7 @@ cat > "${OUTPUT_DIR}/README.txt" <<'RPMTOOL_EOF'
   2. 再按需进入各工具子目录补充安装对应工具：
        cd <工具名> && sudo rpm -ivh *.rpm
 RPMTOOL_EOF
-log "子目录: $(for d in "${OUTPUT_DIR}"/*/; do [ -d "$d" ] || continue; basename "$d"; done | tr '\n' ' ')"
+log "子目录: $(for d in "${OUTPUT_DIR}"/*/; do [ -d "$d" ] || continue; basename "$d"; done | tr '\n' ' ' || true)"
 SCRIPT_EOF
 
 chmod +x "${TMP_SCRIPT}"
@@ -311,7 +281,7 @@ run_container() {
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${OS_TYPE}" || {
+    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
@@ -328,7 +298,7 @@ else
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${OS_TYPE}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可尝试: sudo usermod -aG docker $USER）"
     }

@@ -6,8 +6,8 @@ set -euo pipefail
 #   bash 00-Download-k8s-packages.sh [ubuntu|centos|rocky|openeuler|kylin] [输出目录]
 #
 # 示例：
-#   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
-#   bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
+#   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/kubernetes/ubuntu
+#   bash 00-Download-k8s-packages.sh centos /data/download/packages/kubernetes/centos
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
@@ -25,16 +25,19 @@ OUTPUT_DIR="${2:-}"
 if [ -z "${OUTPUT_DIR}" ]; then
   case "${OS_TYPE}" in
     ubuntu|debian)
-      OUTPUT_DIR="/data/download/packages/ubuntu/kubernetes"
+      OUTPUT_DIR="/data/download/packages/kubernetes/ubuntu"
       ;;
-    centos|rhel|rocky|almalinux)
-      OUTPUT_DIR="/data/download/packages/centos/kubernetes"
+    centos)
+      OUTPUT_DIR="/data/download/packages/kubernetes/centos"
+      ;;
+    rocky)
+      OUTPUT_DIR="/data/download/packages/kubernetes/rocky"
       ;;
     openeuler)
-      OUTPUT_DIR="/data/download/packages/openeuler/kubernetes"
+      OUTPUT_DIR="/data/download/packages/kubernetes/openeuler"
       ;;
     kylin*)
-      OUTPUT_DIR="/data/download/packages/kylin/kubernetes"
+      OUTPUT_DIR="/data/download/packages/kubernetes/kylin"
       ;;
     *)
       die "不支持的 OS 类型: ${OS_TYPE}"
@@ -149,7 +152,7 @@ EOF
     fi
   fi
   
-  log_info "✓ CentOS/RHEL/Rocky RPM 包下载完成: ${OUTPUT_DIR}"
+  log_info "✓ CentOS/Rocky RPM 包下载完成: ${OUTPUT_DIR}"
   log_info "  包数量: $(ls -1 *.rpm 2>/dev/null | wc -l)"
 }
 
@@ -169,7 +172,7 @@ case "${OS_TYPE}" in
   ubuntu|debian)
     download_ubuntu_debs
     ;;
-  centos|rhel|rocky|almalinux)
+  centos|rocky)
     download_centos_rpms
     ;;
   openeuler)
@@ -190,7 +193,6 @@ log_info "━━━━━━━━━━━━━━━━━━━━━━━�
 log_info ""
 log_info "下一步："
 log_info "1. 将 ${OUTPUT_DIR} 目录复制到离线环境"
-log_info "2. 在 artifacts.yaml 中取消注释对应的 os.dir.kubernetes.* 条目"
-log_info "3. 更新 path 为实际路径"
-log_info "4. 执行 13-Install-k8s-packages.sh 进行离线安装"
+log_info "2. 确保 artifacts.yaml 中的 path 指向正确路径"
+log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装（按 OS 使用 <基目录>/<os>/）"
 
