@@ -190,26 +190,22 @@ REPO_EOF
   fi
 fi
 
-# Rocky 8：确保 EPEL 可用（可选，用于 jq/tree/htop），并在 Rocky 下解决 libcurl-minimal 冲突
-if command -v dnf &>/dev/null; then
-  case "${OS_TYPE}" in
-    rocky|centos)
-      if ! rpm -q epel-release &>/dev/null; then
-        log "尝试启用 EPEL..."
-        dnf install -y epel-release || true
-      fi
-      ;;
-  esac
-
-  if [ "${OS_TYPE}" = "rocky" ]; then
+if [ "${OS_TYPE}" = "rocky" ]; then
     log "Rocky: 尝试安装 libcurl（--allowerasing）以解决 libcurl-minimal 冲突，仅影响临时容器..."
-    dnf install -y libcurl --allowerasing || true
-  fi
+    ${PKG_MGR} ${PKG_MGR_FLAGS}  install libcurl --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS}  install findutils --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS}  install epel-release || true
+fi
+if [ "${OS_TYPE}" = "openeuler" ]; then
+    ${PKG_MGR} ${PKG_MGR_FLAGS}  install findutils --allowerasing || true
+fi
+if [ "${OS_TYPE}" = "centos" ]; then
+    ${PKG_MGR} ${PKG_MGR_FLAGS} install  epel-release || true
 fi
 
 log "安装 yum-utils / dnf-plugins-core..."
-${PKG_MGR} ${PKG_MGR_FLAGS} install -y yum-utils 2>/dev/null || \
-  ${PKG_MGR} ${PKG_MGR_FLAGS} install -y dnf-plugins-core 2>/dev/null || true
+${PKG_MGR} ${PKG_MGR_FLAGS} install yum-utils 2>/dev/null || \
+${PKG_MGR} ${PKG_MGR_FLAGS} install dnf-plugins-core 2>/dev/null || true
 
 ${PKG_MGR} makecache || true
 
