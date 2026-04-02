@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: minio
+    app.kubernetes.io/managed-by: Helm
+    chart: minio-5.0.19
+    heritage: Helm
+    release: minio
+  name: minio
+  namespace: minio
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: minio
+      release: minio
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/config: 3652ba334b15ba9db240a6ab9256c538eec016ab4eb7cc5894606ec70745654e
+        checksum/secrets: 7c3161733b9f3499f12b278d371903ca50e4d9d6e65f038f822fe447d1919a75
+        rollme: SZHyl
+      creationTimestamp: null
+      labels:
+        app: minio
+        release: minio
+      name: minio
+    spec:
+      containers:
+      - name: minio
+        command: ["minio"]  # 固定命令
+        args:               # 动态参数
+        - server
+        - --console-address
+        - ":9001"
+        - /data
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              key: accesskey
+              name: minio
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: secretkey
+              name: minio
+        image: docker.io/minio/minio:RELEASE.2025-05-24T17-08-30Z
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /minio/health/live
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        ports:
+        - containerPort: 9000
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /minio/health/ready
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: data
+        - name: tls-certs
+          mountPath: .minio/certs
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: minio
+      serviceAccountName: minio
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: minio
+      - name: tls-certs
+        projected:
+          sources:
+            - secret:
+                name: minio-tls
+                items:
+                  - key: public.crt
+                    path: public.crt
+            - secret:
+                name: minio-tls
+                items:
+                  - key: private.key
+                    path: private.key
+      - name: minio-user
+        secret:
+          defaultMode: 420
+          secretName: minio
+
