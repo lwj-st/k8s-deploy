@@ -14,6 +14,7 @@ artifacts:
     name: base.helm.linux-amd64.tgz
     path: /data/download/base/helm-v3.18.3-linux-amd64.tar.gz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/helm-v3.18.3-linux-amd64.tar.gz"
+    base_url: "https://get.helm.sh/helm-v3.18.3-linux-amd64.tar.gz"
     md5: "28ecc6ee582231ddc604b8a3623c48ea"
     description: "Helm tarball"
 
@@ -22,6 +23,7 @@ artifacts:
     name: base.helmfile.linux-amd64.tgz
     path: /data/download/base/helmfile_1.1.2_linux_amd64.tar.gz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/helmfile_1.1.2_linux_amd64.tar.gz"
+    base_url: "https://github.com/helmfile/helmfile/releases/download/v1.1.2/helmfile_1.1.2_linux_amd64.tar.gz"
     md5: "450f7a51d35a7181f5c039ab3cbd9be3"
     description: "Helmfile tarball"
 
@@ -30,6 +32,7 @@ artifacts:
     name: containerd.tarball.1.7.4.linux-amd64
     path: /data/download/containerd/containerd-1.7.4-linux-amd64.tar.gz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd-1.7.4-linux-amd64.tar.gz"
+    base_url: "https://github.com/containerd/containerd/releases/download/v1.7.4/containerd-1.7.4-linux-amd64.tar.gz"
     md5: "9b6be86b7531a6f9809eb337f3177748"
     description: "containerd tarball"
 
@@ -46,6 +49,7 @@ artifacts:
     name: containerd.runc.binary.amd64
     path: /data/download/containerd/runc.amd64
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/runc.amd64"
+    base_url: "https://github.com/opencontainers/runc/releases/download/v1.3.0/runc.amd64"
     md5: "b95479b0dfac6485299b2588991228d8"
     description: "runc binary"
 
@@ -54,6 +58,7 @@ artifacts:
     name: containerd.cni-plugins.tgz.linux-amd64.v1.7.1
     path: /data/download/containerd/cni-plugins-linux-amd64-v1.7.1.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/cni-plugins-linux-amd64-v1.7.1.tgz"
+    base_url: "https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-amd64-v1.7.1.tgz"
     md5: "84c43dfb3ba5fe0be1771228ddbbea26"
     description: "CNI plugins tgz"
 
@@ -70,6 +75,7 @@ artifacts:
     name: k8s.image.kube-apiserver.v1.31.11
     path: /data/download/k8s/kube-apiserver-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-apiserver-v1.31.11.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.31.11"
     md5: "2e6f07595e01bcc3614343f104721e63"
     description: "kube-apiserver image tar"
 
@@ -78,6 +84,7 @@ artifacts:
     name: k8s.image.kube-controller-manager.v1.31.11
     path: /data/download/k8s/kube-controller-manager-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-controller-manager-v1.31.11.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.31.11"
     md5: "a3f1578cad683509c364ac4d0bf49f06"
     description: "kube-controller-manager image tar"
 
@@ -86,6 +93,7 @@ artifacts:
     name: k8s.image.kube-scheduler.v1.31.11
     path: /data/download/k8s/kube-scheduler-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-scheduler-v1.31.11.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.31.11"
     md5: "137f62ab65399a9ebf17a4d504f6d48d"
     description: "kube-scheduler image tar"
 
@@ -94,6 +102,7 @@ artifacts:
     name: k8s.image.kube-proxy.v1.31.11
     path: /data/download/k8s/kube-proxy-v1.31.11.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-proxy-v1.31.11.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.31.11"
     md5: "55e8e8ee02de0b066db6e32845fe936a"
     description: "kube-proxy image tar"
 
@@ -102,6 +111,7 @@ artifacts:
     name: k8s.image.coredns.v1.11.3
     path: /data/download/k8s/coredns-v1.11.3.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/coredns-v1.11.3.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:v1.11.3"
     md5: "900239dbef1fb263c271255f3087d195"
     description: "coredns image tar"
 
@@ -110,6 +120,7 @@ artifacts:
     name: k8s.image.pause.3.10
     path: /data/download/k8s/pause-3.10.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/pause-3.10.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.10"
     md5: "61852907a1ad4b185b6a7965a8258eae"
     description: "pause image tar"
 
@@ -118,6 +129,7 @@ artifacts:
     name: k8s.image.etcd.3.5.15-0
     path: /data/download/k8s/etcd-3.5.15-0.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/etcd-3.5.15-0.tar"
+    base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.5.15-0"
     md5: "c9c0c4111650fc065b9229f7ef9b1d14"
     description: "etcd image tar"
 
@@ -134,6 +146,7 @@ artifacts:
     name: cni.image.calico-cni.v3.30
     path: /data/download/cni/cni-release-v3.30.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/cni-release-v3.30.tar"
+    base_url: "docker.io/calico/cni:release-v3.30"
     md5: "ad5fc5a30daf813e459664304c0d0842"
     description: "calico cni image tar"
 
@@ -142,6 +155,7 @@ artifacts:
     name: cni.image.kube-controllers.v3.30
     path: /data/download/cni/kube-controllers-release-v3.30.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/kube-controllers-release-v3.30.tar"
+    base_url: "docker.io/calico/kube-controllers:release-v3.30"
     md5: "cf64e4fb81cf2abf0b2c709eb219a834"
     description: "calico kube-controllers image tar"
 
@@ -150,6 +164,7 @@ artifacts:
     name: cni.image.calico-node.v3.30
     path: /data/download/cni/node-release-v3.30.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/node-release-v3.30.tar"
+    base_url: "docker.io/calico/node:release-v3.30"
     md5: "1c4045cb86463790106fa81d44471550"
     description: "calico node image tar"
 
@@ -166,6 +181,7 @@ artifacts:
     name: ingress.image.controller.v1.12.2
     path: /data/download/ingress/controller-v1.12.2.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/controller-v1.12.2.tar"
+    base_url: "registry.k8s.io/ingress-nginx/controller:v1.12.2"
     md5: "b99276677a656f2cf6a8b3a0bfc101ad"
     description: "ingress-nginx controller image tar"
 
@@ -174,6 +190,7 @@ artifacts:
     name: ingress.image.webhook-certgen.v1.5.3
     path: /data/download/ingress/kube-webhook-certgen-v1.5.3.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/kube-webhook-certgen-v1.5.3.tar"
+    base_url: "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3"
     md5: "f8a7606f41649cfa16a6182ec3c33f25"
     description: "ingress-nginx webhook certgen image tar"
 
@@ -198,6 +215,7 @@ artifacts:
     name: local-path.image.provisioner.master-head
     path: /data/download/local-path/local-path-provisioner-master-head.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/local-path-provisioner-master-head.tar"
+    base_url: "docker.io/rancher/local-path-provisioner:master-head"
     md5: "8e7e1c52ac43f09561c6c6570b5c71b7"
     description: "local-path provisioner image tar"
 
@@ -206,6 +224,7 @@ artifacts:
     name: local-path.image.busybox.1.33.1
     path: /data/download/local-path/busybox-1.33.1.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/x86/busybox-1.33.1.tar"
+    base_url: "docker.io/library/busybox:1.33.1"
     md5: "62528f4fe5525ad3573b0b3012d74e0d"
     description: "busybox image tar"
 
@@ -214,6 +233,7 @@ artifacts:
     name: nfs-provisioner.chart.v4.0.18
     path: /data/download/nfs-provisioner/nfs-subdir-external-provisioner-4.0.18.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nfs-subdir-external-provisioner-4.0.18.tgz"
+    base_url: "https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-4.0.18.tgz"
     md5: "6ae0e7c6676bceaa1b006e33e1d46824"
     description: "nfs-provisioner helm chart"
 
@@ -222,6 +242,7 @@ artifacts:
     name: nfs-provisioner.image.v4.0.2
     path: /data/download/nfs-provisioner/nfs-subdir-external-provisioner-v4.0.2.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/nfs-subdir-external-provisioner-v4.0.2.tar"
+    base_url: "docker.io/eipwork/nfs-subdir-external-provisioner:v4.0.2"
     md5: "e7653aebf180319de06dfe95fc28c9d3"
     description: "nfs-provisioner image tar"
 
@@ -230,6 +251,7 @@ artifacts:
     name: tidb.chart.operator.v1.6.1
     path: /data/download/tidb/tidb-operator-v1.6.1.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/tidb-operator-v1.6.1.tgz"
+    base_url: "https://github.com/pingcap/tidb-operator/archive/refs/tags/v1.6.1.tar.gz"
     md5: "3666e78088e0fa3b3c0ec030811eeada"
     description: "tidb-operator helm chart"
 
@@ -254,6 +276,7 @@ artifacts:
     name: tidb.image.operator.v1.6.1
     path: /data/download/tidb/tidb-operator-v1.6.1-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/x86/tidb-operator-v1.6.1-amd64.tar"
+    base_url: "docker.io/pingcap/tidb-operator:v1.6.1"
     md5: "0a3d547433bb277cf3ce52b10884ff67"
     description: "tidb operator image tar"
 
@@ -294,6 +317,7 @@ artifacts:
     name: minio.image.amd64.20250524
     path: /data/download/minio/minio_20250524_amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/minio_20250524_amd64.tar"
+    base_url: "docker.io/minio/minio:RELEASE.2025-05-24T17-08-30Z"
     md5: "65e9448aca12e18236817062dee59740"
     description: "minio container image tar"
 
@@ -343,6 +367,7 @@ artifacts:
     name: juicefs.image.csi-dashboard.v0.28.1
     path: /data/download/juicefs/csi-dashboard-v0.28.1-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-dashboard-v0.28.1-amd64.tar"
+    base_url: "juicedata/csi-dashboard:v0.28.1"
     md5: "837f6b2337a03d40daea33c38fe64692"
     description: "juicefs csi dashboard image tar"
 
@@ -351,6 +376,7 @@ artifacts:
     name: juicefs.image.csi-node-driver-registrar.v2.13.0
     path: /data/download/juicefs/csi-node-driver-registrar-v2.13.0-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-node-driver-registrar-v2.13.0-amd64.tar"
+    base_url: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0"
     md5: "cd1c159df25af6cc3002cd183e349b0a"
     description: "csi node driver registrar image tar"
 
@@ -359,6 +385,7 @@ artifacts:
     name: juicefs.image.csi-provisioner.v2.2.2
     path: /data/download/juicefs/csi-provisioner-v2.2.2-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-provisioner-v2.2.2-amd64.tar"
+    base_url: "registry.k8s.io/sig-storage/csi-provisioner:v2.2.2"
     md5: "3d4bcece68c379b0fe4a7de24c24952a"
     description: "csi provisioner image tar"
 
@@ -367,6 +394,7 @@ artifacts:
     name: juicefs.image.csi-resizer.v1.9.0
     path: /data/download/juicefs/csi-resizer-v1.9.0-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-resizer-v1.9.0-amd64.tar"
+    base_url: "registry.k8s.io/sig-storage/csi-resizer:v1.9.0"
     md5: "7075e30be3be60dbb4695104fdbd4190"
     description: "csi resizer image tar"
 
@@ -375,6 +403,7 @@ artifacts:
     name: juicefs.image.juicefs-csi-driver.v0.28.1
     path: /data/download/juicefs/juicefs-csi-driver-v0.28.1-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/juicefs-csi-driver-v0.28.1-amd64.tar"
+    base_url: "juicedata/juicefs-csi-driver:v0.28.1"
     md5: "4c7b67468e38be2f7d673c859de93bc9"
     description: "juicefs csi driver image tar"
 
@@ -383,6 +412,7 @@ artifacts:
     name: juicefs.image.livenessprobe.v2.12.0
     path: /data/download/juicefs/livenessprobe-v2.12.0-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/livenessprobe-v2.12.0-amd64.tar"
+    base_url: "registry.k8s.io/sig-storage/livenessprobe:v2.12.0"
     md5: "6282660bb45ddeffd9aaf63438827e09"
     description: "livenessprobe image tar"
 
@@ -391,6 +421,7 @@ artifacts:
     name: juicefs.image.mount-ce.v1.2.3
     path: /data/download/juicefs/mount-ce-v1.2.3-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/mount-ce-v1.2.3-amd64.tar"
+    base_url: "juicedata/mount:ce-v1.2.3"
     md5: "58fa019845e57d5a372e626df67c9f44"
     description: "juicefs mount-ce image tar"
 
@@ -399,6 +430,7 @@ artifacts:
     name: juicefs.chart.csi-driver.v0.28.1
     path: /data/download/juicefs/juicefs-csi-driver-0.28.1.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/juicefs-csi-driver-0.28.1.tgz"
+    base_url: "https://github.com/juicedata/charts/releases/download/helm-chart-juicefs-csi-driver-0.28.1/juicefs-csi-driver-0.28.1.tgz"
     md5: "7ffb06707f77c76bae51886c34310263"
     description: "juicefs csi driver helm chart"
 
@@ -416,6 +448,7 @@ artifacts:
     name: dragonfly.image.kube-rbac-proxy.v0.16.0
     path: /data/download/dragonfly/kube-rbac-proxy-v0.16.0-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-rbac-proxy-v0.16.0-amd64.tar"
+    base_url: "kubebuilder/kube-rbac-proxy:v0.16.0"
     md5: "db6d5400560528363dd158baafe825dd"
     description: "kube-rbac-proxy image tar for dragonfly-operator"
 
@@ -424,6 +457,7 @@ artifacts:
     name: dragonfly.image.operator.v1.1.8
     path: /data/download/dragonfly/dragonfly-operator-v1.1.8-amd64.tar
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/dragonfly-operator-v1.1.8-amd64.tar"
+    base_url: "docker.dragonflydb.io/dragonflydb/operator:v1.1.8"
     md5: "751b358331b0bdc9306cf64132cf3041"
     description: "dragonfly-operator image tar"
 
@@ -432,6 +466,7 @@ artifacts:
     name: dragonfly.chart.operator.v1.1.8
     path: /data/download/dragonfly/dragonfly-operator-1.1.8.tgz
     url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/dragonfly-operator-1.1.8.tgz"
+    base_url: "oci://ghcr.io/dragonflydb/dragonfly-operator/helm:v1.1.8"
     md5: "c17cb38c836405132ef4e5804734149b"
     description: "dragonfly-operator helm chart"
 

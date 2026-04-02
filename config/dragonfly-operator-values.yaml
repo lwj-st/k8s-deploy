@@ -1,0 +1,18 @@
+rbacProxy:
+  image:
+    repository: registry.sensetime.com/sensecore/kube-rbac-proxy
+    tag: v0.16.0
+
+manager:
+  image:
+    repository: registry.sensetime.com/sensecore/infra/middleware/dragonfly/operator
+    tag: "v1.1.8"
+
+  # 建议1c1g
+  resources: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
