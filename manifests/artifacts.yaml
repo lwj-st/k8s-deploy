@@ -304,6 +304,14 @@ artifacts:
     md5: "e805e9b00f0cc9d80a646f7170041842"
     description: "nvidia device-plugin image tar"
 
+  - module: ascend
+    type: file
+    name: ascend.manifest.device-plugin.master
+    path: /data/download/ascend/ascendplugin-910.yaml
+    url: "https://raw.gitcode.com/Ascend/mind-cluster/blobs/c4639eea69b2d4d01771716114204143b5d49320/ascendplugin-910.yaml"
+    md5: "e4148219c8342806e9cc58d21d300723"
+    description: "acsend 910 device-plugin yaml"
+
   - module: os
     type: dir
     name: os.dir.kubernetes
