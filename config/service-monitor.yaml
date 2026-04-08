@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcgm-exporter
+  namespace: monitoring
+  labels:
+    release: kube-prom-stack   # 这行通常必须和你的 Prometheus release 一致
+spec:
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcgm-exporter
+      app.kubernetes.io/version: "4.8.1"
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
