@@ -51,6 +51,9 @@ ALLOW_ONLINE="${ALLOW_ONLINE:-no}"
 read -r -p "Ingress 节点名（kubectl node 名，默认: $(hostname | tr 'A-Z' 'a-z')）: " INGRESS_NODE_NAME
 INGRESS_NODE_NAME="${INGRESS_NODE_NAME:-$(hostname | tr 'A-Z' 'a-z')}"
 
+read -r -p "Grafana Ingress 域名 GRAFANA_INGRESS_HOST (默认: grafana.sensecorex.com): " GRAFANA_INGRESS_HOST
+GRAFANA_INGRESS_HOST="${GRAFANA_INGRESS_HOST:-grafana.sensecorex.com}"
+
 # MD5 校验开关（默认开启，便于发现坏包/截断包）
 read -r -p "下载/校验开关 MAAS_MD5_CHECK (1=开启校验,0=关闭, 默认: 1): " MAAS_MD5_CHECK
 MAAS_MD5_CHECK="${MAAS_MD5_CHECK:-1}"
@@ -102,6 +105,7 @@ export IMAGE_REPOSITORY="${IMAGE_REPOSITORY}"
 export CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD}"
 export ALLOW_ONLINE="${ALLOW_ONLINE}"
 export INGRESS_NODE_NAME="${INGRESS_NODE_NAME}"
+export GRAFANA_INGRESS_HOST="${GRAFANA_INGRESS_HOST}"
 export MAAS_MD5_CHECK="${MAAS_MD5_CHECK}"
 export NFS_SERVER="${NFS_SERVER}"
 export NFS_PATH="${NFS_PATH}"

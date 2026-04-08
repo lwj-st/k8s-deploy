@@ -486,3 +486,110 @@ artifacts:
     md5: "26641eb74c288aa9dd352a3d5591cf6d"
     description: "dragonfly-operator helm values"
 
+  # --- monitoring ---
+  - module: monitor
+    type: file
+    name: monitor.chart.kube-prometheus-stack.v72.7.0
+    path: /data/download/monitor/kube-prometheus-stack-72.7.0.tgz
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-prometheus-stack-72.7.0.tgz"
+    md5: "09e35c59287e9670e2fa29c23f769c90"
+    description: "kube-prometheus-stack helm chart"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.kube-state-metrics.v2.15.0
+    path: /data/download/monitor/kube-state-metrics-v2.15.0-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/kube-state-metrics-v2.15.0-amd64.tar"
+    base_url: "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0"
+    md5: "44f8975b59e7567a2e761aa87aa36805"
+    description: "kube-state-metrics image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.grafana.v12.0.0
+    path: /data/download/monitor/grafana-v12.0.0-amd64.tar
+    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/grafana-v12.0.0-amd64.tar"
+    base_url: "docker.io/grafana/grafana:12.0.0"
+    md5: "9e7b817760a6c9c3106adfb3d66f15bc"
+    description: "grafana image tar"
+
+  - module: monitor
+    type: file
+    name: monitor.manifest.dcgm-exporter
+    path: /data/download/monitor/dcgm-exporter.yaml
+    url: "https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/master/dcgm-exporter.yaml"
+    md5: "d8389fb0b7852ca6dfebc0ce55a4a94d"
+    description: "dcgm-exporter manifest"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.ingress-nginx.kube-webhook-certgen.v1.5.3
+    path: /data/download/monitor/kube-webhook-certgen-v1.5.3.tar
+    url: ""
+    base_url: "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3"
+    md5: ""
+    description: "kube-webhook-certgen image tar for monitoring"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.kiwigrid.k8s-sidecar.v1.30.0
+    path: /data/download/monitor/k8s-sidecar-v1.30.0.tar
+    url: ""
+    base_url: "quay.io/kiwigrid/k8s-sidecar:1.30.0"
+    md5: ""
+    description: "k8s-sidecar image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.prometheus-config-reloader.v0.82.2
+    path: /data/download/monitor/prometheus-config-reloader-v0.82.2.tar
+    url: ""
+    base_url: "quay.io/prometheus-operator/prometheus-config-reloader:v0.82.2"
+    md5: ""
+    description: "prometheus-config-reloader image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.prometheus-operator.v0.82.2
+    path: /data/download/monitor/prometheus-operator-v0.82.2.tar
+    url: ""
+    base_url: "quay.io/prometheus-operator/prometheus-operator:v0.82.2"
+    md5: ""
+    description: "prometheus-operator image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.alertmanager.v0.28.1
+    path: /data/download/monitor/alertmanager-v0.28.1.tar
+    url: ""
+    base_url: "quay.io/prometheus/alertmanager:v0.28.1"
+    md5: ""
+    description: "alertmanager image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.node-exporter.v1.9.1
+    path: /data/download/monitor/node-exporter-v1.9.1.tar
+    url: ""
+    base_url: "quay.io/prometheus/node-exporter:v1.9.1"
+    md5: ""
+    description: "node-exporter image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.prometheus.v3.4.0
+    path: /data/download/monitor/prometheus-v3.4.0.tar
+    url: ""
+    base_url: "quay.io/prometheus/prometheus:v3.4.0"
+    md5: ""
+    description: "prometheus image tar"
+
+  - module: monitor
+    type: tar
+    name: monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless
+    path: /data/download/monitor/dcgm-exporter-4.5.2-4.8.1-distroless.tar
+    url: ""
+    base_url: "nvcr.io/nvidia/k8s/dcgm-exporter:4.5.2-4.8.1-distroless"
+    md5: ""
+    description: "dcgm-exporter image tar"
+
