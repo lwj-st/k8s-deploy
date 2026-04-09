@@ -40,10 +40,10 @@ spec:
 #          type: RuntimeDefault
       automountServiceAccountToken: false
       nodeSelector:
-        workerselector: dls-worker-node
+        accelerator: huawei-Ascend910
       containers:
       - name: npu-exporter
-        image: npu-exporter:v5.0.RC1
+        image: swr.cn-south-1.myhuaweicloud.com/ascendhub/npu-exporter:v5.0.0
         resources:
           requests:
               memory: 1000Mi
