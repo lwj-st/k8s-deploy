@@ -10,7 +10,7 @@
 ##       grafana-v12.0.0-amd64.tar
 ##   - 本脚本会读取仓库 config 下配置:
 ##       config/dcgm-exporter.yaml
-##       config/ascend-exporter.yaml
+##       config/npu-exporter.yaml
 ##       config/grafana-ingress.yaml
 ##       config/service-monitor.yaml
 ################################################################################
@@ -46,7 +46,7 @@ init_env() {
   CHART="${MONITOR_DIR}/kube-prometheus-stack-72.7.0.tgz"
 
   DCGM_YAML="${K8S_DEPLOY_ROOT}/config/dcgm-exporter.yaml"
-  ASCEND_YAML="${K8S_DEPLOY_ROOT}/config/ascend-exporter.yaml"
+  ASCEND_YAML="${K8S_DEPLOY_ROOT}/config/npu-exporter.yaml"
   INGRESS_TMPL="${K8S_DEPLOY_ROOT}/config/grafana-ingress.yaml"
   SM_YAML="${K8S_DEPLOY_ROOT}/config/service-monitor.yaml"
 
@@ -220,7 +220,7 @@ apply_monitoring_addons() {
     ascend)
       [ -f "${ASCEND_YAML}" ] || die "Ascend 分支需要配置文件: ${ASCEND_YAML}"
       log_info "检测到 ascend，部署 Ascend 相关 YAML: ${ASCEND_YAML}"
-      log_command "kubectl apply -f \"${ASCEND_YAML}\""
+      log_command "kubectl apply -n \"${NS}\" -f \"${ASCEND_YAML}\""
       ;;
     *)
       die "未知加速卡类型: ${RUNTIME_ACCELERATOR}"
