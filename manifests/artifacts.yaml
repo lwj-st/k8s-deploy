@@ -524,72 +524,80 @@ artifacts:
   - module: monitor
     type: tar
     name: monitor.image.ingress-nginx.kube-webhook-certgen.v1.5.3
-    path: /data/download/monitor/kube-webhook-certgen-v1.5.3.tar
+    path: /data/download/monitor/registry.k8s.io_ingress-nginx_kube-webhook-certgen_v1.5.3.tar
     url: ""
     base_url: "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3"
-    md5: ""
+    md5: "d0b1bff598c124aebe406ff8c90b0ea0"
     description: "kube-webhook-certgen image tar for monitoring"
 
   - module: monitor
     type: tar
     name: monitor.image.kiwigrid.k8s-sidecar.v1.30.0
-    path: /data/download/monitor/k8s-sidecar-v1.30.0.tar
+    path: /data/download/monitor/quay.io_kiwigrid_k8s-sidecar_1.30.0.tar
     url: ""
     base_url: "quay.io/kiwigrid/k8s-sidecar:1.30.0"
-    md5: ""
+    md5: "64e6ea7758985aff5176002e29fd483e"
     description: "k8s-sidecar image tar"
 
   - module: monitor
     type: tar
     name: monitor.image.prometheus-config-reloader.v0.82.2
-    path: /data/download/monitor/prometheus-config-reloader-v0.82.2.tar
+    path: /data/download/monitor/quay.io_prometheus-operator_prometheus-config-reloader_v0.82.2.tar
     url: ""
     base_url: "quay.io/prometheus-operator/prometheus-config-reloader:v0.82.2"
-    md5: ""
+    md5: "4bdbb62b841391341fcaab73614b9af0"
     description: "prometheus-config-reloader image tar"
 
   - module: monitor
     type: tar
     name: monitor.image.prometheus-operator.v0.82.2
-    path: /data/download/monitor/prometheus-operator-v0.82.2.tar
+    path: /data/download/monitor/quay.io_prometheus-operator_prometheus-operator_v0.82.2.tar
     url: ""
     base_url: "quay.io/prometheus-operator/prometheus-operator:v0.82.2"
-    md5: ""
+    md5: "23ba9241061fb0b3f56f3cddf74c800b"
     description: "prometheus-operator image tar"
 
   - module: monitor
     type: tar
     name: monitor.image.alertmanager.v0.28.1
-    path: /data/download/monitor/alertmanager-v0.28.1.tar
+    path: /data/download/monitor/quay.io_prometheus_alertmanager_v0.28.1.tar
     url: ""
     base_url: "quay.io/prometheus/alertmanager:v0.28.1"
-    md5: ""
+    md5: "3cbb223504bdfd76703427ff52a818ec"
     description: "alertmanager image tar"
 
   - module: monitor
     type: tar
     name: monitor.image.node-exporter.v1.9.1
-    path: /data/download/monitor/node-exporter-v1.9.1.tar
+    path: /data/download/monitor/quay.io_prometheus_node-exporter_v1.9.1.tar
     url: ""
     base_url: "quay.io/prometheus/node-exporter:v1.9.1"
-    md5: ""
+    md5: "0ecea608423f3884d852cb8277fd3154"
     description: "node-exporter image tar"
 
   - module: monitor
     type: tar
     name: monitor.image.prometheus.v3.4.0
-    path: /data/download/monitor/prometheus-v3.4.0.tar
+    path: /data/download/monitor/quay.io_prometheus_prometheus_v3.4.0.tar
     url: ""
     base_url: "quay.io/prometheus/prometheus:v3.4.0"
-    md5: ""
+    md5: "697c90779d056cb9beca2325466136ae"
     description: "prometheus image tar"
 
   - module: monitor
     type: tar
     name: monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless
-    path: /data/download/monitor/dcgm-exporter-4.5.2-4.8.1-distroless.tar
+    path: /data/download/monitor/nvcr.io_nvidia_k8s_dcgm-exporter_4.5.2-4.8.1-distroless.tar
     url: ""
     base_url: "nvcr.io/nvidia/k8s/dcgm-exporter:4.5.2-4.8.1-distroless"
-    md5: ""
+    md5: "3ac89b8c5e39836b30dd1f590ff89892"
     description: "dcgm-exporter image tar"
 
+  - module: seaweedfs
+    type: file
+    name: seaweedfs.chart.seaweedfs.v4.20.0
+    path: /data/download/seaweedfs/seaweedfs-4.20.0.tgz
+    url: ""
+    base_url: "https://seaweedfs.github.io/seaweedfs/helm/seaweedfs-4.20.0.tgz"
+    md5: "31a77a1cb105237af861d0e4a8955c77"
+    description: "seaweedfs helm chart"
