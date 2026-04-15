@@ -39,7 +39,7 @@ K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
-  ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
+  ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-9"
   ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
   ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
   ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
