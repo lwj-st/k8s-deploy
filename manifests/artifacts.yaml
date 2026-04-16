@@ -601,3 +601,84 @@ artifacts:
     base_url: "https://seaweedfs.github.io/seaweedfs/helm/seaweedfs-4.20.0.tgz"
     md5: "31a77a1cb105237af861d0e4a8955c77"
     description: "seaweedfs helm chart"
+
+  - module: seaweedfs
+    type: tar
+    name: seaweedfs.image.seaweedfs.v4.20.0
+    path: /data/download/seaweedfs/seaweedfs-4.20.0.tar
+    url: ""
+    base_url: "quay.io/flysangel/chrislusf/seaweedfs:4.20"
+    md5: "8073334cb6ec5dfcb7e0aea418a3bf0e"
+    description: "seaweedfs image tar"
+
+  - module: seaweedfs-csi
+    type: file
+    name: seaweedfs-csi.chart.driver.v0.2.14
+    path: /data/download/seaweedfs/seaweedfs-csi-driver-0.2.14.tgz
+    url: ""
+    base_url: "https://seaweedfs.github.io/seaweedfs-csi-driver/helm/seaweedfs-csi-driver-0.2.14.tgz"
+    md5: "b58c8e34c1db66a0ee26cfe6d6b2b89b"
+    description: "seaweedfs csi driver helm chart"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.driver.v1.4.8
+    path: /data/download/seaweedfs/docker.io_chrislusf_seaweedfs-csi-driver_v1.4.8.tar
+    url: ""
+    base_url: "docker.io/chrislusf/seaweedfs-csi-driver:v1.4.8"
+    md5: "7283f35bdc93f212b78a2977ba8ee99c"
+    description: "seaweedfs csi driver image tar"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.mount.v1.4.8
+    path: /data/download/seaweedfs/docker.io_chrislusf_seaweedfs-mount_v1.4.8.tar
+    url: ""
+    base_url: "docker.io/chrislusf/seaweedfs-mount:v1.4.8"
+    md5: "c3986e9a4887950b392515acb939b9ec"
+    description: "seaweedfs mount image tar"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.csi-attacher.v4.3.0
+    path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-attacher_v4.3.0.tar
+    url: ""
+    base_url: "registry.k8s.io/sig-storage/csi-attacher:v4.3.0"
+    md5: "c96e298f9524623bdca3087e6736350e"
+    description: "csi attacher image tar"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.csi-node-driver-registrar.v2.8.0
+    path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-node-driver-registrar_v2.8.0.tar
+    url: ""
+    base_url: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0"
+    md5: "5a7679a871687efe634b1d5f4092ef1d"
+    description: "csi node driver registrar image tar"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.csi-provisioner.v3.5.0
+    path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-provisioner_v3.5.0.tar
+    url: ""
+    base_url: "registry.k8s.io/sig-storage/csi-provisioner:v3.5.0"
+    md5: "1b4ec0162a63910ac36e644bb70f2f22"
+    description: "csi provisioner image tar"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.csi-resizer.v1.8.0
+    path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-resizer_v1.8.0.tar
+    url: ""
+    base_url: "registry.k8s.io/sig-storage/csi-resizer:v1.8.0"
+    md5: "6fdc2744217330b36b571ae6d629f6cf"
+    description: "csi resizer image tar"
+
+  - module: seaweedfs-csi
+    type: tar
+    name: seaweedfs-csi.image.livenessprobe.v2.10.0
+    path: /data/download/seaweedfs/registry.k8s.io_sig-storage_livenessprobe_v2.10.0.tar
+    url: ""
+    base_url: "registry.k8s.io/sig-storage/livenessprobe:v2.10.0"
+    md5: "70e5fd1803616a3345ffa60663be70a9"
+    description: "livenessprobe image tar"
