@@ -62,7 +62,7 @@ case "${MAAS_MD5_CHECK}" in
   *) die "MAAS_MD5_CHECK 只能是 0 或 1" ;;
 esac
 
-# NFS（可选，仅当你要执行 18-Deploy-nfs-provisioner.sh 才需要）
+# NFS（可选，仅当你要执行 21-Deploy-nfs-provisioner.sh 才需要）
 # - NFS_SERVER: NFS 服务端 IP/域名（必须是已完成 export 的 NFS 服务端）
 # - NFS_PATH: 服务端导出的目录路径
 read -r -p "是否部署 NFS 动态供给器？DEPLOY_NFS (yes/no, 默认: no): " DEPLOY_NFS

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    20-Deploy-nvidia.sh
+## Filename:    23-Deploy-nvidia.sh
 ## Description: 离线部署 NVIDIA GPU 相关组件
 ## Notes:
 ##   - 仅做“装包 + 配置 containerd runtime + 部署 device plugin”

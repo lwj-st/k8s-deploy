@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    23-Deploy-dragonfly-operator.sh
+## Filename:    28-Deploy-dragonfly-operator.sh
 ## Description: 导入 Dragonfly Operator 镜像 tar，并以 Helm 安装 chart（tgz）
 ## Notes:
 ##   - 与 install.md 一致：release dragonfly-operator，命名空间 infra（--create-namespace）

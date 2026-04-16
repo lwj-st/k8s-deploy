@@ -1,14 +1,15 @@
 # k8s-deploy（x86 / Kubernetes 1.31.x + containerd）
 
 ## 目录结构
+### 基础脚本（01-20）
 - `Script/00-Download-k8s-packages.sh` 下载 Kubernetes 离线安装包（可选）
 - `Script/00-Download-k8s-packages-docker.sh` 如果没有对应的 OS 环境，可以使用 Docker 容器来模拟 (可选)
 - `Script/00-Download-tools-packages-docker.sh` 可提前下载所需的工具包，可以使用 Docker 容器来模拟 (可选)
 - `Script/01-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
 - `Script/02-Download.sh`：按清单下载（可选 MD5 校验）
 - `Script/03-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
-- `Script/09-Install-tools.sh`：安装 helm/helmfile
 - `Script/08-Install-nfs.sh`：安装nfs 共享
+- `Script/09-Install-tools.sh`：安装 helm/helmfile
 - `Script/10-Env.sh`：宿主机预置（可强改防火墙；默认只清 KUBE/CALI iptables 链）
 - `Script/11-Install-containerd.sh`：安装containerd
 - `Script/12-Load-images.sh`：load本地镜像
@@ -16,13 +17,18 @@
 - `Script/14-Kubeadm-init.sh`：初始化集群
 - `Script/15-Deploy-cni.sh`
 - `Script/16-Deploy-ingress.sh`
-- `Script/17-Deploy-local-path.sh`
-- `Script/18-Deploy-nfs-provisioner.sh`
-- `Script/19-Deploy-tidb-operator.sh`：部署tidb operator
-- `Script/20-Deploy-nvidia.sh`：部署nvidia plugin
-- `Script/21-Deploy-minio.sh`：部署 MinIO
-- `Script/22-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
-- `Script/23-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
+
+### 插件/组件脚本（20+）
+- `Script/20-Deploy-local-path.sh`
+- `Script/21-Deploy-nfs-provisioner.sh`
+- `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
+- `Script/23-Deploy-nvidia.sh`：部署nvidia plugin
+- `Script/24-Deploy-ascend.sh`：部署 Ascend plugin
+- `Script/25-Deploy-seaweedfs.sh`：部署 SeaweedFS + CSI Driver
+- `Script/26-Deploy-minio.sh`：部署 MinIO
+- `Script/27-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
+- `Script/28-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
+- `Script/29-Deploy-monitoring.sh`：部署 Monitoring
 - `Script/90-Shovel-k8s.sh`：清理集群（kubeadm reset + 只清 KUBE/CALI 相关链）
 - `Script/91-Cleanup-host.sh`：回滚“脚本改动过的地方”，恢复宿主机干净环境（尽可能）
 
@@ -102,7 +108,7 @@ bash 02-Download.sh
 bash 03-Verify-artifacts.sh
 ```
 
-部署（逐步执行，任一步失败即退出）：
+基础部署（逐步执行，任一步失败即退出）：
 
 ```bash
 sudo bash 08-Install-nfs.sh
@@ -114,10 +120,21 @@ sudo bash 13-Install-k8s-packages.sh
 sudo bash 14-Kubeadm-init.sh
 sudo bash 15-Deploy-cni.sh
 sudo bash 16-Deploy-ingress.sh
-sudo bash 17-Deploy-local-path.sh
-sudo bash 18-Deploy-nfs-provisioner.sh   # 可选：仅当你在 01-Cluster-host.sh 里选择 DEPLOY_NFS=yes
-sudo bash 19-Deploy-tidb-operator.sh              # 可选
-sudo bash 20-Deploy-nvidia.sh            # 可选：仅 NVIDIA
+```
+
+插件/组件部署（按需执行）：
+
+```bash
+sudo bash 20-Deploy-local-path.sh         # 可选
+sudo bash 21-Deploy-nfs-provisioner.sh    # 可选：仅当你在 01-Cluster-host.sh 里选择 DEPLOY_NFS=yes
+sudo bash 22-Deploy-tidb-operator.sh      # 可选
+sudo bash 23-Deploy-nvidia.sh             # 可选：仅 NVIDIA
+sudo bash 24-Deploy-ascend.sh             # 可选：仅 Ascend
+sudo bash 25-Deploy-seaweedfs.sh          # 可选
+sudo bash 26-Deploy-minio.sh              # 可选
+sudo bash 27-Deploy-juicefs-csi-driver.sh # 可选
+sudo bash 28-Deploy-dragonfly-operator.sh # 可选
+sudo bash 29-Deploy-monitoring.sh         # 可选
 ...
 ```
 
@@ -182,11 +199,11 @@ sudo kubeadm join <API_SERVER>:6443 --token <TOKEN> \
 如果新节点是 **GPU 节点**，还需要执行：
 
 ```bash
-sudo bash 20-Deploy-nvidia.sh
+sudo bash 23-Deploy-nvidia.sh
 ```
 
 **注意**：
-- `20-Deploy-nvidia.sh` 会安装 NVIDIA container toolkit 并配置 containerd runtime
+- `23-Deploy-nvidia.sh` 会安装 NVIDIA container toolkit 并配置 containerd runtime
 - Device plugin 的 DaemonSet 已在主节点部署，会自动在所有有 `nvidia.com/gpu.present=true` label 的节点上运行
 - 脚本会自动检测 GPU 并给节点打 label，无需手动操作
 - **重复执行是安全的**：`kubectl apply` 是幂等的，即使多次执行也不会报错
@@ -210,11 +227,11 @@ kubectl get nodes <节点名> -o yaml | grep -A5 "labels:"
 | 节点类型 | 需要执行的脚本 |
 |---------|--------------|
 | **CPU 节点** | `10-Env.sh` → `11-Install-containerd.sh` → `12-Load-images.sh` → `13-Install-k8s-packages.sh` → `kubeadm join` |
-| **GPU 节点** | `10-Env.sh` → `11-Install-containerd.sh` → `12-Load-images.sh` → `13-Install-k8s-packages.sh` → `kubeadm join` → `20-Deploy-nvidia.sh` |
+| **GPU 节点** | `10-Env.sh` → `11-Install-containerd.sh` → `12-Load-images.sh` → `13-Install-k8s-packages.sh` → `kubeadm join` → `23-Deploy-nvidia.sh` |
 
 **说明**：
 - CPU 节点和 GPU 节点的基础步骤相同
-- GPU 节点额外需要 `20-Deploy-nvidia.sh` 来安装 NVIDIA 工具包和配置 containerd runtime
+- GPU 节点额外需要 `23-Deploy-nvidia.sh` 来安装 NVIDIA 工具包和配置 containerd runtime
 - Device plugin DaemonSet 只需在主节点部署一次，会自动在所有 GPU 节点上运行
 
 ## 下载/校验开关
