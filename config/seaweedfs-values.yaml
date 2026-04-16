@@ -1,6 +1,12 @@
 # Available parameters and their default values for the SeaweedFS chart.
 # 命名空间由 helm 的 -n 决定（本 Chart 不在 values 里写死 namespace）。示例：
 #   helm install seaweedfs ./k8s/charts/seaweedfs -n seaweedfs --create-namespace -f values.yaml
+#
+# 高可用配置说明（示例）：
+# 1) master.replicas 建议 >= 3（并保持 anti-affinity），避免单点 master 故障。
+# 2) volume.replicas 建议 >= 2，并结合 defaultReplication/defaultReplicaPlacement 配置副本策略。
+# 3) filer.replicas 建议 >= 2（生产场景建议配持久化后端，如 MySQL/PostgreSQL）。
+# 4) 存储建议使用 PVC（或可靠共享存储），避免单机 hostPath 故障导致数据不可用。
 
 global:
   # global.imageRegistry and global.imagePullSecrets are standard Helm conventions
@@ -60,7 +66,7 @@ image:
   # 若填写则会覆盖 global.seaweedfs.image.name 的仓库路径（见 templates common.image）
   repository: ""
   # 为空时使用 Chart appVersion
-  tag: "4.19"
+  # tag: "4.19"
 
 master:
   enabled: true
