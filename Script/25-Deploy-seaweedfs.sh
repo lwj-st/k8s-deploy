@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    17-Deploy-seaweedfs.sh
+## Filename:    25-Deploy-seaweedfs.sh
 ## Description: 使用离线 Helm Chart 部署/升级/卸载 SeaweedFS
 ## Usage:
-##   bash 17-Deploy-seaweedfs.sh install   # 默认
-##   bash 17-Deploy-seaweedfs.sh upgrade
-##   bash 17-Deploy-seaweedfs.sh uninstall
+##   bash 25-Deploy-seaweedfs.sh install   # 默认
+##   bash 25-Deploy-seaweedfs.sh upgrade
+##   bash 25-Deploy-seaweedfs.sh uninstall
 ################################################################################
 set -euo pipefail
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    21-Deploy-minio.sh
+## Filename:    26-Deploy-minio.sh
 ## Description: 离线导入 MinIO 镜像并 apply 清单（与 install.md 步骤一致）
 ## Notes:
 ##   - minio-deploy.yaml 按文档删除第 91–92 行后 apply（每次从制品原文件拷贝到临时文件处理，可重复执行）

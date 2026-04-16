@@ -3,7 +3,7 @@ set -euo pipefail
 
 ################################################################################
 ## 08-install-nfs.sh：按 environment.sh 中 NFS 配置，在本机安装 NFS 服务端（若未安装）
-## - 18-Deploy-nfs-provisioner.sh 脚本前置条件
+## - 21-Deploy-nfs-provisioner.sh 脚本前置条件
 ## - 若 NFS_SERVER 为空则跳过（未配置 NFS）
 ## - 若已安装 NFS 服务端包则跳过
 ## - 否则从 DOWNLOAD_DIR/packages/tools/<os>/ 下对应子目录离线安装
@@ -132,4 +132,4 @@ else
   log_command "systemctl restart nfs-server || systemctl restart nfs-kernel-server || true"
 fi
 
-log_info "NFS 服务端安装与 export 完成（后续可执行 18-Deploy-nfs-provisioner.sh）"
+log_info "NFS 服务端安装与 export 完成（后续可执行 21-Deploy-nfs-provisioner.sh）"

@@ -286,7 +286,7 @@ artifacts:
     path: /data/download/nvidia
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline base dir; append /<os> in 20-Deploy-nvidia.sh"
+    description: "nvidia toolkit offline base dir; append /<os> in 23-Deploy-nvidia.sh"
 
   - module: nvidia
     type: file

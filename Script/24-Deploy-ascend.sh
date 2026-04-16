@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    20-Deploy-ascend.sh
+## Filename:    24-Deploy-ascend.sh
 ## Description: 离线部署 Ascend（昇腾）NPU 相关组件 x86
 ## Notes:
 ##   - 仅做“装包 +（可选）配置 containerd runtime + 部署 device plugin”
