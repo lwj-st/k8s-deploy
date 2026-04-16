@@ -28,6 +28,10 @@ SC_NAME="${SEAWEEDFS_STORAGE_CLASS_NAME:-seaweedfs-storage}"
 SC_RECLAIM_POLICY="${SEAWEEDFS_STORAGE_RECLAIM_POLICY:-Retain}"
 SC_VOLUME_BINDING_MODE="${SEAWEEDFS_STORAGE_BINDING_MODE:-Immediate}"
 SC_REPLICATION="${SEAWEEDFS_STORAGE_REPLICATION:-001}"
+SC_IS_DEFAULT="${SEAWEEDFS_STORAGE_IS_DEFAULT:-true}"
+S3_ADMIN_ACCESS_KEY_ID="${SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID:-minioadmin}"
+S3_ADMIN_SECRET_ACCESS_KEY="${SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY:-minioadmin}"
+S3_VALUES_OVERRIDE=""
 
 init_env() {
   init_framework
@@ -56,6 +60,21 @@ init_env() {
   log_info "覆盖拷贝 seaweedfs-values.yaml 到 ${VALUES}"
   log_command "cp -f \"${VALUES_SRC}\" \"${VALUES}\""
   [ -f "${VALUES}" ] || die "缺少 values 文件: ${VALUES}"
+
+  # 可选：固定 S3 管理员 AK/SK，避免 chart 随机生成（不通过 --set，避免泄露到日志）
+  # 注意：filer 内嵌 S3（filer.s3.enabled=true）时，chart 仍会读取顶层 s3.credentials 生成 ${RELEASE}-s3-secret。
+  if [ -n "${S3_ADMIN_ACCESS_KEY_ID}" ] || [ -n "${S3_ADMIN_SECRET_ACCESS_KEY}" ]; then
+    [ -n "${S3_ADMIN_ACCESS_KEY_ID}" ] || die "已设置 SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY 但未设置 SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID"
+    [ -n "${S3_ADMIN_SECRET_ACCESS_KEY}" ] || die "已设置 SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID 但未设置 SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY"
+    S3_VALUES_OVERRIDE="$(mktemp -t seaweedfs-s3-override.XXXXXX.yaml)"
+    cat > "${S3_VALUES_OVERRIDE}" <<EOF
+s3:
+  credentials:
+    admin:
+      accessKey: "${S3_ADMIN_ACCESS_KEY_ID}"
+      secretKey: "${S3_ADMIN_SECRET_ACCESS_KEY}"
+EOF
+  fi
 }
 
 import_image_tar() {
@@ -112,7 +131,12 @@ deploy_or_upgrade() {
   fi
 
   log_info "执行 Helm 部署（install/upgrade 幂等）..."
-  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace -f \"${VALUES}\""
+  if [ -n "${S3_VALUES_OVERRIDE}" ] && [ -f "${S3_VALUES_OVERRIDE}" ]; then
+    log_info "检测到已指定固定 S3 AK/SK（将写入 ${RELEASE}-s3-secret）"
+    log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace -f \"${VALUES}\" -f \"${S3_VALUES_OVERRIDE}\""
+  else
+    log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace -f \"${VALUES}\""
+  fi
 
   log_info "执行 SeaweedFS CSI Driver 部署（install/upgrade 幂等）..."
   log_command "helm -n \"${CSI_NS}\" upgrade --install \"${CSI_RELEASE}\" \"${CSI_CHART}\" --create-namespace --set seaweedfsFiler=\"${SEAWEEDFS_FILER}\""
@@ -159,6 +183,20 @@ EOF
   log_info "应用 SeaweedFS StorageClass（name=${SC_NAME}, replication=${SC_REPLICATION}）..."
   log_command "kubectl create -f \"${tmp_sc}\" || kubectl apply -f \"${tmp_sc}\""
 
+  # 仅保留一个默认 StorageClass，避免多个默认导致歧义
+  if [ "${SC_IS_DEFAULT}" = "true" ]; then
+    # StorageClass annotations 是可变字段，用 annotate 更稳（避免 YAML 拼接错误）
+    kubectl annotate storageclass "${SC_NAME}" storageclass.kubernetes.io/is-default-class="true" --overwrite >/dev/null 2>&1 || true
+    local defaults
+    defaults="$(kubectl get storageclass -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.annotations.storageclass\.kubernetes\.io/is-default-class}{"\n"}{end}' 2>/dev/null | awk '$2=="true"{print $1}' || true)"
+    local sc
+    for sc in ${defaults}; do
+      if [ "${sc}" != "${SC_NAME}" ]; then
+        kubectl annotate storageclass "${sc}" storageclass.kubernetes.io/is-default-class="false" --overwrite >/dev/null 2>&1 || true
+      fi
+    done
+  fi
+
   trap - EXIT
   rm -f "${tmp_sc}"
 }
@@ -185,6 +223,12 @@ print_s3_credentials_hint() {
   echo "kubectl -n ${NS} get secret ${RELEASE}-s3-secret -o jsonpath=\"{.data.admin_secret_access_key}\" | base64 --decode; echo"
 }
 
+cleanup() {
+  if [ -n "${S3_VALUES_OVERRIDE}" ] && [ -f "${S3_VALUES_OVERRIDE}" ]; then
+    rm -f "${S3_VALUES_OVERRIDE}" >/dev/null 2>&1 || true
+  fi
+}
+
 main() {
   init_env
 
@@ -194,9 +238,11 @@ main() {
       ensure_namespace
       deploy_or_upgrade
       print_s3_credentials_hint
+      cleanup
       ;;
     uninstall)
       uninstall_release
+      cleanup
       ;;
     *)
       die "不支持的动作: ${ACTION}（可选: install | upgrade | uninstall）"
