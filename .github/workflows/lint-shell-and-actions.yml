@@ -1,0 +1,46 @@
+name: Lint Shell And Actions
+
+on:
+  pull_request:
+    paths:
+      - 'Script/**'
+      - 'Check/**'
+      - 'common/**'
+      - '.github/workflows/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'Script/**'
+      - 'Check/**'
+      - 'common/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shell-and-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Bash syntax check
+        run: |
+          set -euo pipefail
+          find Script Check common -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          find Script Check common -type f -name '*.sh' -print0 | xargs -0 shellcheck -x
+
+      - name: Lint GitHub Actions
+        uses: rhysd/actionlint@v1.7.7
