@@ -19,7 +19,7 @@ verify_manifest() {
   local manifest="$1"
   local missing=0
 
-  while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
+  while IFS=$'\x1f' read -r module type name path _url md5 desc os_id; do
     [ -n "${module}" ] || continue
 
     # kubernetes 离线目录：优先 /<os>/kubernetes，兼容旧布局 /kubernetes/<os>
@@ -28,6 +28,7 @@ verify_manifest() {
         continue
       fi
       local ksub=""
+      # shellcheck disable=SC2153
       case "${OS_ID}" in
         ubuntu|debian) ksub="ubuntu" ;;
         centos) ksub="centos" ;;
