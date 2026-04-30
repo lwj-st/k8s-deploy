@@ -18,7 +18,6 @@ ts() { date '+%Y%m%d_%H%M%S'; }
 
 get_cur_path() {
   cd "$(dirname "${BASH_SOURCE-$0}")"
-  g_curPath="${PWD}"
   # 取“真正执行的脚本名”，而不是 framework.sh 本身
   # 调用栈通常为：<your-script>.sh -> init_framework -> get_cur_path
   local caller="${BASH_SOURCE[2]:-${BASH_SOURCE[1]:-${BASH_SOURCE[0]}}}"
@@ -226,7 +225,7 @@ artifact_get_path_by_name() {
 
   local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r m t n p url md5 d oid; do
+  while IFS=$'\x1f' read -r _m _t n p _url _md5 _d _oid; do
     [ "${n}" = "${name}" ] || continue
     found="${p}"
     cnt=$((cnt+1))
@@ -261,7 +260,7 @@ artifact_get_path() {
 
   local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r m t p url md5 d os_id; do
+  while IFS=$'\x1f' read -r m t _n p _url _md5 d _os_id; do
     [ "${m}" = "${module}" ] || continue
     [ "${t}" = "${type}" ] || continue
     [ "${d}" = "${desc}" ] || continue
