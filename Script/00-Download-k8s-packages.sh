@@ -194,5 +194,4 @@ log_info ""
 log_info "下一步："
 log_info "1. 将 ${OUTPUT_DIR} 目录复制到离线环境"
 log_info "2. 确保 artifacts.yaml 中的 path 指向正确路径"
-log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装（按 OS 使用 <基目录>/<os>/）"
-
+log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装（按 OS 使用 <基目录>/<os>/kubernetes）"

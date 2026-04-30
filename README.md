@@ -317,5 +317,3 @@ sudo -E bash Script/11-Install-containerd.sh
    sudo ctr -n k8s.io images ls
    ```
    若之前做过镜像导入，应仍能看到镜像列表。
-
-

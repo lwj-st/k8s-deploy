@@ -22,7 +22,7 @@ verify_manifest() {
   while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
     [ -n "${module}" ] || continue
 
-    # kubernetes 离线目录：单条基路径 + /<os>/kubernetes（与 artifact_get_os_kubernetes_dir 一致）
+    # kubernetes 离线目录：优先 /<os>/kubernetes，兼容旧布局 /kubernetes/<os>
     if [ "${module}" = "os" ] && [ "${type}" = "dir" ] && [ "${name}" = "os.dir.kubernetes" ]; then
       if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
         continue
@@ -36,11 +36,8 @@ verify_manifest() {
         kylin*) ksub="kylin" ;;
         *) continue ;;
       esac
-      local kb="${path}"
-      if [[ "${kb}" == /data/download/* ]]; then
-        kb="${DOWNLOAD_DIR}${kb#/data/download}"
-      fi
-      local kd="${kb}/${ksub}/kubernetes"
+      local kd
+      kd="$(artifact_get_os_kubernetes_dir "${ksub}")"
       if [ ! -d "${kd}" ]; then
         log_error "[MISSING] kubernetes offline 目录不存在: ${kd} (清单项: ${name}; ${desc})"
         missing=$((missing + 1))
@@ -141,4 +138,3 @@ main() {
 }
 
 main "$@"
-

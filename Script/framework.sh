@@ -276,9 +276,27 @@ artifact_get_path() {
 }
 
 ################################################################################
+# Function: artifact_normalize_os_key
+# Description: 将发行版标识规范化为离线包目录名
+# Parameter:
+#   $1 os_id - ubuntu/debian/centos/rocky/openeuler/kylin...
+################################################################################
+artifact_normalize_os_key() {
+  local os_id="$1"
+  case "${os_id}" in
+    ubuntu|debian) printf '%s\n' "ubuntu" ;;
+    centos) printf '%s\n' "centos" ;;
+    rocky) printf '%s\n' "rocky" ;;
+    openeuler) printf '%s\n' "openeuler" ;;
+    kylin*) printf '%s\n' "kylin" ;;
+    *) die "不支持的 OS_ID=${os_id}" ;;
+  esac
+}
+
+################################################################################
 # Function: artifact_get_os_kubernetes_dir
 # Description: 清单中一条 module=os,name=os.dir.kubernetes,type=dir 声明基目录；
-#              返回 ${基目录}/${os_id}/kubernetes，path 中 /data/download 前缀替换为 DOWNLOAD_DIR
+#              返回 ${基目录}/${os_id}/kubernetes
 # Parameter:
 #   $1 os_id  - ubuntu/centos/rocky/kylin/openeuler...
 ################################################################################
@@ -310,7 +328,28 @@ artifact_get_os_kubernetes_dir() {
   if [[ "${base}" == /data/download/* ]]; then
     base="${DOWNLOAD_DIR}${base#/data/download}"
   fi
-  printf '%s\n' "${base}/${os_id}/kubernetes"
+  local os_key
+  os_key="$(artifact_normalize_os_key "${os_id}")"
+  printf '%s\n' "${base}/${os_key}/kubernetes"
+}
+
+################################################################################
+# Function: artifact_get_os_tools_dir
+# Description: 返回当前 OS 对应的 tools 离线包目录
+#              返回 ${DOWNLOAD_DIR}/packages/${os_id}/tools
+# Parameter:
+#   $1 os_id - ubuntu/centos/rocky/kylin/openeuler...
+################################################################################
+artifact_get_os_tools_dir() {
+  local os_id="$1"
+  [ -n "${os_id}" ] || die "artifact_get_os_tools_dir: os_id 不能为空"
+  if [ -z "${DOWNLOAD_DIR:-}" ]; then
+    die "environment.sh 未设置 DOWNLOAD_DIR，无法解析 tools 离线包目录"
+  fi
+
+  local os_key
+  os_key="$(artifact_normalize_os_key "${os_id}")"
+  printf '%s\n' "${DOWNLOAD_DIR}/packages/${os_key}/tools"
 }
 
 ################################################################################
@@ -363,5 +402,3 @@ init_framework() {
   detect_os
   log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
 }
-
-
