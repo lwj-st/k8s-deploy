@@ -79,7 +79,8 @@ log_command() {
 backup_if_exists() {
   local p="$1"
   if [ -e "$p" ]; then
-    local b="${p}.k8s-deploy.$(ts)"
+    local b=""
+    b="${p}.k8s-deploy.$(ts)"
     log_warn "备份已存在路径: $p -> $b"
     mv -f "$p" "$b"
     printf '%s\t%s\n' "$p" "$b" >> "${BACKUPS_FILE}"
@@ -368,7 +369,7 @@ artifact_get_nvidia_toolkit_base_dir() {
 
   local cnt=0
   local base_from_yaml=""
-  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
+  while IFS=$'\x1f' read -r m t n artifact_path url _md5 d _oid; do
     [ "${m}" = "nvidia" ] || continue
     [ "${t}" = "dir" ] || continue
     cnt=$((cnt + 1))
