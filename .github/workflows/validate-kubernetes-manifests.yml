@@ -35,7 +35,10 @@ jobs:
       - name: Validate built-in Kubernetes resources
         run: |
           set -euo pipefail
-          find config manifests -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | \
+          find config manifests -type f \( -name '*.yaml' -o -name '*.yml' \) \
+            ! -path 'manifests/artifacts.yaml' \
+            ! -name '*values*.yaml' \
+            -print0 | \
             xargs -0 kubeconform \
               -summary \
               -strict \

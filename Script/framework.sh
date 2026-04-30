@@ -123,7 +123,9 @@ cleanup_kube_iptables() {
     while IFS= read -r rule; do
       [ -n "$rule" ] || continue
       local del="${rule/-A /-D }"
-      $ipt -t "$table" $del 2>/dev/null || true
+      local -a del_parts=()
+      read -r -a del_parts <<< "${del}"
+      "$ipt" -t "$table" "${del_parts[@]}" 2>/dev/null || true
     done < <($ipt -t "$table" -S 2>/dev/null | grep -E '^-A .* -j (KUBE|CALI)-' || true)
 
     while IFS= read -r chain; do
@@ -311,7 +313,7 @@ artifact_get_os_kubernetes_dir() {
 
   local cnt=0
   local base_from_yaml=""
-  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
+  while IFS=$'\x1f' read -r m t n artifact_path url _md5 d _oid; do
     [ "${m}" = "os" ] || continue
     [ "${t}" = "dir" ] || continue
     [ "${n}" = "os.dir.kubernetes" ] || continue
