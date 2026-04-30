@@ -1,0 +1,43 @@
+name: Validate Kubernetes Manifests
+
+on:
+  pull_request:
+    paths:
+      - 'config/**'
+      - 'manifests/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/**'
+      - 'manifests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kubeconform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          set -euo pipefail
+          version="0.6.7"
+          url="https://github.com/yannh/kubeconform/releases/download/v${version}/kubeconform-linux-amd64.tar.gz"
+          curl -fsSL "$url" -o /tmp/kubeconform.tar.gz
+          tar -C /tmp -xzf /tmp/kubeconform.tar.gz kubeconform
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+
+      - name: Validate built-in Kubernetes resources
+        run: |
+          set -euo pipefail
+          find config manifests -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | \
+            xargs -0 kubeconform \
+              -summary \
+              -strict \
+              -ignore-missing-schemas \
+              -skip CustomResourceDefinition

@@ -1,0 +1,58 @@
+name: Lint YAML
+
+on:
+  pull_request:
+    paths:
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.yamllint'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.yaml'
+      - '**/*.yml'
+      - '.yamllint'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install yamllint
+        run: python -m pip install --disable-pip-version-check yamllint==1.37.1
+
+      - name: Collect changed YAML files
+        id: changed
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            git fetch --no-tags origin "${{ github.base_ref }}" --depth=1
+            range="origin/${{ github.base_ref }}...HEAD"
+          elif [ "${GITHUB_EVENT_NAME}" = "push" ] && [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            range="${{ github.event.before }}...${{ github.sha }}"
+          else
+            range="HEAD~1...HEAD"
+          fi
+
+          git diff --name-only "$range" | grep -E '(^.*\.(yml|yaml)$|^\.yamllint$)' > /tmp/changed_yaml.txt || true
+          echo "count=$(wc -l < /tmp/changed_yaml.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+      - name: Run yamllint
+        if: steps.changed.outputs.count != '0'
+        run: |
+          set -euo pipefail
+          xargs -r -d '\n' yamllint < /tmp/changed_yaml.txt
