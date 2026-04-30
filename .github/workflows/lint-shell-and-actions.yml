@@ -26,21 +26,54 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Install shellcheck
+      - name: Install shellcheck and actionlint
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y shellcheck
+          version="1.7.8"
+          url="https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_amd64.tar.gz"
+          curl -fsSL "$url" -o /tmp/actionlint.tar.gz
+          tar -C /tmp -xzf /tmp/actionlint.tar.gz actionlint
+          sudo install -m 0755 /tmp/actionlint /usr/local/bin/actionlint
+
+      - name: Collect changed files
+        id: changed
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            git fetch --no-tags origin "${{ github.base_ref }}" --depth=1
+            range="origin/${{ github.base_ref }}...HEAD"
+          elif [ "${GITHUB_EVENT_NAME}" = "push" ] && [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            range="${{ github.event.before }}...${{ github.sha }}"
+          else
+            range="HEAD~1...HEAD"
+          fi
+
+          git diff --name-only "$range" > /tmp/changed_files.txt
+          grep -E '^(Script|Check|common)/.*\.sh$' /tmp/changed_files.txt > /tmp/changed_shell.txt || true
+          grep -E '^\.github/workflows/.*\.(yml|yaml)$' /tmp/changed_files.txt > /tmp/changed_workflows.txt || true
+
+          echo "shell_count=$(wc -l < /tmp/changed_shell.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          echo "workflow_count=$(wc -l < /tmp/changed_workflows.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Bash syntax check
+        if: steps.changed.outputs.shell_count != '0'
         run: |
           set -euo pipefail
-          find Script Check common -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          xargs -r -d '\n' -n1 bash -n < /tmp/changed_shell.txt
 
       - name: ShellCheck
+        if: steps.changed.outputs.shell_count != '0'
         run: |
           set -euo pipefail
-          find Script Check common -type f -name '*.sh' -print0 | xargs -0 shellcheck -x
+          xargs -r -d '\n' shellcheck -x -e SC1091 < /tmp/changed_shell.txt
 
       - name: Lint GitHub Actions
-        uses: rhysd/actionlint@v1.7.7
+        if: steps.changed.outputs.workflow_count != '0'
+        run: |
+          set -euo pipefail
+          xargs -r -d '\n' actionlint < /tmp/changed_workflows.txt
