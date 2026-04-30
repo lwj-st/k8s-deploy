@@ -48,19 +48,19 @@ bash 01-Cluster-host.sh
 
 ```bash
 # Ubuntu/Debian
-bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/kubernetes/ubuntu
+bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
 
 # CentOS
-bash 00-Download-k8s-packages.sh centos /data/download/packages/kubernetes/centos
+bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
 
 # Rocky
-bash 00-Download-k8s-packages.sh rocky /data/download/packages/kubernetes/rocky
+bash 00-Download-k8s-packages.sh rocky /data/download/packages/rocky/kubernetes
 
 # OpenEuler
-bash 00-Download-k8s-packages.sh openeuler /data/download/packages/kubernetes/openeuler
+bash 00-Download-k8s-packages.sh openeuler /data/download/packages/openeuler/kubernetes
 
 # Kylin
-bash 00-Download-k8s-packages.sh kylin /data/download/packages/kubernetes/kylin
+bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
 ```
 
 **方式 2：使用 Docker 容器模拟（推荐，无需对应 OS 环境）**
@@ -69,16 +69,16 @@ bash 00-Download-k8s-packages.sh kylin /data/download/packages/kubernetes/kylin
 
 ```bash
 # CentOS
-bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/kubernetes/centos 1.31.11
+bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
 
 # Rocky
-bash 00-Download-k8s-packages-docker.sh rocky /data/download/packages/kubernetes/rocky 1.31.11
+bash 00-Download-k8s-packages-docker.sh rocky /data/download/packages/rocky/kubernetes 1.31.11
 
 # OpenEuler
-bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/kubernetes/openeuler 1.31.11
+bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.11
 
 # Kylin
-bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kubernetes/kylin 1.31.11
+bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.11
 
 ```
 
@@ -89,9 +89,9 @@ bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kubernetes
 - 默认下载版本为 `v1.31.11`，第三个参数可省略；文档中显式写出是为了避免歧义
 - 下载的包会自动包含所有依赖（如 cri-tools、kubernetes-cni 等）
 - 包兼容性建议：
-  - `ubuntu|debian`：共享同一套目录（如 `/data/download/packages/kubernetes/ubuntu`）
-  - `centos`：独立目录（`/data/download/packages/kubernetes/centos`）
-  - `rocky`：独立目录（`/data/download/packages/kubernetes/rocky`）
+  - `ubuntu|debian`：共享同一套目录（如 `/data/download/packages/ubuntu/kubernetes`）
+  - `centos`：独立目录（`/data/download/packages/centos/kubernetes`）
+  - `rocky`：独立目录（`/data/download/packages/rocky/kubernetes`）
   - `openeuler`：建议使用独立目录，不与 centos 系混用
   - `kylin`：建议使用独立目录，不与 centos 系混用
 - `kylin` 默认使用 `macrosan/kylin`
