@@ -93,7 +93,7 @@ download_ubuntu_debs() {
     while IFS= read -r dep; do
       [ -z "${dep}" ] && continue
       # 检查是否已下载
-      if ! ls "${OUTPUT_DIR}/${dep}"*.deb 1>/dev/null 2>&1; then
+      if ! compgen -G "${OUTPUT_DIR}/${dep}*.deb" >/dev/null; then
         apt-get download "${dep}" 2>/dev/null || true
       fi
     done < "${deps_file}"
@@ -101,7 +101,7 @@ download_ubuntu_debs() {
   fi
   
   log_info "✓ Ubuntu/Debian 包下载完成: ${OUTPUT_DIR}"
-  log_info "  包数量: $(ls -1 *.deb 2>/dev/null | wc -l)"
+  log_info "  包数量: $(find . -maxdepth 1 -type f -name '*.deb' | wc -l)"
 }
 
 download_centos_rpms() {
@@ -144,7 +144,7 @@ EOF
       log_warn "yum-plugin-downloadonly 不可用，尝试其他方法..."
       # 使用 repotrack（如果可用）
       if command -v repotrack &>/dev/null; then
-        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-${K8S_VERSION} kubeadm-${K8S_VERSION} kubectl-${K8S_VERSION} || true
+        repotrack -a x86_64 -p "${OUTPUT_DIR}" "kubelet-${K8S_VERSION}" "kubeadm-${K8S_VERSION}" "kubectl-${K8S_VERSION}" || true
       else
         log_error "无法下载 RPM 包，请手动安装 yum-plugin-downloadonly 或 repotrack"
         return 1
@@ -153,7 +153,7 @@ EOF
   fi
   
   log_info "✓ CentOS/Rocky RPM 包下载完成: ${OUTPUT_DIR}"
-  log_info "  包数量: $(ls -1 *.rpm 2>/dev/null | wc -l)"
+  log_info "  包数量: $(find . -maxdepth 1 -type f -name '*.rpm' | wc -l)"
 }
 
 download_openeuler_rpms() {
