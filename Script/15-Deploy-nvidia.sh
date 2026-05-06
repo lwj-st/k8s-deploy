@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    23-Deploy-nvidia.sh
+## Filename:    15-Deploy-nvidia.sh
 ## Description: 离线部署 NVIDIA GPU 相关组件
 ## Notes:
 ##   - 仅做“装包 + 配置 containerd runtime + 部署 device plugin”
@@ -148,7 +148,7 @@ install_nvidia_toolkit() {
 ################################################################################
 configure_containerd_runtime() {
   log_info "配置 nvidia runtime for containerd..."
-  log_command "nvidia-ctk runtime configure --runtime=containerd"
+  log_command "nvidia-ctk runtime configure --runtime=containerd --set-as-default"
   log_command "systemctl restart containerd"
 }
 

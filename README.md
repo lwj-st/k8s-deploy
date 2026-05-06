@@ -15,15 +15,15 @@
 - `Script/12-Load-images.sh`：load本地镜像
 - `Script/13-Install-k8s-packages.sh`：安装所需要点安装包
 - `Script/14-Kubeadm-init.sh`：初始化集群
-- `Script/15-Deploy-cni.sh`
-- `Script/16-Deploy-ingress.sh`
+- `Script/16-Deploy-cni.sh`
+- `Script/17-Deploy-ingress.sh`
 
 ### 插件/组件脚本（20+）
+- `Script/15-Deploy-nvidia.sh`：部署 NVIDIA plugin（GPU）
+- `Script/15-Deploy-ascend.sh`：部署 Ascend plugin（NPU，仅择一执行）
 - `Script/20-Deploy-local-path.sh`
 - `Script/21-Deploy-nfs-provisioner.sh`
 - `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
-- `Script/23-Deploy-nvidia.sh`：部署nvidia plugin
-- `Script/24-Deploy-ascend.sh`：部署 Ascend plugin
 - `Script/25-Deploy-seaweedfs.sh`：部署 SeaweedFS + CSI Driver
 - `Script/26-Deploy-minio.sh`：部署 MinIO
 - `Script/27-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
@@ -48,19 +48,19 @@ bash 01-Cluster-host.sh
 
 ```bash
 # Ubuntu/Debian
-bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/kubernetes/ubuntu
+bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
 
 # CentOS
-bash 00-Download-k8s-packages.sh centos /data/download/packages/kubernetes/centos
+bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
 
 # Rocky
-bash 00-Download-k8s-packages.sh rocky /data/download/packages/kubernetes/rocky
+bash 00-Download-k8s-packages.sh rocky /data/download/packages/rocky/kubernetes
 
 # OpenEuler
-bash 00-Download-k8s-packages.sh openeuler /data/download/packages/kubernetes/openeuler
+bash 00-Download-k8s-packages.sh openeuler /data/download/packages/openeuler/kubernetes
 
 # Kylin
-bash 00-Download-k8s-packages.sh kylin /data/download/packages/kubernetes/kylin
+bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
 ```
 
 **方式 2：使用 Docker 容器模拟（推荐，无需对应 OS 环境）**
@@ -69,16 +69,16 @@ bash 00-Download-k8s-packages.sh kylin /data/download/packages/kubernetes/kylin
 
 ```bash
 # CentOS
-bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/kubernetes/centos 1.31.11
+bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
 
 # Rocky
-bash 00-Download-k8s-packages-docker.sh rocky /data/download/packages/kubernetes/rocky 1.31.11
+bash 00-Download-k8s-packages-docker.sh rocky /data/download/packages/rocky/kubernetes 1.31.11
 
 # OpenEuler
-bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/kubernetes/openeuler 1.31.11
+bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.11
 
 # Kylin
-bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kubernetes/kylin 1.31.11
+bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.11
 
 ```
 
@@ -89,9 +89,9 @@ bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kubernetes
 - 默认下载版本为 `v1.31.11`，第三个参数可省略；文档中显式写出是为了避免歧义
 - 下载的包会自动包含所有依赖（如 cri-tools、kubernetes-cni 等）
 - 包兼容性建议：
-  - `ubuntu|debian`：共享同一套目录（如 `/data/download/packages/kubernetes/ubuntu`）
-  - `centos`：独立目录（`/data/download/packages/kubernetes/centos`）
-  - `rocky`：独立目录（`/data/download/packages/kubernetes/rocky`）
+  - `ubuntu|debian`：共享同一套目录（如 `/data/download/packages/ubuntu/kubernetes`）
+  - `centos`：独立目录（`/data/download/packages/centos/kubernetes`）
+  - `rocky`：独立目录（`/data/download/packages/rocky/kubernetes`）
   - `openeuler`：建议使用独立目录，不与 centos 系混用
   - `kylin`：建议使用独立目录，不与 centos 系混用
 - `kylin` 默认使用 `macrosan/kylin`
@@ -118,8 +118,10 @@ sudo bash 11-Install-containerd.sh
 sudo bash 12-Load-images.sh
 sudo bash 13-Install-k8s-packages.sh
 sudo bash 14-Kubeadm-init.sh
-sudo bash 15-Deploy-cni.sh
-sudo bash 16-Deploy-ingress.sh
+sudo bash 15-Deploy-nvidia.sh            # 可选：仅 NVIDIA（GPU）
+sudo bash 15-Deploy-ascend.sh            # 可选：仅 Ascend
+sudo bash 16-Deploy-cni.sh
+sudo bash 17-Deploy-ingress.sh
 ```
 
 插件/组件部署（按需执行）：
@@ -128,8 +130,6 @@ sudo bash 16-Deploy-ingress.sh
 sudo bash 20-Deploy-local-path.sh         # 可选
 sudo bash 21-Deploy-nfs-provisioner.sh    # 可选：仅当你在 01-Cluster-host.sh 里选择 DEPLOY_NFS=yes
 sudo bash 22-Deploy-tidb-operator.sh      # 可选
-sudo bash 23-Deploy-nvidia.sh             # 可选：仅 NVIDIA
-sudo bash 24-Deploy-ascend.sh             # 可选：仅 Ascend
 sudo bash 25-Deploy-seaweedfs.sh          # 可选
 sudo bash 26-Deploy-minio.sh              # 可选
 sudo bash 27-Deploy-juicefs-csi-driver.sh # 可选
@@ -143,7 +143,7 @@ sudo bash 29-Deploy-monitoring.sh         # 可选
 ### 前置条件
 - 主节点（control-plane）已完成初始化（已执行 `14-Kubeadm-init.sh`）
 - 新节点与主节点网络互通
-- 新节点已准备好相同的制品目录（可通过 NFS 共享或手动复制）
+- 新节点已准备好相同的制品目录（主要是download和models 可通过 NFS 共享或手动复制）
 
 ### 步骤 1：在新节点上准备环境
 
@@ -194,24 +194,28 @@ sudo kubeadm join <API_SERVER>:6443 --token <TOKEN> \
     --discovery-token-ca-cert-hash sha256:<HASH>
 ```
 
-### 步骤 4：GPU 节点额外配置（仅 GPU 节点需要）
+### 步骤 4：同步config配置
+、、、
+从主节点拷贝 /etc/kubernetes/admin.conf 到新节点上 /etc/kubernetes/admin.conf
+从主节点拷贝 ～/.kube/config 到新节点上 ~/.kube/config
+、、、
+
+
+### 步骤 5：GPU 节点额外配置（仅 GPU 节点需要）
 
 如果新节点是 **GPU 节点**，还需要执行：
 
 ```bash
-sudo bash 23-Deploy-nvidia.sh
+sudo bash 15-Deploy-nvidia.sh
 ```
 
 **注意**：
-- `23-Deploy-nvidia.sh` 会安装 NVIDIA container toolkit 并配置 containerd runtime
+- `15-Deploy-nvidia.sh` 会安装 NVIDIA container toolkit 并配置 containerd runtime
 - Device plugin 的 DaemonSet 已在主节点部署，会自动在所有有 `nvidia.com/gpu.present=true` label 的节点上运行
 - 脚本会自动检测 GPU 并给节点打 label，无需手动操作
 - **重复执行是安全的**：`kubectl apply` 是幂等的，即使多次执行也不会报错
 - **Worker 节点需要 KUBECONFIG**：如果 worker 节点上没有 `/etc/kubernetes/admin.conf`，需要先从 control-plane 节点复制：
-  ```bash
-  # 在 control-plane 节点上执行
-  scp /etc/kubernetes/admin.conf root@<worker-node>:/etc/kubernetes/admin.conf
-  ```
+
 
 ### 验证节点加入
 
@@ -227,11 +231,11 @@ kubectl get nodes <节点名> -o yaml | grep -A5 "labels:"
 | 节点类型 | 需要执行的脚本 |
 |---------|--------------|
 | **CPU 节点** | `10-Env.sh` → `11-Install-containerd.sh` → `12-Load-images.sh` → `13-Install-k8s-packages.sh` → `kubeadm join` |
-| **GPU 节点** | `10-Env.sh` → `11-Install-containerd.sh` → `12-Load-images.sh` → `13-Install-k8s-packages.sh` → `kubeadm join` → `23-Deploy-nvidia.sh` |
+| **GPU 节点** | `10-Env.sh` → `11-Install-containerd.sh` → `12-Load-images.sh` → `13-Install-k8s-packages.sh` → `kubeadm join` → `15-Deploy-nvidia.sh` |
 
 **说明**：
 - CPU 节点和 GPU 节点的基础步骤相同
-- GPU 节点额外需要 `23-Deploy-nvidia.sh` 来安装 NVIDIA 工具包和配置 containerd runtime
+- GPU 节点额外需要 `15-Deploy-nvidia.sh` 来安装 NVIDIA 工具包和配置 containerd runtime
 - Device plugin DaemonSet 只需在主节点部署一次，会自动在所有 GPU 节点上运行
 
 ## 下载/校验开关

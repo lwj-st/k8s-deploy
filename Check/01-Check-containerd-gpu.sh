@@ -245,7 +245,7 @@ check_1_toolkit_packages() {
   fi
   if [ "$missing_pkgs" -ne 0 ]; then
     print_solution "离线场景：请补齐并安装 k8s-deploy 清单里的 NVIDIA 离线包（支持 deb/rpm，需与当前 OS 匹配）
-执行安装脚本：sudo bash ${K8S_DEPLOY_ROOT}/Script/23-Deploy-nvidia.sh"
+执行安装脚本：sudo bash ${K8S_DEPLOY_ROOT}/Script/15-Deploy-nvidia.sh"
   else
     log_info "  ✓ 所有必需包已安装"
   fi
@@ -349,7 +349,7 @@ check_5_k8s_gpu_resource() {
     kubectl get pods -A 2>/dev/null | grep -i nvidia | sed 's/^/  /' || log_info "  （未发现 nvidia 相关 Pod）"
   else
     log_warn "  ✗ Node ${node_name} 未发现 nvidia.com/gpu（device-plugin 可能未生效/驱动未就绪/需重启 kubelet）"
-    print_solution "确认已执行：sudo bash ${K8S_DEPLOY_ROOT}/Script/23-Deploy-nvidia.sh
+    print_solution "确认已执行：sudo bash ${K8S_DEPLOY_ROOT}/Script/15-Deploy-nvidia.sh
 确认 device-plugin Pod 处于 Running
 如已安装驱动/模块但资源仍不出现，可尝试重启 kubelet：
   sudo systemctl restart kubelet

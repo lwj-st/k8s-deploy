@@ -286,7 +286,7 @@ artifacts:
     path: /data/download/nvidia
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline base dir; append /<os> in 23-Deploy-nvidia.sh"
+    description: "nvidia toolkit offline base dir; append /<os> in 15-Deploy-nvidia.sh"
 
   - module: nvidia
     type: file
@@ -315,10 +315,10 @@ artifacts:
   - module: os
     type: dir
     name: os.dir.kubernetes
-    path: /data/download/packages/kubernetes
+    path: /data/download/packages
     url: ""
     md5: "__DIR__"
-    description: "offline kube packages base dir; append /<os> in artifact_get_os_kubernetes_dir"
+    description: "offline kube packages base dir; append /<os>/kubernetes in artifact_get_os_kubernetes_dir"
 
   - module: minio
     type: tar

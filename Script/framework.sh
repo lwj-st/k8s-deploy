@@ -278,7 +278,7 @@ artifact_get_path() {
 ################################################################################
 # Function: artifact_get_os_kubernetes_dir
 # Description: 清单中一条 module=os,name=os.dir.kubernetes,type=dir 声明基目录；
-#              返回 ${基目录}/${os_id}，path 中 /data/download 前缀替换为 DOWNLOAD_DIR
+#              返回 ${基目录}/${os_id}/kubernetes，path 中 /data/download 前缀替换为 DOWNLOAD_DIR
 # Parameter:
 #   $1 os_id  - ubuntu/centos/rocky/kylin/openeuler...
 ################################################################################
@@ -310,7 +310,7 @@ artifact_get_os_kubernetes_dir() {
   if [[ "${base}" == /data/download/* ]]; then
     base="${DOWNLOAD_DIR}${base#/data/download}"
   fi
-  printf '%s\n' "${base}/${os_id}"
+  printf '%s\n' "${base}/${os_id}/kubernetes"
 }
 
 ################################################################################

@@ -6,8 +6,8 @@ set -euo pipefail
 #   bash 00-Download-k8s-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录] [K8S版本]
 #
 # 示例：
-#   bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/kubernetes/centos 1.31.11
-#   bash 00-Download-k8s-packages-docker.sh ubuntu /data/download/packages/kubernetes/ubuntu 1.31.11
+#   bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
+#   bash 00-Download-k8s-packages-docker.sh ubuntu /data/download/packages/ubuntu/kubernetes 1.31.11
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
@@ -23,7 +23,7 @@ if [ "${OS_TYPE}" = "debian" ]; then
   # 让容器内下载逻辑走 ubuntu/apt 分支
   DOWNLOAD_OS_TYPE="ubuntu"
 fi
-OUTPUT_DIR="${2:-/data/download/packages/kubernetes/${K8S_OS_DIR}}"
+OUTPUT_DIR="${2:-/data/download/packages/${K8S_OS_DIR}/kubernetes}"
 K8S_VERSION="${3:-1.31.11}"
 K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 
