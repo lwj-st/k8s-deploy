@@ -6,9 +6,9 @@ set -uo pipefail
 #   bash 00-Download-tools-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录]
 #
 # 示例：
-#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/tools/centos
-#   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/tools/rocky
-#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/tools/ubuntu
+#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/centos/tools
+#   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/rocky/tools
+#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/ubuntu/tools
 
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,7 +22,7 @@ if [ "${OS_TYPE}" = "debian" ]; then
   TOOLS_OS_DIR="ubuntu"
   DOWNLOAD_OS_TYPE="ubuntu"
 fi
-OUTPUT_DIR="${2:-/data/download/packages/tools/${TOOLS_OS_DIR}}"
+OUTPUT_DIR="${2:-/data/download/packages/${TOOLS_OS_DIR}/tools}"
 
 # Docker 镜像映射（RPM 系与 00-Download-k8s-packages-docker.sh 一致；ubuntu 为官方镜像）
 declare -A DOCKER_IMAGES=(

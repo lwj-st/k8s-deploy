@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    01-Download.sh
+## Filename:    02-Download.sh
 ## Description: 根据 artifacts.yaml 下载所有缺失制品（可选做 md5 校验）
 ## Notes:
 ##   - 只负责下载，不做镜像导入/包安装

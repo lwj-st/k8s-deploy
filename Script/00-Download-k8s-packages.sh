@@ -6,8 +6,8 @@ set -euo pipefail
 #   bash 00-Download-k8s-packages.sh [ubuntu|centos|rocky|openeuler|kylin] [输出目录]
 #
 # 示例：
-#   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/kubernetes/ubuntu
-#   bash 00-Download-k8s-packages.sh centos /data/download/packages/kubernetes/centos
+#   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
+#   bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
@@ -25,19 +25,19 @@ OUTPUT_DIR="${2:-}"
 if [ -z "${OUTPUT_DIR}" ]; then
   case "${OS_TYPE}" in
     ubuntu|debian)
-      OUTPUT_DIR="/data/download/packages/kubernetes/ubuntu"
+      OUTPUT_DIR="/data/download/packages/ubuntu/kubernetes"
       ;;
     centos)
-      OUTPUT_DIR="/data/download/packages/kubernetes/centos"
+      OUTPUT_DIR="/data/download/packages/centos/kubernetes"
       ;;
     rocky)
-      OUTPUT_DIR="/data/download/packages/kubernetes/rocky"
+      OUTPUT_DIR="/data/download/packages/rocky/kubernetes"
       ;;
     openeuler)
-      OUTPUT_DIR="/data/download/packages/kubernetes/openeuler"
+      OUTPUT_DIR="/data/download/packages/openeuler/kubernetes"
       ;;
     kylin*)
-      OUTPUT_DIR="/data/download/packages/kubernetes/kylin"
+      OUTPUT_DIR="/data/download/packages/kylin/kubernetes"
       ;;
     *)
       die "不支持的 OS 类型: ${OS_TYPE}"

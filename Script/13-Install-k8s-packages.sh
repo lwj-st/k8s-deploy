@@ -72,7 +72,7 @@ case "${OS_ID}" in
     fi
     ;;
   *)
-    die "不支持的 OS_ID=${OS_ID}，请完善 /data/download/packages/kubernetes/<os> 离线包目录并扩展脚本"
+    die "不支持的 OS_ID=${OS_ID}，请完善 /data/download/packages/<os>/kubernetes 离线包目录并扩展脚本"
     ;;
 esac
 
