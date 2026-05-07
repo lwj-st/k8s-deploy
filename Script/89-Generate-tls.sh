@@ -2,11 +2,13 @@
 set -euo pipefail
 
 ################################################################################
-## Filename:    16-Generate-self-signed-tls.sh
+## Filename:    89-Generate-tls.sh
 ## Description: 生成自签 TLS 证书并批量更新多个命名空间的 kubernetes tls secret
 ##
 ## 用法示例：
-##   bash 16-Generate-self-signed-tls.sh \
+##   bash 89-Generate-tls.sh --domain websense.ai
+##
+##   bash 89-Generate-tls.sh \
 ##     --domain websense.ai \
 ##     --wildcard \
 ##     --days 365 \
@@ -52,7 +54,7 @@ INCLUDE_WILDCARD="0"
 usage() {
   cat <<'EOF'
 用法：
-  bash 16-Generate-self-signed-tls.sh [选项]
+  bash 89-Generate-tls.sh [选项]
 
 选项：
   --domain <域名>            主域名（默认：websense.ai）
