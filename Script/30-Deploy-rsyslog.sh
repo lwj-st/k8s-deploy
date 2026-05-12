@@ -3,33 +3,36 @@
 ## Filename:    30-Deploy-rsyslog.sh
 ## Description: 后置配置 Kubernetes 集群 rsyslog 集中日志审计，支持日志服务器和节点复用同一脚本
 ##
-## 用法示例：
-##   sudo bash 30-Deploy-rsyslog.sh
+## 用法示例（须以 root 执行，例如 ssh root@节点 或 su - 后执行）：
+##   bash 30-Deploy-rsyslog.sh
 ##
-##   sudo bash 30-Deploy-rsyslog.sh client  #把当前机器配置成日志发送节点。 需要每个节点都执行一次。
-##   sudo bash 30-Deploy-rsyslog.sh server  #把当前机器配置成日志服务器。
-##   sudo bash 30-Deploy-rsyslog.sh preconfig #只做本机预配置，不配置 rsyslog 推送/接收。
-##   sudo bash 30-Deploy-rsyslog.sh enable-audit #在 control-plane 节点开启 kube-apiserver audit。
-##   sudo bash 30-Deploy-rsyslog.sh enable-forward  #开启本节点日志外发。
-##   sudo bash 30-Deploy-rsyslog.sh disable-forward #关闭本节点日志外发。
+##   bash 30-Deploy-rsyslog.sh client  #把当前机器配置成日志发送节点。 需要每个节点都执行一次。
+##   bash 30-Deploy-rsyslog.sh server  #把当前机器配置成日志服务器。
+##   bash 30-Deploy-rsyslog.sh preconfig #只做本机预配置，不配置 rsyslog 推送/接收。
+##   bash 30-Deploy-rsyslog.sh enable-audit #在 control-plane 节点开启 kube-apiserver audit。
+##   bash 30-Deploy-rsyslog.sh enable-forward  #开启本节点日志外发。
+##   bash 30-Deploy-rsyslog.sh disable-forward #关闭本节点日志外发。
+##   bash 30-Deploy-rsyslog.sh cleanup        #清理本脚本写入的 server/client 等配置（见 usage）
 ##
 ## 最简单推荐流程：
 ##   # 已有日志服务器时，在每个 Kubernetes 节点执行：
 ##   export RSYSLOG_LOG_SERVER=<log-server-ip>
-##   sudo bash 30-Deploy-rsyslog.sh client
+##   bash 30-Deploy-rsyslog.sh client
 ##
 ##   # 没有日志服务器时，先在日志服务器执行：
 ##   export RSYSLOG_LOG_SERVER=<log-server-ip>
-##   sudo bash 30-Deploy-rsyslog.sh server
+##   bash 30-Deploy-rsyslog.sh server
 ##
 ##   # 然后在每个 Kubernetes 节点执行：
 ##   export RSYSLOG_LOG_SERVER=<log-server-ip>
-##   sudo bash 30-Deploy-rsyslog.sh client
+##   bash 30-Deploy-rsyslog.sh client
+##
+##   也可一行传入：RSYSLOG_LOG_SERVER=<log-server-ip> bash 30-Deploy-rsyslog.sh client
 ##
 ##   # 后续新增节点时，只需要在新增节点再执行 client。
 ##
 ##   # 如果集群已部署且未开启 Kubernetes audit，在每个 control-plane 节点执行：
-##   sudo bash 30-Deploy-rsyslog.sh enable-audit
+##   bash 30-Deploy-rsyslog.sh enable-audit
 ##
 ## 可选环境变量（优先级高于默认值）：
 ##   RSYSLOG_LOG_SERVER / RSYSLOG_LOG_SERVER_PORT / RSYSLOG_LOG_DIR
@@ -37,17 +40,50 @@
 ##   RSYSLOG_FORWARD_ENABLE
 ##   RSYSLOG_AUDIT_MAXAGE / RSYSLOG_AUDIT_MAXBACKUP / RSYSLOG_AUDIT_MAXSIZE
 ##   RSYSLOG_JOURNAL_SYSTEM_MAX_USE / RSYSLOG_JOURNAL_RUNTIME_MAX_USE / RSYSLOG_JOURNAL_MAX_RETENTION
+##   KUBE_APISERVER_MANIFEST_BACKUP_DIR（enable-audit 备份路径，须不在 /etc/kubernetes/manifests/ 下）
+##   离线安装 rsyslog 时可选 DOWNLOAD_DIR（默认 /data/download）
 ################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
-init_framework
+# 本脚本不 source environment.sh；初始化仅使用 framework 提供的日志/OS 探测（与 init_framework 中的前两步+detect_os 一致）。
+get_cur_path
+init_logging
+detect_os
+log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
 require_root
 
-# 日志服务器地址，必须通过 environment.sh 或执行前 export 指定；多个目标用英文逗号分隔。
+# 若当前进程未带 RSYSLOG_LOG_SERVER（例如从非 root 经 su 进入 root 时父 shell 曾 export），从父进程链 /proc/*/environ 尝试读取（仅 Linux）。
+inherit_rsyslog_log_server_from_ancestors() {
+  [ -n "${RSYSLOG_LOG_SERVER}" ] && return 0
+  [ -d /proc ] || return 1
+  local pid ppid d max val
+  pid=$$
+  max=24
+  for ((d = 0; d < max; d++)); do
+    [ -r "/proc/${pid}/status" ] || return 1
+    ppid="$(awk '/^PPid:/ {print $2}' "/proc/${pid}/status")"
+    [ -z "${ppid}" ] || [ "${ppid}" = "0" ] && return 1
+    if [ -r "/proc/${ppid}/environ" ]; then
+      val="$(tr '\0' '\n' <"/proc/${ppid}/environ" | sed -n 's/^RSYSLOG_LOG_SERVER=//p' | head -n1)"
+      if [ -n "${val}" ]; then
+        RSYSLOG_LOG_SERVER="${val}"
+        export RSYSLOG_LOG_SERVER
+        log_info "已从调用链进程环境读取 RSYSLOG_LOG_SERVER（兼容父 shell 已 export 但未传入当前进程的场景）"
+        return 0
+      fi
+    fi
+    [ "${ppid}" = "1" ] && return 1
+    pid=${ppid}
+  done
+  return 1
+}
+
+# 日志服务器地址；client/auto 等需要外发时必填。多个目标用英文逗号分隔。
 RSYSLOG_LOG_SERVER="${RSYSLOG_LOG_SERVER:-}"
+inherit_rsyslog_log_server_from_ancestors || true
 # 日志服务器 rsyslog TLS 监听端口，也是客户端推送端口。
 RSYSLOG_LOG_SERVER_PORT="${RSYSLOG_LOG_SERVER_PORT:-6514}"
 # 日志服务器集中保存远端日志的目录。
@@ -67,7 +103,7 @@ RSYSLOG_JOURNAL_SYSTEM_MAX_USE="${RSYSLOG_JOURNAL_SYSTEM_MAX_USE:-1G}"
 # journald 运行时日志最大磁盘占用。
 RSYSLOG_JOURNAL_RUNTIME_MAX_USE="${RSYSLOG_JOURNAL_RUNTIME_MAX_USE:-512M}"
 # journald 本地日志最长保留时间。
-RSYSLOG_JOURNAL_MAX_RETENTION="${RSYSLOG_JOURNAL_MAX_RETENTION:-7day}"
+RSYSLOG_JOURNAL_MAX_RETENTION="${RSYSLOG_JOURNAL_MAX_RETENTION:-7d}"
 # 外发传输模式：tls 使用 TCP/TLS；plain 使用普通 TCP，适配已有日志服务器不支持 TLS 的场景。
 RSYSLOG_TRANSPORT="${RSYSLOG_TRANSPORT:-tls}"
 # TLS 认证模式：anon 部署简单只加密；x509/name 更严格但需要额外分发证书。
@@ -81,16 +117,91 @@ REMOTE_ROTATE_FILE="/etc/logrotate.d/remote-rsyslog"
 LOCAL_ROTATE_FILE="/etc/logrotate.d/local-k8s-logs"
 AUDIT_POLICY_FILE="/etc/kubernetes/audit-policy.yaml"
 JOURNALD_LIMIT_FILE="/etc/systemd/journald.conf.d/10-k8s-deploy-size-limit.conf"
+# kube-apiserver 静态清单备份目录：不可放在 /etc/kubernetes/manifests/ 内，否则 kubelet 会把 *.k8s-deploy.* 当作第二份 Pod 清单一并加载，主文件写入瞬间若被读成空 YAML 会报 Kind=null，长期只剩无 audit 的旧副本。
+KUBE_APISERVER_MANIFEST_BACKUP_DIR="${KUBE_APISERVER_MANIFEST_BACKUP_DIR:-/var/backups/k8s-deploy-manifests}"
+
+# 配置成功后输出手工验证步骤（不自动执行；整块多行输出便于阅读与复制）。
+print_verification_hints_log_server() {
+  cat <<EOF
+
+======== 日志服务器 · 手工验证（本机 root，按顺序执行）========
+# 以下假设已安装 systemd（systemctl / journalctl）；无则跳过对应命令。
+
+【服务 / 配置】
+  rsyslogd -N1
+  systemctl status rsyslog --no-pager
+
+【监听】当前端口 RSYSLOG_LOG_SERVER_PORT=${RSYSLOG_LOG_SERVER_PORT}
+  ss -lntp 2>/dev/null | grep -E ':${RSYSLOG_LOG_SERVER_PORT}\\b' || ss -lntp 2>/dev/null || true
+  # 若无 iproute 的 ss，可试: netstat -lntp 2>/dev/null | grep -E ':${RSYSLOG_LOG_SERVER_PORT}\\b'
+
+【本机日志是否正常】（先筛错误相关，再去掉管道看完整）
+  journalctl -u rsyslog --since '10 min ago' --no-pager | egrep -i 'imtcp|gtls|error|fail|${RSYSLOG_LOG_SERVER_PORT}' || true
+  journalctl -u rsyslog --since '10 min ago' --no-pager
+
+【端到端】在任一已外发节点执行发送，再在日志服务器本机查集中目录 RSYSLOG_LOG_DIR=${RSYSLOG_LOG_DIR}
+  TAG=k8s-rsyslog-verify-\$(date +%s); logger -t "\$TAG" "hello-from-rsyslog-test"
+  sleep 3
+  grep -R "k8s-rsyslog-verify" "${RSYSLOG_LOG_DIR}" 2>/dev/null || true
+EOF
+}
+
+print_verification_hints_log_client_forward() {
+  cat <<EOF
+
+======== 日志外发客户端 · 手工验证（本机 root，按顺序执行）========
+# 以下假设已安装 systemd（systemctl / journalctl）；无则跳过对应命令。
+
+【配置是否含转发】
+  grep -nE 'omfwd|target=|StreamDriver' "${CLIENT_CONF}"
+
+【服务 / 配置】
+  rsyslogd -N1
+  systemctl status rsyslog --no-pager
+
+【本机日志是否正常】（转发 / TLS / 重连）
+  journalctl -u rsyslog --since '10 min ago' --no-pager | egrep -i 'omfwd|gtls|gnutls|suspend|resume|error|fail|${RSYSLOG_LOG_SERVER_PORT}' || true
+  journalctl -u rsyslog --since '10 min ago' --no-pager
+
+【端到端】本机发测试 → 到日志服务器 RSYSLOG_LOG_SERVER=${RSYSLOG_LOG_SERVER} 上查目录 ${RSYSLOG_LOG_DIR}（同机则仍在下面本机执行）
+  TAG=k8s-rsyslog-verify-\$(date +%s); logger -t "\$TAG" "hello-from-\$(hostname)"
+  sleep 3
+  grep -R "k8s-rsyslog-verify" "${RSYSLOG_LOG_DIR}" 2>/dev/null || true
+EOF
+}
+
+print_verification_hints_disable_forward() {
+  cat <<EOF
+
+======== 外发已关闭 · 手工验证（本机 root，按顺序执行）========
+# 以下假设已安装 systemd（systemctl / journalctl）；无则跳过对应命令。
+
+【外发配置文件】
+  test ! -f "${CLIENT_CONF}" && echo "ok: ${CLIENT_CONF} 不存在" || ls -l "${CLIENT_CONF}"
+
+【服务 / 配置】
+  rsyslogd -N1
+  systemctl status rsyslog --no-pager
+
+【本机日志】
+  journalctl -u rsyslog --since '10 min ago' --no-pager
+EOF
+}
 
 usage() {
   cat <<EOF
-用法:
-  sudo bash 30-Deploy-rsyslog.sh [auto|server|client|preconfig|enable-audit|enable-forward|disable-forward]
+用法（须 root）:
+  bash 30-Deploy-rsyslog.sh [auto|server|client|preconfig|enable-audit|enable-forward|disable-forward|cleanup]
+
+  cleanup  移除本脚本部署的 rsyslog 接收/外发、logrotate、journald 片段等（备份后删除）。
+           可选: RSYSLOG_CLEANUP_AUDIT_POLICY=yes 同时备份并删除 ${AUDIT_POLICY_FILE}（若 apiserver 仍引用须手工改 manifest）
+           可选: RSYSLOG_CLEANUP_SSL=yes 备份并移除整个 ${RSYSLOG_SSL_DIR} 目录
+           可选: RSYSLOG_CLEANUP_LOG_DATA=yes 清空 ${RSYSLOG_LOG_DIR} 下内容（目录非 /）
 
 默认 auto:
   本机 IP 命中 RSYSLOG_LOG_SERVER 时配置日志服务器，否则配置客户端。
 
-变量来自 Script/environment.sh，可手动覆盖:
+环境变量（export、或 RSYSLOG_LOG_SERVER=... bash；若未传入当前进程，脚本会尝试从父进程链环境读取）:
   RSYSLOG_LOG_SERVER       客户端外发时必填，日志服务器 IP/域名；多个推送目标用英文逗号分隔
   RSYSLOG_LOG_SERVER_PORT  默认 6514
   RSYSLOG_LOG_DIR          默认 /data/logs
@@ -98,6 +209,8 @@ usage() {
   RSYSLOG_FORWARD_ENABLE   默认 yes；设置 no 时 client 模式只做本机预配置并关闭外发
   RSYSLOG_TRANSPORT        默认 tls；已有服务器只支持普通 TCP 时设置 plain
   RSYSLOG_TLS_AUTH_MODE    默认 anon，简单稳定；如需双向证书认证需手工改为 x509/name 并分发证书
+  DOWNLOAD_DIR             仅在线安装失败走离线包时使用，默认 /data/download
+  RSYSLOG_CLEANUP_*        仅 cleanup 模式使用，见上文
 EOF
 }
 
@@ -129,25 +242,31 @@ detect_pkg_manager() {
   fi
 }
 
+# 离线目录与 00-Download-tools-packages-docker 支持的 OS 子目录一致；未单独列出的 RHEL 系发行版按与 rocky 兼容处理。
+# 与 manifests/artifacts.yaml 中 os.dir.kubernetes 的 path（一般为 .../packages）约定一致。
 offline_rsyslog_dir() {
+  local base="${DOWNLOAD_DIR:-/data/download}"
   case "${OS_ID:-}" in
     ubuntu|debian)
-      printf '%s\n' "${DOWNLOAD_DIR}/packages/ubuntu/tools/rsyslog"
+      printf '%s\n' "${base}/packages/ubuntu/tools/rsyslog"
       ;;
     centos)
-      printf '%s\n' "${DOWNLOAD_DIR}/packages/centos/tools/rsyslog"
+      printf '%s\n' "${base}/packages/centos/tools/rsyslog"
       ;;
-    rocky)
-      printf '%s\n' "${DOWNLOAD_DIR}/packages/rocky/tools/rsyslog"
+    rocky|rhel|almalinux|eurolinux|oraclelinux|miraclelinux|azurelinux|anolis)
+      printf '%s\n' "${base}/packages/rocky/tools/rsyslog"
+      ;;
+    amzn)
+      printf '%s\n' "${base}/packages/centos/tools/rsyslog"
       ;;
     openeuler)
-      printf '%s\n' "${DOWNLOAD_DIR}/packages/openeuler/tools/rsyslog"
+      printf '%s\n' "${base}/packages/openeuler/tools/rsyslog"
       ;;
     kylin*)
-      printf '%s\n' "${DOWNLOAD_DIR}/packages/kylin/tools/rsyslog"
+      printf '%s\n' "${base}/packages/kylin/tools/rsyslog"
       ;;
     *)
-      die "未识别的 OS_ID=${OS_ID:-unknown}，无法确定 rsyslog 离线包目录。请手动在 ${DOWNLOAD_DIR}/packages/<os>/tools/rsyslog 放置离线包。"
+      die "未识别的 OS_ID=${OS_ID:-unknown}，无法确定 rsyslog 离线包目录。请将离线包放到 ${base}/packages/<centos|rocky|ubuntu|openeuler|kylin>/tools/rsyslog 之一，或扩展本脚本的 OS 映射。"
       ;;
   esac
 }
@@ -159,9 +278,12 @@ offline_rsyslog_hint() {
   case "${OS_ID:-}" in
     ubuntu|debian)
       log_error "目录内需要放置 .deb 包，例如 rsyslog、rsyslog-gnutls、logrotate、openssl 及其依赖。"
+      log_error "离线安装只读取该目录下的 *.deb，不会自动合并其它子目录；若下载脚本按工具分了子目录，请先把需要的 .deb 拷进 ${dir}。"
       ;;
     *)
       log_error "目录内需要放置 .rpm 包，例如 rsyslog、rsyslog-gnutls、logrotate、openssl 及其依赖。"
+      log_error "离线安装只读取该目录下的 *.rpm，不会自动合并 tools/rsyslog-gnutls 等同级目录。"
+      log_error "若制品分散在 tools/ 下各工具目录，可先合并进本目录再执行，例如: cp -n \"${dir}/../rsyslog-gnutls\"/*.rpm \"${dir}/\"  （按需再拷 logrotate、openssl、rsyslog-logrotate 等）"
       ;;
   esac
 }
@@ -186,18 +308,52 @@ install_rsyslog_offline() {
       shopt -u nullglob
       [ "${#rpms[@]}" -gt 0 ] || die "离线包目录为空或没有 .rpm 文件: ${dir}"
       if have dnf; then
-        log_command "dnf -y install \"${dir}\"/*.rpm"
+        log_command "dnf -y install --disablerepo='*' --setopt=install_weak_deps=False \"${dir}\"/*.rpm"
       else
-        log_command "yum -y localinstall \"${dir}\"/*.rpm"
+        log_command "yum -y localinstall --disablerepo='*' \"${dir}\"/*.rpm"
       fi
       ;;
   esac
 }
 
+# 常见 rsyslog 模块目录（RPM 系、Debian multiarch 等）；用于判断是否已安装 GnuTLS 网流驱动相关文件。
+# 注意：不要写 module(load="lmnsd_gtls")——lmnsd_* 为内部库模块，手动加载会导致 rsyslogd 段错误（上游说明）。
+rsyslog_moddirs_probe() {
+  printf '%s\n' \
+    /usr/lib64/rsyslog \
+    /usr/lib/rsyslog \
+    /usr/lib/x86_64-linux-gnu/rsyslog \
+    /usr/lib/aarch64-linux-gnu/rsyslog \
+    /usr/lib/s390x-linux-gnu/rsyslog
+}
+
+# RHEL 9+ 等：TLS 为子包动态模块，rsyslogd -v 不一定出现 “gnutls” 字样。
+rsyslog_gnutls_available() {
+  if have rsyslogd && rsyslogd -v 2>/dev/null | grep -qiE 'gnutls|GnuTLS'; then
+    return 0
+  fi
+  if have rpm && rpm -q rsyslog-gnutls >/dev/null 2>&1; then
+    return 0
+  fi
+  if have dpkg-query; then
+    local st
+    st="$(dpkg-query -W -f='${Status}' rsyslog-gnutls 2>/dev/null || true)"
+    [[ "${st}" == *'install ok installed'* ]] && return 0
+  fi
+  local d
+  while IFS= read -r d; do
+    [ -n "${d}" ] || continue
+    if [ -f "${d}/lmnsd_gtls.so" ] || [ -f "${d}/gtls.so" ]; then
+      return 0
+    fi
+  done < <(rsyslog_moddirs_probe)
+  return 1
+}
+
 install_packages() {
   local pm
   pm="$(detect_pkg_manager)"
-  if have rsyslogd && rsyslogd -v 2>/dev/null | grep -qi gnutls; then
+  if have rsyslogd && rsyslog_gnutls_available; then
     log_info "rsyslog 和 gnutls 支持已存在，跳过安装"
     return 0
   fi
@@ -227,7 +383,11 @@ install_packages() {
   esac
 
   have rsyslogd || die "rsyslog 安装后仍未找到 rsyslogd"
-  rsyslogd -v 2>/dev/null | grep -qi gnutls || die "rsyslog 未检测到 gnutls 支持，请检查 rsyslog-gnutls 包"
+  if ! rsyslog_gnutls_available; then
+    local od
+    od="$(offline_rsyslog_dir)"
+    die "rsyslog 未检测到 GnuTLS 支持（须安装 rsyslog-gnutls）。离线时须把对应 .rpm 与其它依赖一并放进同一目录: ${od}（仅安装该目录下 *.rpm）。若包在 ${od}/../rsyslog-gnutls/，可先: cp -n \"${od}/../rsyslog-gnutls\"/*.rpm \"${od}/\" 后重跑本脚本。"
+  fi
 }
 
 primary_ip() {
@@ -278,7 +438,7 @@ first_log_server_name() {
 }
 
 require_log_server() {
-  [ -n "${RSYSLOG_LOG_SERVER}" ] || die "RSYSLOG_LOG_SERVER 为空。需要开启外发时，请先在 environment.sh 设置，或执行前 export RSYSLOG_LOG_SERVER=<日志服务器IP>"
+  [ -n "${RSYSLOG_LOG_SERVER}" ] || die "RSYSLOG_LOG_SERVER 为空。请以 root 设置后执行，例如: export RSYSLOG_LOG_SERVER=<IP>；或 RSYSLOG_LOG_SERVER=<IP> bash 本脚本；脚本也会尝试从父进程环境读取"
 }
 
 os_family() {
@@ -339,19 +499,22 @@ write_server_conf() {
 
   local tmp
   tmp="$(mktemp)"
-  cat >"${tmp}" <<EOF
-module(load="imtcp")
-EOF
   if [ "${RSYSLOG_TRANSPORT}" = "tls" ]; then
-    cat >>"${tmp}" <<EOF
-module(load="gtls")
+    cat >"${tmp}" <<EOF
+\$DefaultNetstreamDriver gtls
+\$DefaultNetstreamDriverCAFile ${RSYSLOG_SSL_DIR}/ca.crt
+\$DefaultNetstreamDriverCertFile ${RSYSLOG_SSL_DIR}/server.crt
+\$DefaultNetstreamDriverKeyFile ${RSYSLOG_SSL_DIR}/server.key
 
-global(
-  DefaultNetstreamDriver="gtls"
-  DefaultNetstreamDriverCAFile="${RSYSLOG_SSL_DIR}/ca.crt"
-  DefaultNetstreamDriverCertFile="${RSYSLOG_SSL_DIR}/server.crt"
-  DefaultNetstreamDriverKeyFile="${RSYSLOG_SSL_DIR}/server.key"
+module(load="imtcp"
+  StreamDriver.Name="gtls"
+  StreamDriver.Mode="1"
+  StreamDriver.AuthMode="${RSYSLOG_TLS_AUTH_MODE}"
 )
+EOF
+  else
+    cat >"${tmp}" <<EOF
+module(load="imtcp")
 EOF
   fi
   cat >>"${tmp}" <<EOF
@@ -367,15 +530,6 @@ ruleset(name="k8sDeployRemoteIn") {
 input(
   type="imtcp"
   port="${RSYSLOG_LOG_SERVER_PORT}"
-EOF
-  if [ "${RSYSLOG_TRANSPORT}" = "tls" ]; then
-    cat >>"${tmp}" <<EOF
-  StreamDriver.Name="gtls"
-  StreamDriver.Mode="1"
-  StreamDriver.AuthMode="${RSYSLOG_TLS_AUTH_MODE}"
-EOF
-  fi
-  cat >>"${tmp}" <<EOF
   Ruleset="k8sDeployRemoteIn"
 )
 EOF
@@ -401,7 +555,7 @@ ${RSYSLOG_LOG_DIR}/*/*/*.log {
     create 0640 root ${create_group}
     sharedscripts
     postrotate
-        systemctl kill -s HUP rsyslog.service >/dev/null 2>&1 || true
+        systemctl kill -s HUP rsyslog.service >/dev/null 2>&1 || service rsyslog reload >/dev/null 2>&1 || killall -HUP rsyslogd >/dev/null 2>&1 || true
     endscript
 }
 EOF
@@ -432,12 +586,29 @@ EOF
   write_if_changed "${AUDIT_POLICY_FILE}" "${tmp}"
 }
 
+# 历史版本曾把备份写在 /etc/kubernetes/manifests/ 下；kubelet 会 glob 到第二份 kube-apiserver Pod，主清单写入瞬间还可能解析失败（journal 中 Kind=null），导致 apiserver 长期不带 --audit-*。
+migrate_legacy_kube_apiserver_backups_out_of_manifests_dir() {
+  local static_dir="/etc/kubernetes/manifests"
+  mkdir -p "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}"
+  local f moved=0
+  shopt -s nullglob
+  for f in "${static_dir}/kube-apiserver.yaml.k8s-deploy."*; do
+    log_warn "将误放在静态 Pod 目录内的备份移出（避免 kubelet 重复加载）: ${f} -> ${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/"
+    mv -f "${f}" "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/"
+    printf '%s\t%s\n' "${f}" "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/$(basename "${f}")" >>"${BACKUPS_FILE}"
+    moved=1
+  done
+  shopt -u nullglob
+  [ "${moved}" = 1 ] && log_info "kubelet 将在数秒至数十秒内重扫静态清单；若 apiserver 短暂不可用属预期。"
+}
+
 enable_kube_apiserver_audit() {
   local manifest="/etc/kubernetes/manifests/kube-apiserver.yaml"
   [ -f "${manifest}" ] || die "未找到 ${manifest}。该操作只需要在 control-plane 节点执行；worker 节点不用执行 enable-audit。"
   have python3 || die "缺少 python3，无法安全修改 ${manifest}"
 
   write_audit_policy
+  migrate_legacy_kube_apiserver_backups_out_of_manifests_dir
 
   if grep -q -- "--audit-policy-file=${AUDIT_POLICY_FILE}" "${manifest}" &&
      grep -q -- "name: audit-policy" "${manifest}" &&
@@ -446,7 +617,8 @@ enable_kube_apiserver_audit() {
     return 0
   fi
 
-  local backup="${manifest}.k8s-deploy.$(ts)"
+  mkdir -p "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}"
+  local backup="${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/$(basename "${manifest}").k8s-deploy.$(ts)"
   cp -a "${manifest}" "${backup}"
   printf '%s\t%s\n' "${manifest}" "${backup}" >> "${BACKUPS_FILE}"
   log_warn "已备份 kube-apiserver manifest: ${manifest} -> ${backup}"
@@ -473,6 +645,17 @@ def insert_after(predicate, new_lines, label):
             return
     raise SystemExit(f"未找到可插入位置: {label}")
 
+
+def is_apiserver_command_line(line):
+    """匹配 command 首参：常见为 - kube-apiserver 或 - /usr/local/bin/kube-apiserver 等。"""
+    s = line.strip()
+    if s == "- kube-apiserver":
+        return True
+    if s.startswith("- ") and s.endswith("kube-apiserver") and "/" in s:
+        return True
+    return False
+
+
 if not has(f"--audit-policy-file={policy}"):
     audit_args = [
         f"    - --audit-policy-file={policy}",
@@ -481,7 +664,7 @@ if not has(f"--audit-policy-file={policy}"):
         f"    - --audit-log-maxbackup={maxbackup}",
         f"    - --audit-log-maxsize={maxsize}",
     ]
-    insert_after(lambda l: l.strip() == "- kube-apiserver", audit_args, "kube-apiserver command")
+    insert_after(is_apiserver_command_line, audit_args, "kube-apiserver command")
 
 if not has(f"mountPath: {policy}") or not has("mountPath: /var/log/kubernetes"):
     volume_mounts = [
@@ -511,6 +694,15 @@ PY
 
   log_command "grep -n -- '--audit-policy-file\\|audit-policy\\|audit-log' \"${manifest}\""
   log_info "已更新 kube-apiserver audit 配置。kubelet 会自动重启 kube-apiserver，请稍后检查控制面状态。"
+
+  if [ ! -f /var/log/kubernetes/audit.log ]; then
+    log_warn "当前主机上尚未出现 /var/log/kubernetes/audit.log（已改静态 Pod 清单不代表 apiserver 已成功启动并写盘）。请按序排查："
+    log_warn "  1) kubectl get pods -n kube-system 2>/dev/null | grep apiserver — 是否为 Running、是否 CrashLoopBackOff。"
+    log_warn "  2) journalctl -u kubelet --since '15 min ago' --no-pager | grep -iE 'apiserver|Error|Failed' — kubelet 拉静态 Pod 是否报错。"
+    log_warn "  3) crictl ps -a 找到 kube-apiserver 容器后: crictl logs <容器ID> — apiserver 是否报 audit 策略/挂载/权限错误。"
+    log_warn "  4) ls -ld /var/log/kubernetes /etc/kubernetes/audit-policy.yaml — 目录与策略文件是否存在、策略文件对 apiserver 可读。"
+    log_warn "  5) 打开 ${manifest}，在 volumes 里找到 name: audit-log 的 hostPath：path 应为 /var/log/kubernetes、type 应为 DirectoryOrCreate；在 volumeMounts 里对应挂载不要设 readOnly（否则无法写 audit.log）。"
+  fi
 }
 
 write_journald_config() {
@@ -525,7 +717,11 @@ RuntimeMaxUse=${RSYSLOG_JOURNAL_RUNTIME_MAX_USE}
 MaxRetentionSec=${RSYSLOG_JOURNAL_MAX_RETENTION}
 EOF
   write_if_changed "${JOURNALD_LIMIT_FILE}" "${tmp}"
-  log_command "systemctl restart systemd-journald"
+  if have systemctl; then
+    log_command "systemctl restart systemd-journald"
+  else
+    log_warn "未找到 systemctl，请手动重载 journald 使 ${JOURNALD_LIMIT_FILE} 生效"
+  fi
 }
 
 write_local_logrotate() {
@@ -560,7 +756,7 @@ EOF
 build_forward_actions() {
   local raw target safe permitted_peer
   permitted_peer="$(first_log_server_name)"
-  printf '%s' "${RSYSLOG_LOG_SERVER}" | tr ',' '\n' | while IFS= read -r raw; do
+  printf '%s\n' "${RSYSLOG_LOG_SERVER}" | tr ',' '\n' | while IFS= read -r raw; do
     target="$(printf '%s' "${raw}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
     [ -n "${target}" ] || continue
     safe="$(printf '%s' "${target}" | tr -c 'A-Za-z0-9_' '_')"
@@ -579,6 +775,7 @@ EOF
 EOF
       if [ "${RSYSLOG_TLS_AUTH_MODE}" = "x509/name" ]; then
         cat <<EOF
+    StreamDriver.CAFile="${RSYSLOG_SSL_DIR}/ca.crt"
     StreamDriverPermittedPeers="${permitted_peer}"
 EOF
       fi
@@ -595,7 +792,7 @@ EOF
 }
 
 write_client_conf() {
-  local family tmp sys_file auth_file
+  local family tmp sys_file auth_file forward_actions
   family="$(os_family)"
   if [ "${family}" = "debian" ]; then
     sys_file="/var/log/syslog"
@@ -605,38 +802,20 @@ write_client_conf() {
     auth_file="/var/log/secure"
   fi
 
+  forward_actions="$(build_forward_actions)"
+  if [ "${RSYSLOG_FORWARD_ENABLE}" != "no" ] && [ "${RSYSLOG_FORWARD_ENABLE}" != "false" ] && [ "${RSYSLOG_FORWARD_ENABLE}" != "0" ]; then
+    printf '%s\n' "${forward_actions}" | grep -q 'type="omfwd"' || die "未生成 rsyslog 外发动作，请检查 RSYSLOG_LOG_SERVER=${RSYSLOG_LOG_SERVER}"
+  fi
+
   tmp="$(mktemp)"
   cat >"${tmp}" <<EOF
 module(load="imfile" PollingInterval="10")
+\$MaxMessageSize 64k
 EOF
-  if [ "${RSYSLOG_TRANSPORT}" = "tls" ]; then
-    cat >>"${tmp}" <<EOF
-module(load="gtls")
-
-global(
-  MaxMessageSize="64k"
-  DefaultNetstreamDriver="gtls"
-EOF
-    if [ "${RSYSLOG_TLS_AUTH_MODE}" = "x509/name" ]; then
-      cat >>"${tmp}" <<EOF
-  DefaultNetstreamDriverCAFile="${RSYSLOG_SSL_DIR}/ca.crt"
-EOF
-    fi
-    cat >>"${tmp}" <<EOF
-)
-EOF
-  else
-    cat >>"${tmp}" <<EOF
-
-global(
-  MaxMessageSize="64k"
-)
-EOF
-  fi
   cat >>"${tmp}" <<EOF
 
 ruleset(name="k8sDeployRemoteForward") {
-$(build_forward_actions)
+${forward_actions}
 }
 
 input(type="imfile"
@@ -690,8 +869,14 @@ ensure_client_ca() {
 
 restart_rsyslog() {
   log_command "rsyslogd -N1"
-  log_command "systemctl enable --now rsyslog"
-  log_command "systemctl restart rsyslog"
+  if have systemctl; then
+    log_command "systemctl enable --now rsyslog"
+    log_command "systemctl restart rsyslog"
+  elif have service; then
+    log_command "service rsyslog restart"
+  else
+    log_warn "未找到 systemctl 与 service，请在本机手动重启 rsyslog 使配置生效"
+  fi
 }
 
 disable_forward() {
@@ -701,9 +886,26 @@ disable_forward() {
   else
     log_info "未发现本节点日志外发配置，跳过关闭: ${CLIENT_CONF}"
   fi
-  if have systemctl && have rsyslogd; then
+  if have rsyslogd; then
     restart_rsyslog
   fi
+  print_verification_hints_disable_forward
+}
+
+# client 外发里配置了 imfile(/var/log/kubernetes/audit.log) → facility local1；该文件仅当 kube-apiserver 启用审计后才会出现。
+hint_kube_audit_for_rsyslog_forward() {
+  local manifest="/etc/kubernetes/manifests/kube-apiserver.yaml"
+  [ -f "${manifest}" ] || return 0
+  if grep -q -- '--audit-log-path=/var/log/kubernetes/audit.log' "${manifest}" &&
+     grep -q -- '--audit-policy-file=' "${manifest}"; then
+    if [ ! -f /var/log/kubernetes/audit.log ]; then
+      log_warn "kube-apiserver 已配置审计写出，但 /var/log/kubernetes/audit.log 尚不存在；kubelet 滚动 apiserver 后数分钟内应生成。若长时间仍无文件请检查 apiserver Pod 与 volume 挂载。"
+    fi
+    return 0
+  fi
+  log_warn "本机为 control-plane（存在 ${manifest}），但 apiserver 尚未配置审计日志写出，不会生成 /var/log/kubernetes/audit.log。"
+  log_warn "外发配置仍会尝试 imfile 读取该文件（无则 rsyslog 启动时可能有 imfile 提示）；集中端将缺少 local1 下的 k8s 审计日志。"
+  log_warn "需要 API 审计时请执行: bash ${SCRIPT_DIR}/30-Deploy-rsyslog.sh enable-audit"
 }
 
 enable_forward() {
@@ -713,8 +915,10 @@ enable_forward() {
   ensure_client_ca
   write_client_conf
   restart_rsyslog
+  hint_kube_audit_for_rsyslog_forward
   log_command "logger \"rsyslog client test from $(hostname)\""
   log_info "节点日志外发已开启，目标: ${RSYSLOG_LOG_SERVER}"
+  print_verification_hints_log_client_forward
 }
 
 preconfig_node() {
@@ -745,6 +949,7 @@ configure_server() {
   if [ "${RSYSLOG_TLS_AUTH_MODE}" = "x509/name" ]; then
     log_info "请复制 ${RSYSLOG_SSL_DIR}/ca.crt 到每个 Kubernetes 节点的 ${RSYSLOG_SSL_DIR}/ca.crt"
   fi
+  print_verification_hints_log_server
 }
 
 configure_client() {
@@ -767,6 +972,71 @@ configure_client() {
       die "RSYSLOG_FORWARD_ENABLE 只能是 yes/no/true/false/1/0，当前: ${RSYSLOG_FORWARD_ENABLE}"
       ;;
   esac
+}
+
+# 清理本脚本写入的配置，便于从零重新部署 server/client（文件先备份再删，见 framework backup_if_exists）。
+cleanup_deploy_rsyslog() {
+  log_info "开始 cleanup：移除本脚本管理的 rsyslog / logrotate / journald 配置片段"
+  local f
+  for f in "${SERVER_CONF}" "${CLIENT_CONF}" "${REMOTE_ROTATE_FILE}" "${LOCAL_ROTATE_FILE}" "${JOURNALD_LIMIT_FILE}"; do
+    if [ -e "${f}" ]; then
+      backup_if_exists "${f}"
+      log_info "已移除: ${f}"
+    else
+      log_info "不存在，跳过: ${f}"
+    fi
+  done
+
+  case "${RSYSLOG_CLEANUP_AUDIT_POLICY:-}" in
+    yes|true|1)
+      if [ -e "${AUDIT_POLICY_FILE}" ]; then
+        backup_if_exists "${AUDIT_POLICY_FILE}"
+        log_info "已移除 audit 策略: ${AUDIT_POLICY_FILE}"
+      fi
+      log_warn "若 kube-apiserver 仍挂载/引用该策略，请编辑 /etc/kubernetes/manifests/kube-apiserver.yaml 删除 audit 相关参数与 volume，或从 ${KUBE_APISERVER_MANIFEST_BACKUP_DIR} 下 kube-apiserver.yaml.k8s-deploy.* 备份恢复 manifest（勿将备份留在 manifests 目录内）。"
+      ;;
+    *)
+      log_info "未设置 RSYSLOG_CLEANUP_AUDIT_POLICY=yes，保留 ${AUDIT_POLICY_FILE}"
+      ;;
+  esac
+
+  case "${RSYSLOG_CLEANUP_SSL:-}" in
+    yes|true|1)
+      if [ -e "${RSYSLOG_SSL_DIR}" ]; then
+        backup_if_exists "${RSYSLOG_SSL_DIR}"
+        log_info "已备份并移除 TLS 目录: ${RSYSLOG_SSL_DIR}"
+      fi
+      ;;
+    *)
+      log_info "未设置 RSYSLOG_CLEANUP_SSL=yes，保留 ${RSYSLOG_SSL_DIR}"
+      ;;
+  esac
+
+  case "${RSYSLOG_CLEANUP_LOG_DATA:-}" in
+    yes|true|1)
+      [ -n "${RSYSLOG_LOG_DIR}" ] && [ "${RSYSLOG_LOG_DIR}" != "/" ] || die "RSYSLOG_LOG_DIR 异常，拒绝清空"
+      if [ -d "${RSYSLOG_LOG_DIR}" ]; then
+        log_warn "将清空集中日志目录内容: ${RSYSLOG_LOG_DIR}"
+        find "${RSYSLOG_LOG_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+      fi
+      ;;
+    *)
+      log_info "未设置 RSYSLOG_CLEANUP_LOG_DATA=yes，保留 ${RSYSLOG_LOG_DIR} 下已有文件"
+      ;;
+  esac
+
+  if have rsyslogd; then
+    restart_rsyslog
+  fi
+  if have systemctl; then
+    log_command "systemctl restart systemd-journald" || true
+  fi
+
+  cat <<EOF
+
+======== cleanup 完成 · 可重新部署 ========
+  bash 30-Deploy-rsyslog.sh server   # 或 client / auto
+EOF
 }
 
 main() {
@@ -795,6 +1065,9 @@ main() {
       ;;
     disable-forward)
       disable_forward
+      ;;
+    cleanup)
+      cleanup_deploy_rsyslog
       ;;
     auto)
       require_log_server
