@@ -84,7 +84,9 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   apt-get update -qq || true
 
   # 按工具「一个一个下载」：每个工具单独 apt-get install -d，只得到该工具及其真实依赖，再清缓存，避免依赖解析错乱
-  PRIMARY_TOOLS="vim git tmux net-tools curl wget iputils-ping dnsutils telnet lsof unzip rsync chrony sysstat netcat-openbsd strace tcpdump psmisc less file zip openssh-client screen mlocate iproute2 ethtool numactl bash-completion ca-certificates jq tree htop silversearcher-ag nfs-kernel-server"
+  # rsyslog / rsyslog-gnutls / logrotate / openssl：30-Deploy-rsyslog.sh
+  # coreutils util-linux procps kmod gawk grep sed：04-Check-required-commands.sh 中部分 check_required 在极简/裁剪镜像上可能缺（iptables/ip6tables 随发行版基础环境提供，不单列）
+  PRIMARY_TOOLS="vim git tmux net-tools curl wget iputils-ping dnsutils telnet lsof unzip rsync chrony sysstat netcat-openbsd strace tcpdump psmisc less file zip openssh-client screen mlocate iproute2 ethtool numactl bash-completion ca-certificates jq tree htop silversearcher-ag nfs-kernel-server coreutils util-linux procps kmod gawk grep sed rsyslog rsyslog-gnutls logrotate openssl"
   total_debs=0
   mkdir -p "${OUTPUT_DIR}/baseos"
   for tool in ${PRIMARY_TOOLS}; do
@@ -126,6 +128,8 @@ fi
 # RPM 系：yum/dnf 下载 .rpm
 ################################################################################
 # 常用工具包（RPM 名）；nfs-utils 为 NFS 服务端/客户端
+# rsyslog / rsyslog-gnutls / logrotate：30-Deploy-rsyslog.sh
+# coreutils util-linux procps-ng kmod gawk grep sed：04-Check 在极简镜像上可能缺；iptables/ip6tables 由系统基础提供，不单列
 TOOLS_BASE="
   vim-enhanced tmux net-tools curl wget iputils bind-utils telnet lsof
   unzip tar rsync chrony git sysstat nmap-ncat strace tcpdump psmisc
@@ -133,6 +137,8 @@ TOOLS_BASE="
   bash-completion ca-certificates libcurl openssl zlib lua ncurses
   jq tree htop the_silver_searcher
   nfs-utils
+  coreutils util-linux procps-ng kmod gawk grep sed
+  rsyslog rsyslog-gnutls logrotate
 "
 
 if command -v dnf &>/dev/null; then
