@@ -18,6 +18,7 @@ ts() { date '+%Y%m%d_%H%M%S'; }
 
 get_cur_path() {
   cd "$(dirname "${BASH_SOURCE-$0}")"
+  # shellcheck disable=SC2034
   g_curPath="${PWD}"
   # 取“真正执行的脚本名”，而不是 framework.sh 本身
   # 调用栈通常为：<your-script>.sh -> init_framework -> get_cur_path
