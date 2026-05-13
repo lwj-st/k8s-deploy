@@ -414,8 +414,6 @@ install_packages() {
     return 0
   fi
   if ! rsyslog_gnutls_available; then
-    local od
-    od="$(offline_rsyslog_dir)"
     case "${OS_ID:-}" in
       ubuntu|debian)
         die "rsyslog 未检测到 GnuTLS 支持（TLS 须安装 rsyslog-gnutls）。离线时请保证 tools/rsyslog-gnutls/ 下有对应 .deb（脚本会与 tools/rsyslog/、logrotate/、openssl/ 一并 dpkg -i）。有网机器可在该目录执行: apt-get download rsyslog-gnutls 及依赖。仅需明文 TCP 时可设 RSYSLOG_TRANSPORT=plain。"
@@ -687,7 +685,10 @@ enable_kube_apiserver_audit() {
 
   mkdir -p "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}" ||
     die "无法创建 kube-apiserver manifest 备份目录: ${KUBE_APISERVER_MANIFEST_BACKUP_DIR}"
-  local backup="${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/$(basename "${manifest}").k8s-deploy.$(ts)"
+  local ts_stamp
+  ts_stamp=$(ts)
+  local backup
+  backup="${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/$(basename "${manifest}").k8s-deploy.${ts_stamp}"
   cp -a "${manifest}" "${backup}" ||
     die "无法备份 manifest（请检查权限与磁盘）: ${manifest} -> ${backup}"
   printf '%s\t%s\n' "${manifest}" "${backup}" >>"${BACKUPS_FILE}" ||
@@ -1142,7 +1143,9 @@ cleanup_deploy_rsyslog() {
 
   case "${RSYSLOG_CLEANUP_LOG_DATA:-}" in
     yes|true|1)
-      [ -n "${RSYSLOG_LOG_DIR}" ] && [ "${RSYSLOG_LOG_DIR}" != "/" ] || die "RSYSLOG_LOG_DIR 异常，拒绝清空"
+      if [ -z "${RSYSLOG_LOG_DIR}" ] || [ "${RSYSLOG_LOG_DIR}" = "/" ]; then
+        die "RSYSLOG_LOG_DIR 异常，拒绝清空"
+      fi
       if [ -d "${RSYSLOG_LOG_DIR}" ]; then
         log_warn "将清空集中日志目录内容: ${RSYSLOG_LOG_DIR}"
         find "${RSYSLOG_LOG_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
