@@ -88,7 +88,7 @@ RSYSLOG_LOG_SERVER_PORT="${RSYSLOG_LOG_SERVER_PORT:-6514}"
 RSYSLOG_LOG_DIR="${RSYSLOG_LOG_DIR:-/data/logs}"
 # rsyslog TLS 证书目录；默认脚本使用 anon TLS 时客户端不强制需要证书。
 RSYSLOG_SSL_DIR="${RSYSLOG_SSL_DIR:-/etc/rsyslog/ssl}"
-# 日志服务器上 rsyslogd 的运行用户（用于 server.key 属组，须能读私钥）；Ubuntu/Debian 多为 syslog。
+# rsyslog 运行用户，仅用于配置 TLS 私钥属组等，实际 systemd/User 以发行版默认为准（通常为 syslog）。
 RSYSLOG_RSYSLOGD_USER="${RSYSLOG_RSYSLOGD_USER:-syslog}"
 # Kubernetes 节点本地日志保留天数；集中留存在日志服务器，本地只短保留。
 RSYSLOG_LOCAL_ROTATE_DAYS="${RSYSLOG_LOCAL_ROTATE_DAYS:-7}"
@@ -210,7 +210,7 @@ usage() {
   RSYSLOG_TRANSPORT        默认 tls；已有服务器只支持普通 TCP 时设置 plain
   RSYSLOG_TLS_AUTH_MODE    默认 anon，简单稳定；如需双向证书认证需手工改为 x509/name 并分发证书
   RSYSLOG_SSL_DIR          默认 /etc/rsyslog/ssl
-  RSYSLOG_RSYSLOGD_USER    默认 syslog；日志服务器上须与 rsyslogd 运行用户一致，以便读取 server.key
+  RSYSLOG_RSYSLOGD_USER    默认 syslog；用于 TLS 私钥属组、集中日志目录权限等（实际运行用户以 systemd/发行版配置为准）
   DOWNLOAD_DIR             仅在线安装失败走离线包时使用，默认 /data/download
   RSYSLOG_CLEANUP_*        仅 cleanup 模式使用，见上文
 EOF
@@ -681,6 +681,7 @@ enable_kube_apiserver_audit() {
      grep -q -- "name: audit-policy" "${manifest}" &&
      grep -q -- "name: audit-log" "${manifest}"; then
     log_info "kube-apiserver audit 已配置，跳过修改: ${manifest}"
+    relax_kubernetes_audit_log_for_rsyslog_imfile
     return 0
   fi
 
@@ -768,6 +769,7 @@ PY
 
   log_command "grep -n -- '--audit-policy-file\\|audit-policy\\|audit-log' \"${manifest}\""
   log_info "已更新 kube-apiserver audit 配置。kubelet 会自动重启 kube-apiserver，请稍后检查控制面状态。"
+  relax_kubernetes_audit_log_for_rsyslog_imfile
 
   if [ ! -f /var/log/kubernetes/audit.log ]; then
     log_warn "当前主机上尚未出现 /var/log/kubernetes/audit.log（已改静态 Pod 清单不代表 apiserver 已成功启动并写盘）。请按序排查："
@@ -966,6 +968,56 @@ disable_forward() {
   print_verification_hints_disable_forward
 }
 
+# kube-apiserver 写的 audit.log 多为 root:root 0600；rsyslog 若以 syslog 运行则 imfile 无法读，集中端不会出现 local1。
+relax_kubernetes_audit_log_for_rsyslog_imfile() {
+  [ -d /var/log/kubernetes ] || return 0
+  if ! id -u "${RSYSLOG_RSYSLOGD_USER}" >/dev/null 2>&1; then
+    log_info "无系统用户 ${RSYSLOG_RSYSLOGD_USER}，假定 rsyslog 以 root 运行，跳过 audit 日志读权限调整"
+    return 0
+  fi
+  if getent group adm >/dev/null 2>&1; then
+    # 默认依赖 syslog 在 adm 组（Ubuntu/Debian 常见），避免引入 setfacl/acl 包依赖。
+    # 注意：该方式会让 adm 组成员也能读取 audit 日志，需按现场安全要求评估。
+    if [ -f /var/log/kubernetes/audit.log ]; then
+      chgrp adm /var/log/kubernetes/audit.log 2>/dev/null || true
+      chmod 640 /var/log/kubernetes/audit.log 2>/dev/null || true
+    fi
+    # 轮转文件与目录（尽量兼容；若 apiserver 后续再把权限改回 600，需结合 logrotate 或 cron 再修一次）
+    chgrp adm /var/log/kubernetes 2>/dev/null || true
+    chmod 0750 /var/log/kubernetes 2>/dev/null || true
+    shopt -s nullglob
+    local af
+    for af in /var/log/kubernetes/audit-*.log; do
+      chgrp adm "${af}" 2>/dev/null || true
+      chmod 640 "${af}" 2>/dev/null || true
+    done
+    shopt -u nullglob
+    log_info "已将 /var/log/kubernetes/audit*.log 设置为 root:adm 640（便于 ${RSYSLOG_RSYSLOGD_USER} 读取并外发 local1）"
+  else
+    log_warn "系统无 adm 组，且本脚本不使用 setfacl；请手工放宽 /var/log/kubernetes/audit*.log 的读取权限（例如改为 syslog 可读），否则集中端无 local1 审计日志。"
+  fi
+}
+
+# /var/log/containers/*.log 多为指向 /var/log/pods/.../0.log 的符号链接；真实文件常为 root:root 640，syslog 无法读则集中端无 local2。
+relax_pod_logs_for_rsyslog_imfile() {
+  [ -d /var/log/pods ] || return 0
+  if ! id -u "${RSYSLOG_RSYSLOGD_USER}" >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! getent group adm >/dev/null 2>&1; then
+    log_warn "系统无 adm 组：无法自动放宽 /var/log/pods 供 ${RSYSLOG_RSYSLOGD_USER} 读取，集中端可能无 local2 容器日志。"
+    return 0
+  fi
+  chgrp -R adm /var/log/pods 2>/dev/null || log_warn "部分 /var/log/pods 无法 chgrp adm，local2 外发可能仍不完整"
+  if have find; then
+    find /var/log/pods -type d -exec chmod 750 {} + 2>/dev/null || true
+    find /var/log/pods -type f -name '*.log' -exec chmod 640 {} + 2>/dev/null || true
+  else
+    log_warn "未找到 find，跳过对 /var/log/pods 的批量 chmod；请安装 findutils 或手工放宽权限。"
+  fi
+  log_info "已放宽 /var/log/pods（root:adm，目录 750、*.log 640）供 imfile 读取并外发 local2；kubelet 新建日志后若又变回仅 root 可读，可重跑 client/enable-forward 或配定时任务再执行本步骤"
+}
+
 # client 外发里配置了 imfile(/var/log/kubernetes/audit.log) → facility local1；该文件仅当 kube-apiserver 启用审计后才会出现。
 hint_kube_audit_for_rsyslog_forward() {
   local manifest="/etc/kubernetes/manifests/kube-apiserver.yaml"
@@ -988,6 +1040,8 @@ enable_forward() {
   mkdir -p "${RSYSLOG_SSL_DIR}"
   ensure_client_ca
   write_client_conf
+  relax_kubernetes_audit_log_for_rsyslog_imfile
+  relax_pod_logs_for_rsyslog_imfile
   restart_rsyslog
   hint_kube_audit_for_rsyslog_forward
   log_command "logger \"rsyslog client test from $(hostname)\""
