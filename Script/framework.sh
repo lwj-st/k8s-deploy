@@ -50,6 +50,8 @@ init_logging() {
   # stdout: 原样输出到终端；file: 去掉 ANSI 转义序列，避免污染日志文件
   # 说明：这里用 bash 的 $'..' 生成真实 ESC 字符，确保 sed 能正确匹配并剥离颜色码
   exec > >(tee >(sed -E $'s/\x1b\\[[0-9;]*[mK]//g' >> "${log_file}")) 2>&1
+  # tee 下游 sed 或日志文件异常时，下一次写 stdout 可能 SIGPIPE；默认会终止脚本且易表现为「打几行日志后无声退出」
+  trap '' PIPE
   log_info "-------------------脚本开始执行----------------------"
 }
 

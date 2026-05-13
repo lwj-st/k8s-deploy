@@ -12,7 +12,7 @@
 ##   bash 30-Deploy-rsyslog.sh enable-audit #在 control-plane 节点开启 kube-apiserver audit。
 ##   bash 30-Deploy-rsyslog.sh enable-forward  #开启本节点日志外发。
 ##   bash 30-Deploy-rsyslog.sh disable-forward #关闭本节点日志外发。
-##   bash 30-Deploy-rsyslog.sh cleanup        #清理本脚本写入的 server/client 等配置（见 usage）
+##   bash 30-Deploy-rsyslog.sh cleanup        #清理本脚本写入的 server/client 等配置（见 usage）,注意Kubernetes audit 不会被清理
 ##
 ## 最简单推荐流程：
 ##   # 已有日志服务器时，在每个 Kubernetes 节点执行：
@@ -27,16 +27,14 @@
 ##   export RSYSLOG_LOG_SERVER=<log-server-ip>
 ##   bash 30-Deploy-rsyslog.sh client
 ##
-##   也可一行传入：RSYSLOG_LOG_SERVER=<log-server-ip> bash 30-Deploy-rsyslog.sh client
-##
 ##   # 后续新增节点时，只需要在新增节点再执行 client。
 ##
-##   # 如果集群已部署且未开启 Kubernetes audit，在每个 control-plane 节点执行：
+##   # 如果k8s集群已部署且还未开启 Kubernetes audit，在每个 control-plane 节点执行开启审计：
 ##   bash 30-Deploy-rsyslog.sh enable-audit
 ##
 ## 可选环境变量（优先级高于默认值）：
 ##   RSYSLOG_LOG_SERVER / RSYSLOG_LOG_SERVER_PORT / RSYSLOG_LOG_DIR
-##   RSYSLOG_SSL_DIR / RSYSLOG_LOCAL_ROTATE_DAYS / RSYSLOG_TRANSPORT / RSYSLOG_TLS_AUTH_MODE
+##   RSYSLOG_SSL_DIR / RSYSLOG_RSYSLOGD_USER / RSYSLOG_LOCAL_ROTATE_DAYS / RSYSLOG_TRANSPORT / RSYSLOG_TLS_AUTH_MODE
 ##   RSYSLOG_FORWARD_ENABLE
 ##   RSYSLOG_AUDIT_MAXAGE / RSYSLOG_AUDIT_MAXBACKUP / RSYSLOG_AUDIT_MAXSIZE
 ##   RSYSLOG_JOURNAL_SYSTEM_MAX_USE / RSYSLOG_JOURNAL_RUNTIME_MAX_USE / RSYSLOG_JOURNAL_MAX_RETENTION
@@ -90,6 +88,8 @@ RSYSLOG_LOG_SERVER_PORT="${RSYSLOG_LOG_SERVER_PORT:-6514}"
 RSYSLOG_LOG_DIR="${RSYSLOG_LOG_DIR:-/data/logs}"
 # rsyslog TLS 证书目录；默认脚本使用 anon TLS 时客户端不强制需要证书。
 RSYSLOG_SSL_DIR="${RSYSLOG_SSL_DIR:-/etc/rsyslog/ssl}"
+# 日志服务器上 rsyslogd 的运行用户（用于 server.key 属组，须能读私钥）；Ubuntu/Debian 多为 syslog。
+RSYSLOG_RSYSLOGD_USER="${RSYSLOG_RSYSLOGD_USER:-syslog}"
 # Kubernetes 节点本地日志保留天数；集中留存在日志服务器，本地只短保留。
 RSYSLOG_LOCAL_ROTATE_DAYS="${RSYSLOG_LOCAL_ROTATE_DAYS:-7}"
 # kube-apiserver audit 本地日志保留天数。
@@ -209,6 +209,8 @@ usage() {
   RSYSLOG_FORWARD_ENABLE   默认 yes；设置 no 时 client 模式只做本机预配置并关闭外发
   RSYSLOG_TRANSPORT        默认 tls；已有服务器只支持普通 TCP 时设置 plain
   RSYSLOG_TLS_AUTH_MODE    默认 anon，简单稳定；如需双向证书认证需手工改为 x509/name 并分发证书
+  RSYSLOG_SSL_DIR          默认 /etc/rsyslog/ssl
+  RSYSLOG_RSYSLOGD_USER    默认 syslog；日志服务器上须与 rsyslogd 运行用户一致，以便读取 server.key
   DOWNLOAD_DIR             仅在线安装失败走离线包时使用，默认 /data/download
   RSYSLOG_CLEANUP_*        仅 cleanup 模式使用，见上文
 EOF
@@ -489,13 +491,36 @@ EOF
     log_info "服务端证书已存在，跳过创建"
   fi
 
-  chmod 600 "${RSYSLOG_SSL_DIR}"/*.key
-  chmod 644 "${RSYSLOG_SSL_DIR}"/*.crt
+  # ca.key 仅 root；server.key 须被 rsyslog 进程用户读取（脚本曾 chmod 600 *.key 会导致 GnuTLS「Error while reading file」）
+  if [ -f "${RSYSLOG_SSL_DIR}/ca.key" ]; then
+    chown root:root "${RSYSLOG_SSL_DIR}/ca.key" 2>/dev/null || true
+    chmod 600 "${RSYSLOG_SSL_DIR}/ca.key" || true
+  fi
+  if [ -f "${RSYSLOG_SSL_DIR}/server.key" ]; then
+    if id -u "${RSYSLOG_RSYSLOGD_USER}" >/dev/null 2>&1; then
+      chown "root:${RSYSLOG_RSYSLOGD_USER}" "${RSYSLOG_SSL_DIR}/server.key" || die "无法 chown server.key 为 root:${RSYSLOG_RSYSLOGD_USER}"
+      chmod 640 "${RSYSLOG_SSL_DIR}/server.key" || die "无法 chmod 640 ${RSYSLOG_SSL_DIR}/server.key"
+    else
+      log_warn "系统无用户 ${RSYSLOG_RSYSLOGD_USER}，未调整 server.key 属组；若 rsyslog 非 root 运行将无法读私钥，请设置 RSYSLOG_RSYSLOGD_USER 或手工 chown/chmod。"
+      chmod 600 "${RSYSLOG_SSL_DIR}/server.key" || true
+    fi
+  fi
+  chmod 644 "${RSYSLOG_SSL_DIR}"/*.crt 2>/dev/null || true
 }
 
 write_server_conf() {
   mkdir -p "${RSYSLOG_LOG_DIR}"
-  chmod 0755 "${RSYSLOG_LOG_DIR}"
+  # rsyslogd 常以 syslog 运行，须在集中目录下创建 %HOSTNAME%/facility/ 子目录；仅 0755+root 会导致 Permission denied
+  if getent group adm >/dev/null 2>&1; then
+    chown root:adm "${RSYSLOG_LOG_DIR}" 2>/dev/null || true
+    chmod 2775 "${RSYSLOG_LOG_DIR}" || true
+  elif id -u "${RSYSLOG_RSYSLOGD_USER}" >/dev/null 2>&1; then
+    chown "root:${RSYSLOG_RSYSLOGD_USER}" "${RSYSLOG_LOG_DIR}" 2>/dev/null || true
+    chmod 2775 "${RSYSLOG_LOG_DIR}" 2>/dev/null || chmod 0775 "${RSYSLOG_LOG_DIR}" 2>/dev/null || true
+  else
+    log_warn "未找到 adm 组且无法解析 ${RSYSLOG_RSYSLOGD_USER}；${RSYSLOG_LOG_DIR} 保持 0755，rsyslog 可能无法创建子目录，请手工 chown/chmod。"
+    chmod 0755 "${RSYSLOG_LOG_DIR}" || true
+  fi
 
   local tmp
   tmp="$(mktemp)"
@@ -599,16 +624,23 @@ migrate_legacy_kube_apiserver_backups_out_of_manifests_dir() {
     moved=1
   done
   shopt -u nullglob
-  [ "${moved}" = 1 ] && log_info "kubelet 将在数秒至数十秒内重扫静态清单；若 apiserver 短暂不可用属预期。"
+  if [ "${moved}" = 1 ]; then
+    log_info "kubelet 将在数秒至数十秒内重扫静态清单；若 apiserver 短暂不可用属预期。"
+  fi
 }
 
 enable_kube_apiserver_audit() {
   local manifest="/etc/kubernetes/manifests/kube-apiserver.yaml"
   [ -f "${manifest}" ] || die "未找到 ${manifest}。该操作只需要在 control-plane 节点执行；worker 节点不用执行 enable-audit。"
-  have python3 || die "缺少 python3，无法安全修改 ${manifest}"
+  if ! have python3; then
+    local sop_root="${K8S_DEPLOY_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+    die "缺少 python3，无法自动安全修改 ${manifest}。可选：(1) 安装 python3 后重试：bash ${SCRIPT_DIR}/30-Deploy-rsyslog.sh enable-audit；(2) 按 SOP 手工操作：打开 ${sop_root}/rsyslog.md，按「4.2 每个 control-plane 开启 Kubernetes audit」备份并编辑 ${manifest}，完成 audit 参数与 volumeMounts/volumes。"
+  fi
 
   write_audit_policy
+  log_info "audit 策略文件已就绪，继续处理 apiserver 静态 Pod 清单: ${manifest}"
   migrate_legacy_kube_apiserver_backups_out_of_manifests_dir
+  log_info "已检查 manifests 目录内误放的 kube-apiserver 备份（若有则已移出到 ${KUBE_APISERVER_MANIFEST_BACKUP_DIR}）。"
 
   if grep -q -- "--audit-policy-file=${AUDIT_POLICY_FILE}" "${manifest}" &&
      grep -q -- "name: audit-policy" "${manifest}" &&
@@ -617,13 +649,16 @@ enable_kube_apiserver_audit() {
     return 0
   fi
 
-  mkdir -p "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}"
+  mkdir -p "${KUBE_APISERVER_MANIFEST_BACKUP_DIR}" ||
+    die "无法创建 kube-apiserver manifest 备份目录: ${KUBE_APISERVER_MANIFEST_BACKUP_DIR}"
   local backup="${KUBE_APISERVER_MANIFEST_BACKUP_DIR}/$(basename "${manifest}").k8s-deploy.$(ts)"
-  cp -a "${manifest}" "${backup}"
-  printf '%s\t%s\n' "${manifest}" "${backup}" >> "${BACKUPS_FILE}"
+  cp -a "${manifest}" "${backup}" ||
+    die "无法备份 manifest（请检查权限与磁盘）: ${manifest} -> ${backup}"
+  printf '%s\t%s\n' "${manifest}" "${backup}" >>"${BACKUPS_FILE}" ||
+    die "无法写入备份清单记录: ${BACKUPS_FILE}"
   log_warn "已备份 kube-apiserver manifest: ${manifest} -> ${backup}"
 
-  python3 - "$manifest" "$AUDIT_POLICY_FILE" "$RSYSLOG_AUDIT_MAXAGE" "$RSYSLOG_AUDIT_MAXBACKUP" "$RSYSLOG_AUDIT_MAXSIZE" <<'PY'
+  if ! python3 - "$manifest" "$AUDIT_POLICY_FILE" "$RSYSLOG_AUDIT_MAXAGE" "$RSYSLOG_AUDIT_MAXBACKUP" "$RSYSLOG_AUDIT_MAXSIZE" <<'PY'
 from pathlib import Path
 import sys
 
@@ -691,6 +726,10 @@ if not has(f"path: {policy}") or not has("path: /var/log/kubernetes"):
 
 manifest.write_text("\n".join(lines) + "\n")
 PY
+  then
+    local sop_root="${K8S_DEPLOY_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+    die "自动修改 ${manifest} 失败（python3 非零退出，原因见上一段报错）。请核对 manifest 中 command 首行是否为 kube-apiserver；或按 ${sop_root}/rsyslog.md §4.2 手工编辑。"
+  fi
 
   log_command "grep -n -- '--audit-policy-file\\|audit-policy\\|audit-log' \"${manifest}\""
   log_info "已更新 kube-apiserver audit 配置。kubelet 会自动重启 kube-apiserver，请稍后检查控制面状态。"
@@ -699,7 +738,7 @@ PY
     log_warn "当前主机上尚未出现 /var/log/kubernetes/audit.log（已改静态 Pod 清单不代表 apiserver 已成功启动并写盘）。请按序排查："
     log_warn "  1) kubectl get pods -n kube-system 2>/dev/null | grep apiserver — 是否为 Running、是否 CrashLoopBackOff。"
     log_warn "  2) journalctl -u kubelet --since '15 min ago' --no-pager | grep -iE 'apiserver|Error|Failed' — kubelet 拉静态 Pod 是否报错。"
-    log_warn "  3) crictl ps -a 找到 kube-apiserver 容器后: crictl logs <容器ID> — apiserver 是否报 audit 策略/挂载/权限错误。"
+    log_warn "  3) crictl ps -a |grep kube-apiserver 找到 kube-apiserver 容器后: crictl logs <容器ID> — apiserver 是否报 audit 策略/挂载/权限错误。"
     log_warn "  4) ls -ld /var/log/kubernetes /etc/kubernetes/audit-policy.yaml — 目录与策略文件是否存在、策略文件对 apiserver 可读。"
     log_warn "  5) 打开 ${manifest}，在 volumes 里找到 name: audit-log 的 hostPath：path 应为 /var/log/kubernetes、type 应为 DirectoryOrCreate；在 volumeMounts 里对应挂载不要设 readOnly（否则无法写 audit.log）。"
   fi
