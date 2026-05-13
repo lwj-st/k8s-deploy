@@ -279,13 +279,12 @@ offline_rsyslog_hint() {
   log_error "请在离线制品目录准备 rsyslog 安装包: ${dir}"
   case "${OS_ID:-}" in
     ubuntu|debian)
-      log_error "目录内需要放置 .deb 包，例如 rsyslog、rsyslog-gnutls、logrotate、openssl 及其依赖。"
-      log_error "离线安装只读取该目录下的 *.deb，不会自动合并其它子目录；若下载脚本按工具分了子目录，请先把需要的 .deb 拷进 ${dir}。"
+      log_error "目录内需有 .deb；脚本会自动合并同级工具目录下的包: rsyslog/、rsyslog-gnutls/、logrotate/、openssl/（与 00-Download-tools-packages 按工具分子目录的布局一致）。"
+      log_error "若仍有缺依赖，请把对应 .deb 放进上述任一目录后重跑。"
       ;;
     *)
-      log_error "目录内需要放置 .rpm 包，例如 rsyslog、rsyslog-gnutls、logrotate、openssl 及其依赖。"
-      log_error "离线安装只读取该目录下的 *.rpm，不会自动合并 tools/rsyslog-gnutls 等同级目录。"
-      log_error "若制品分散在 tools/ 下各工具目录，可先合并进本目录再执行，例如: cp -n \"${dir}/../rsyslog-gnutls\"/*.rpm \"${dir}/\"  （按需再拷 logrotate、openssl、rsyslog-logrotate 等）"
+      log_error "目录内需有 .rpm；脚本会自动合并同级工具目录: rsyslog/、rsyslog-gnutls/、logrotate/、openssl/ 下的 *.rpm。"
+      log_error "若仍有缺依赖，请把对应 .rpm 放进上述任一目录后重跑。"
       ;;
   esac
 }
@@ -298,21 +297,44 @@ install_rsyslog_offline() {
 
   case "${OS_ID:-}" in
     ubuntu|debian)
+      local tools_parent sd d
+      tools_parent="$(dirname "${dir}")"
+      declare -a deb_dirs=("${dir}")
+      for sd in rsyslog-gnutls logrotate openssl; do
+        [ -d "${tools_parent}/${sd}" ] && deb_dirs+=("${tools_parent}/${sd}")
+      done
+      declare -a debs=()
       shopt -s nullglob
-      local debs=("${dir}"/*.deb)
+      for d in "${deb_dirs[@]}"; do
+        debs+=("${d}"/*.deb)
+      done
       shopt -u nullglob
-      [ "${#debs[@]}" -gt 0 ] || die "离线包目录为空或没有 .deb 文件: ${dir}"
-      log_command "dpkg -i \"${dir}\"/*.deb"
+      [ "${#debs[@]}" -gt 0 ] || die "离线未找到 .deb：已检查 ${deb_dirs[*]}（至少需要 ${dir} 内有 rsyslog 相关 .deb）"
+      log_info "离线安装：dpkg -i 共 ${#debs[@]} 个 .deb（目录: ${deb_dirs[*]}）"
+      if ! dpkg -i "${debs[@]}"; then
+        log_warn "首次 dpkg -i 未完全成功（常见为依赖顺序或未配置包），将再执行一次"
+        dpkg -i "${debs[@]}" || die "dpkg -i 仍失败：请补齐 rsyslog-gnutls 等依赖的 .deb 到 tools 下对应子目录，或在有网环境 apt-get download 后拷入"
+      fi
       ;;
     *)
+      local tools_parent sd d
+      tools_parent="$(dirname "${dir}")"
+      declare -a rpm_dirs=("${dir}")
+      for sd in rsyslog-gnutls logrotate openssl; do
+        [ -d "${tools_parent}/${sd}" ] && rpm_dirs+=("${tools_parent}/${sd}")
+      done
+      declare -a rpms=()
       shopt -s nullglob
-      local rpms=("${dir}"/*.rpm)
+      for d in "${rpm_dirs[@]}"; do
+        rpms+=("${d}"/*.rpm)
+      done
       shopt -u nullglob
-      [ "${#rpms[@]}" -gt 0 ] || die "离线包目录为空或没有 .rpm 文件: ${dir}"
+      [ "${#rpms[@]}" -gt 0 ] || die "离线未找到 .rpm：已检查 ${rpm_dirs[*]}"
+      log_info "离线安装：共 ${#rpms[@]} 个 .rpm（目录: ${rpm_dirs[*]}）"
       if have dnf; then
-        log_command "dnf -y install --disablerepo='*' --setopt=install_weak_deps=False \"${dir}\"/*.rpm"
+        dnf -y install --disablerepo='*' --setopt=install_weak_deps=False "${rpms[@]}" || die "dnf localinstall 失败，请补齐依赖 .rpm"
       else
-        log_command "yum -y localinstall --disablerepo='*' \"${dir}\"/*.rpm"
+        yum -y localinstall --disablerepo='*' "${rpms[@]}" || die "yum localinstall 失败，请补齐依赖 .rpm"
       fi
       ;;
   esac
@@ -385,10 +407,23 @@ install_packages() {
   esac
 
   have rsyslogd || die "rsyslog 安装后仍未找到 rsyslogd"
+  if [ "${RSYSLOG_TRANSPORT}" != "tls" ]; then
+    if ! rsyslog_gnutls_available; then
+      log_warn "当前 RSYSLOG_TRANSPORT=${RSYSLOG_TRANSPORT}，未安装 rsyslog-gnutls 仍可继续；若日后改为 tls 请在有网节点 apt/dnf 补装 rsyslog-gnutls 或补齐离线 .deb/.rpm。"
+    fi
+    return 0
+  fi
   if ! rsyslog_gnutls_available; then
     local od
     od="$(offline_rsyslog_dir)"
-    die "rsyslog 未检测到 GnuTLS 支持（须安装 rsyslog-gnutls）。离线时须把对应 .rpm 与其它依赖一并放进同一目录: ${od}（仅安装该目录下 *.rpm）。若包在 ${od}/../rsyslog-gnutls/，可先: cp -n \"${od}/../rsyslog-gnutls\"/*.rpm \"${od}/\" 后重跑本脚本。"
+    case "${OS_ID:-}" in
+      ubuntu|debian)
+        die "rsyslog 未检测到 GnuTLS 支持（TLS 须安装 rsyslog-gnutls）。离线时请保证 tools/rsyslog-gnutls/ 下有对应 .deb（脚本会与 tools/rsyslog/、logrotate/、openssl/ 一并 dpkg -i）。有网机器可在该目录执行: apt-get download rsyslog-gnutls 及依赖。仅需明文 TCP 时可设 RSYSLOG_TRANSPORT=plain。"
+        ;;
+      *)
+        die "rsyslog 未检测到 GnuTLS 支持（TLS 须安装 rsyslog-gnutls）。离线时请保证 tools/rsyslog-gnutls/ 下有对应 .rpm（脚本会与 rsyslog/、logrotate/、openssl/ 一并安装）。仅需明文 TCP 时可设 RSYSLOG_TRANSPORT=plain。"
+        ;;
+    esac
   fi
 }
 
