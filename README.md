@@ -5,6 +5,7 @@
 - `Script/00-Download-k8s-packages.sh` 下载 Kubernetes 离线安装包（可选）
 - `Script/00-Download-k8s-packages-docker.sh` 如果没有对应的 OS 环境，可以使用 Docker 容器来模拟 (可选)
 - `Script/00-Download-tools-packages-docker.sh` 可提前下载所需的工具包，可以使用 Docker 容器来模拟 (可选)
+- `Script/00-Download-tools-packages.sh` 本机 `apt`/`yum` 拉工具离线包，无 Docker（可选）；已满足的依赖不再进缓存，包量常与 Docker 版不完全一致
 - `Script/01-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
 - `Script/02-Download.sh`：按清单下载（可选 MD5 校验）
 - `Script/03-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
