@@ -22,7 +22,8 @@ log_message() {
     esac
   fi
 
-  printf "[%s] [%s%s%s] [%s(%s):%s]\t%s\n" "$logTime" "${c_level}" "$level" "${c_reset}" "${g_scriptName:-script}" "$funcName" "$lineNO" "$message"
+  # 不因 tee/sed 管道破裂、磁盘满或终端提前关闭导致 printf 非零而触发 set -e 退出（否则后续 die/排查信息可能打不出来）
+  printf "[%s] [%s%s%s] [%s(%s):%s]\t%s\n" "$logTime" "${c_level}" "$level" "${c_reset}" "${g_scriptName:-script}" "$funcName" "$lineNO" "$message" || true
 }
 
 log_error() { log_message "ERROR" "$1"; }
