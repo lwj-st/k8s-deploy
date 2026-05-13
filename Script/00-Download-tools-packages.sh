@@ -157,8 +157,10 @@ download_pkgs_rpm() {
   if [ -z "${pkgs}" ]; then return 0; fi
   mkdir -p "${destdir}"
   if command -v yumdownloader &>/dev/null; then
+    # shellcheck disable=SC2086 # 故意对 ${pkgs} 分词，以支持多个包名参数
     yumdownloader --resolve --destdir="${destdir}" ${pkgs} 2>&1 || true
   else
+    # shellcheck disable=SC2086
     dnf download --resolve --alldeps --arch=x86_64 --destdir="${destdir}" ${pkgs} 2>&1 || true
   fi
 }
