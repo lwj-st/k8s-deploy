@@ -312,6 +312,47 @@ artifacts:
     md5: "e4148219c8342806e9cc58d21d300723"
     description: "acsend 910 device-plugin yaml"
 
+  - module: dcu
+    type: dir
+    name: dcu.dir.device-plugin
+    path: /data/download/dcu
+    url: ""
+    md5: "__DIR__"
+    description: "hygon dcu device-plugin offline base dir"
+
+  - module: dcu
+    type: tar
+    name: dcu.image.device-plugin.v2.4.2
+    path: /data/download/dcu/dcu-device-plugin_v2.4.2.tar
+    url: ""
+    base_url: "harbor.sourcefind.cn:5443/dcu/admin/base/dcu-device-plugin:v2.4.2"
+    md5: "6b38b489cf00cf9d3c74bceedf342ed9"
+    description: "hygon dcu device-plugin image tar"
+
+  - module: dcu
+    type: file
+    name: dcu.manifest.device-plugin.mixed.v2.4.2
+    path: /data/download/dcu/k8s-dcu-plugin.yaml
+    url: "https://raw.githubusercontent.com/HYGON-AI/k8s-dcu-device-plugin/master/deployment/static/k8s-dcu-plugin.yaml"
+    md5: "8bfc65d43b0c8efd2e81193f16786506"
+    description: "hygon dcu device-plugin mixed manifest"
+
+  - module: dcu
+    type: file
+    name: dcu.manifest.device-plugin.mig.v2.4.2
+    path: /data/download/dcu/k8s-dcu-plugin-mig.yaml
+    url: "https://raw.githubusercontent.com/HYGON-AI/k8s-dcu-device-plugin/master/deployment/static/k8s-dcu-plugin-mig.yaml"
+    md5: "8f74572d4220bf33660f61715185fb43"
+    description: "hygon dcu device-plugin mig manifest"
+
+  - module: dcu
+    type: file
+    name: dcu.manifest.device-plugin.hami.v2.4.2
+    path: /data/download/dcu/k8s-dcu-plugin-hami.yaml
+    url: "https://raw.githubusercontent.com/HYGON-AI/k8s-dcu-device-plugin/master/deployment/static/k8s-dcu-plugin-hami.yaml"
+    md5: "dd090a641b95f2f65b119b763eb0e77d"
+    description: "hygon dcu device-plugin hami manifest"
+
   - module: os
     type: dir
     name: os.dir.kubernetes
