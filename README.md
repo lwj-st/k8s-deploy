@@ -21,6 +21,7 @@
 ### 插件/组件脚本（20+）
 - `Script/15-Deploy-nvidia.sh`：部署 NVIDIA plugin（GPU）
 - `Script/15-Deploy-ascend.sh`：部署 Ascend plugin（NPU，仅择一执行）
+- `Script/15-Deploy-dcu.sh`：部署 Hygon DCU device-plugin（mixed/mig/hami）
 - `Script/20-Deploy-local-path.sh`
 - `Script/21-Deploy-nfs-provisioner.sh`
 - `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
@@ -120,9 +121,11 @@ sudo bash 13-Install-k8s-packages.sh
 sudo bash 14-Kubeadm-init.sh
 sudo bash 15-Deploy-nvidia.sh            # 可选：仅 NVIDIA（GPU）
 sudo bash 15-Deploy-ascend.sh            # 可选：仅 Ascend
+sudo bash 15-Deploy-dcu.sh               # 可选：仅 Hygon DCU
 sudo bash 16-Deploy-cni.sh
 sudo bash 17-Deploy-ingress.sh
 ```
+
 
 插件/组件部署（按需执行）：
 
