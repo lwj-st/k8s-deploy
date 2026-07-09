@@ -50,7 +50,7 @@ print_section() {
 }
 
 check_basic_required() {
-  print_section "检查 1/7：基础必需命令"
+  print_section "检查 1/8：基础必需命令"
   local cmds=(
     chmod chown cp date dirname basename id ls mkdir mktemp mv printf pwd rm rmdir tac tr tar xargs
   )
@@ -61,7 +61,7 @@ check_basic_required() {
 }
 
 check_text_required() {
-  print_section "检查 2/7：文本处理必需命令"
+  print_section "检查 2/8：文本处理必需命令"
   local cmds=(awk cut sed sort tee uniq)
   local c
   for c in "${cmds[@]}"; do
@@ -72,7 +72,7 @@ check_text_required() {
 }
 
 check_system_required() {
-  print_section "检查 3/7：系统管理必需命令"
+  print_section "检查 3/8：系统管理必需命令"
   local cmds=(getent hostname modprobe swapoff sysctl systemctl)
   local c
   for c in "${cmds[@]}"; do
@@ -84,7 +84,7 @@ check_system_required() {
 }
 
 check_network_required() {
-  print_section "检查 4/7：网络与下载命令"
+  print_section "检查 4/8：网络与下载命令"
   local cmds=(curl ip iptables ip6tables ss wget)
   local c
   for c in "${cmds[@]}"; do
@@ -95,7 +95,7 @@ check_network_required() {
 }
 
 check_pkg_tooling() {
-  print_section "检查 5/7：包管理与校验命令"
+  print_section "检查 5/8：包管理与校验命令"
   check_required "md5sum"
   check_recommended "gpg"
 
@@ -133,8 +133,24 @@ check_pkg_tooling() {
   esac
 }
 
+# Script/30-Deploy-rsyslog.sh：与日志集中、外发、kube-apiserver audit 直接相关的可执行文件。
+# 不含 apt-get/dnf/systemctl 等通用项（见上文各节）；rsyslogd 多由该脚本安装，未装时仅告警。
+check_rsyslog_30_deploy_related() {
+  print_section "检查 6/8：30-Deploy-rsyslog 日志外发脚本相关命令"
+  log_info "  （rsyslogd 若缺失，脚本会尝试在线/离线安装；以下其余项按现场角色补齐）"
+  check_recommended "rsyslogd"
+  check_recommended "openssl"
+  check_recommended "python3"
+  check_recommended "logrotate"
+  check_recommended "journalctl"
+  check_recommended "logger"
+  check_recommended "egrep"
+  check_recommended "service"
+  check_recommended "killall"
+}
+
 check_container_k8s() {
-  print_section "检查 6/7：容器与 Kubernetes 相关命令"
+  print_section "检查 7/8：容器与 Kubernetes 相关命令"
   local recommended_cmds=(containerd ctr helm helmfile kubeadm kubectl kubelet)
   local c
   for c in "${recommended_cmds[@]}"; do
@@ -145,7 +161,7 @@ check_container_k8s() {
 }
 
 check_accelerator_related() {
-  print_section "检查 7/7：加速卡相关命令（按需）"
+  print_section "检查 8/8：加速卡相关命令（按需）"
   # GPU 相关命令在未启用 GPU 节点时不应作为失败条件。
   check_recommended "nvidia-smi"
   check_recommended "nvidia-ctk"
@@ -178,6 +194,7 @@ main() {
   check_system_required
   check_network_required
   check_pkg_tooling
+  check_rsyslog_30_deploy_related
   check_container_k8s
   check_accelerator_related
   print_summary_and_exit

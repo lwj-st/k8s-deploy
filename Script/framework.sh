@@ -18,6 +18,7 @@ ts() { date '+%Y%m%d_%H%M%S'; }
 
 get_cur_path() {
   cd "$(dirname "${BASH_SOURCE-$0}")"
+  # shellcheck disable=SC2034
   g_curPath="${PWD}"
   # 取“真正执行的脚本名”，而不是 framework.sh 本身
   # 调用栈通常为：<your-script>.sh -> init_framework -> get_cur_path
@@ -50,6 +51,8 @@ init_logging() {
   # stdout: 原样输出到终端；file: 去掉 ANSI 转义序列，避免污染日志文件
   # 说明：这里用 bash 的 $'..' 生成真实 ESC 字符，确保 sed 能正确匹配并剥离颜色码
   exec > >(tee >(sed -E $'s/\x1b\\[[0-9;]*[mK]//g' >> "${log_file}")) 2>&1
+  # tee 下游 sed 或日志文件异常时，下一次写 stdout 可能 SIGPIPE；默认会终止脚本且易表现为「打几行日志后无声退出」
+  trap '' PIPE
   log_info "-------------------脚本开始执行----------------------"
 }
 
@@ -79,7 +82,10 @@ log_command() {
 backup_if_exists() {
   local p="$1"
   if [ -e "$p" ]; then
-    local b="${p}.k8s-deploy.$(ts)"
+    local ts_stamp
+    ts_stamp=$(ts)
+    local b
+    b="${p}.k8s-deploy.${ts_stamp}"
     log_warn "备份已存在路径: $p -> $b"
     mv -f "$p" "$b"
     printf '%s\t%s\n' "$p" "$b" >> "${BACKUPS_FILE}"
@@ -123,14 +129,15 @@ cleanup_kube_iptables() {
     while IFS= read -r rule; do
       [ -n "$rule" ] || continue
       local del="${rule/-A /-D }"
-      $ipt -t "$table" $del 2>/dev/null || true
-    done < <($ipt -t "$table" -S 2>/dev/null | grep -E '^-A .* -j (KUBE|CALI)-' || true)
+      # shellcheck disable=SC2086 # $del 为 iptables 完整规则片段，须分词
+      "$ipt" -t "$table" $del 2>/dev/null || true
+    done < <("$ipt" -t "$table" -S 2>/dev/null | grep -E '^-A .* -j (KUBE|CALI)-' || true)
 
     while IFS= read -r chain; do
       [ -n "$chain" ] || continue
-      $ipt -t "$table" -F "$chain" 2>/dev/null || true
-      $ipt -t "$table" -X "$chain" 2>/dev/null || true
-    done < <($ipt -t "$table" -S 2>/dev/null | awk '/^:(KUBE|CALI)-/ {sub(/^:/,"",$1); print $1}' || true)
+      "$ipt" -t "$table" -F "$chain" 2>/dev/null || true
+      "$ipt" -t "$table" -X "$chain" 2>/dev/null || true
+    done < <("$ipt" -t "$table" -S 2>/dev/null | awk '/^:(KUBE|CALI)-/ {sub(/^:/,"",$1); print $1}' || true)
   done
 }
 
@@ -223,7 +230,7 @@ artifact_get_path_by_name() {
 
   local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r m t n p url md5 d oid; do
+  while IFS=$'\x1f' read -r _m _t n p _url _md5 _d _oid; do
     [ "${n}" = "${name}" ] || continue
     found="${p}"
     cnt=$((cnt+1))
@@ -258,7 +265,7 @@ artifact_get_path() {
 
   local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r m t p url md5 d os_id; do
+  while IFS=$'\x1f' read -r m t p _url _md5 d _os_id; do
     [ "${m}" = "${module}" ] || continue
     [ "${t}" = "${type}" ] || continue
     [ "${d}" = "${desc}" ] || continue
@@ -293,7 +300,7 @@ artifact_get_os_kubernetes_dir() {
 
   local cnt=0
   local base_from_yaml=""
-  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
+  while IFS=$'\x1f' read -r m t n artifact_path _url _md5 _d _oid; do
     [ "${m}" = "os" ] || continue
     [ "${t}" = "dir" ] || continue
     [ "${n}" = "os.dir.kubernetes" ] || continue
@@ -327,7 +334,7 @@ artifact_get_nvidia_toolkit_base_dir() {
 
   local cnt=0
   local base_from_yaml=""
-  while IFS=$'\x1f' read -r m t n artifact_path url md5 d oid; do
+  while IFS=$'\x1f' read -r m t _n artifact_path _url _md5 _d _oid; do
     [ "${m}" = "nvidia" ] || continue
     [ "${t}" = "dir" ] || continue
     cnt=$((cnt + 1))

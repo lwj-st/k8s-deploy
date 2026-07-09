@@ -1,10 +1,12 @@
 # k8s-deploy（x86 / Kubernetes 1.31.x + containerd）
 
 ## 目录结构
-### 基础脚本（01-20）
+### 基础脚本
 - `Script/00-Download-k8s-packages.sh` 下载 Kubernetes 离线安装包（可选）
 - `Script/00-Download-k8s-packages-docker.sh` 如果没有对应的 OS 环境，可以使用 Docker 容器来模拟 (可选)
+- `Script/00-Download-nvidia-packages-docker.sh` 可提前下载 NVIDIA 相关离线包，使用 Docker 容器来模拟 (可选)
 - `Script/00-Download-tools-packages-docker.sh` 可提前下载所需的工具包，可以使用 Docker 容器来模拟 (可选)
+- `Script/00-Download-tools-packages.sh` 本机 `apt`/`yum` 拉工具离线包，无 Docker（可选）；已满足的依赖不再进缓存，包量常与 Docker 版不完全一致
 - `Script/01-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
 - `Script/02-Download.sh`：按清单下载（可选 MD5 校验）
 - `Script/03-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
@@ -18,17 +20,19 @@
 - `Script/16-Deploy-cni.sh`
 - `Script/17-Deploy-ingress.sh`
 
-### 插件/组件脚本（20+）
+### 插件/组件脚本
 - `Script/15-Deploy-nvidia.sh`：部署 NVIDIA plugin（GPU）
 - `Script/15-Deploy-ascend.sh`：部署 Ascend plugin（NPU，仅择一执行）
 - `Script/20-Deploy-local-path.sh`
 - `Script/21-Deploy-nfs-provisioner.sh`
 - `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
-- `Script/25-Deploy-seaweedfs.sh`：部署 SeaweedFS + CSI Driver
-- `Script/26-Deploy-minio.sh`：部署 MinIO
-- `Script/27-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
-- `Script/28-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
-- `Script/29-Deploy-monitoring.sh`：部署 Monitoring
+- `Script/23-Deploy-seaweedfs.sh`：部署 SeaweedFS + CSI Driver
+- `Script/24-Deploy-minio.sh`：部署 MinIO
+- `Script/25-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
+- `Script/26-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
+- `Script/27-Deploy-monitoring.sh`：部署 Monitoring
+- `Script/30-Deploy-rsyslog.sh`：配置 rsyslog 集中日志；日志服务器和每个 K8s 节点都执行同一个脚本
+- `Script/89-Generate-tls.sh`：生成 TLS 证书
 - `Script/90-Shovel-k8s.sh`：清理集群（kubeadm reset + 只清 KUBE/CALI 相关链）
 - `Script/91-Cleanup-host.sh`：回滚“脚本改动过的地方”，恢复宿主机干净环境（尽可能）
 
@@ -130,12 +134,21 @@ sudo bash 17-Deploy-ingress.sh
 sudo bash 20-Deploy-local-path.sh         # 可选
 sudo bash 21-Deploy-nfs-provisioner.sh    # 可选：仅当你在 01-Cluster-host.sh 里选择 DEPLOY_NFS=yes
 sudo bash 22-Deploy-tidb-operator.sh      # 可选
-sudo bash 25-Deploy-seaweedfs.sh          # 可选
-sudo bash 26-Deploy-minio.sh              # 可选
-sudo bash 27-Deploy-juicefs-csi-driver.sh # 可选
-sudo bash 28-Deploy-dragonfly-operator.sh # 可选
-sudo bash 29-Deploy-monitoring.sh         # 可选
+sudo bash 23-Deploy-seaweedfs.sh          # 可选
+sudo bash 24-Deploy-minio.sh              # 可选
+sudo bash 25-Deploy-juicefs-csi-driver.sh # 可选
+sudo bash 26-Deploy-dragonfly-operator.sh # 可选
+sudo bash 27-Deploy-monitoring.sh         # 可选
 ...
+```
+
+集中日志审计（二级等保，按需执行）：
+
+```bash
+# 集群部署完成后，如需要集中日志审计，再执行该脚本
+# 设置日志服务器IP，集群每个工作节点都执行同一个脚本
+export RSYSLOG_LOG_SERVER=<log-server-ip>
+sudo bash 30-Deploy-rsyslog.sh
 ```
 
 ## 添加工作节点到集群
