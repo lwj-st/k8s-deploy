@@ -38,16 +38,23 @@
 ##   RSYSLOG_AUDIT_MAXAGE / RSYSLOG_AUDIT_MAXBACKUP / RSYSLOG_AUDIT_MAXSIZE
 ##   RSYSLOG_JOURNAL_SYSTEM_MAX_USE / RSYSLOG_JOURNAL_RUNTIME_MAX_USE / RSYSLOG_JOURNAL_MAX_RETENTION
 ##   KUBE_APISERVER_MANIFEST_BACKUP_DIR（enable-audit 备份路径，须不在 /etc/kubernetes/manifests/ 下）
-##   离线安装 rsyslog 时可选 DOWNLOAD_DIR（默认 /data/download）
+##   离线安装 rsyslog 时使用 DOWNLOAD_DIR（来自 environment.sh）
 ################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
-# 本脚本不 source environment.sh；初始化仅使用 framework 提供的日志/OS 探测（与 init_framework 中的前两步+detect_os 一致）。
+# 本脚本需要在初始化早期读取父进程环境，因此不直接调用 init_framework；
+# 这里手动执行等价的日志/OS 探测，并 source environment.sh 获取 DOWNLOAD_DIR 等公共配置。
 get_cur_path
 init_logging
+if [ -f "${SCRIPT_DIR}/environment.sh" ]; then
+  # shellcheck disable=SC1091
+  source "${SCRIPT_DIR}/environment.sh"
+else
+  die "未找到 ${SCRIPT_DIR}/environment.sh，请先执行 01-Cluster-host.sh"
+fi
 detect_os
 log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
 require_root
@@ -246,7 +253,8 @@ detect_pkg_manager() {
 # 离线目录与 00-Download-tools-packages-docker 支持的 OS 子目录一致；未单独列出的 RHEL 系发行版按与 rocky 兼容处理。
 # 与 manifests/artifacts.yaml 中 os.dir.kubernetes 的 path（一般为 .../packages）约定一致。
 offline_rsyslog_dir() {
-  local base="${DOWNLOAD_DIR}"
+  local base="${DOWNLOAD_DIR:-}"
+  [ -n "${base}" ] || die "environment.sh 未设置 DOWNLOAD_DIR，无法确定 rsyslog 离线包目录"
   case "${OS_ID:-}" in
     ubuntu|debian)
       printf '%s\n' "${base}/packages/ubuntu/tools/rsyslog"
