@@ -4,17 +4,23 @@
 ## Description: 部署 monitoring（自动识别 nvidia/ascend；都无则默认 nvidia）
 ## Usage:
 ##   bash 27-Deploy-monitoring.sh
+## Artifacts:
+##   - monitor.chart.kube-prometheus-stack.v72.7.0
+##   - monitor.manifest.dcgm-exporter
+## Images:
+##   - monitor.image.kube-state-metrics.v2.15.0
+##   - monitor.image.grafana.v12.0.0
+##   - monitor.image.ingress-nginx.kube-webhook-certgen.v1.5.3
+##   - monitor.image.kiwigrid.k8s-sidecar.v1.30.0
+##   - monitor.image.prometheus-config-reloader.v0.82.2
+##   - monitor.image.prometheus-operator.v0.82.2
+##   - monitor.image.alertmanager.v0.28.1
+##   - monitor.image.node-exporter.v1.9.1
+##   - monitor.image.prometheus.v3.4.0
+##   - monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless
 ## Notes:
-##   - 依赖离线目录: ${DOWNLOAD_DIR}/monitor
-##   - 需要提前准备:
-##       kube-prometheus-stack-72.7.0.tgz
-##       kube-state-metrics-v2.15.0-amd64.tar
-##       grafana-v12.0.0-amd64.tar
-##   - 本脚本会读取仓库 config 下配置:
-##       config/dcgm-exporter.yaml
-##       config/npu-exporter.yaml
-##       config/grafana-ingress.yaml
-##       config/service-monitor.yaml
+##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
+##   - 本脚本会读取仓库 config 下的 npu-exporter、grafana-ingress、service-monitor 配置
 ################################################################################
 set -euo pipefail
 
@@ -23,7 +29,6 @@ source "${SCRIPT_DIR}/framework.sh"
 
 NS="monitoring"
 RELEASE="kube-prom-stack"
-MONITOR_DIR=""
 CHART=""
 DCGM_YAML=""
 ASCEND_YAML=""
@@ -44,17 +49,15 @@ init_env() {
   have ctr || die "缺少 ctr（请先安装 containerd）"
   have openssl || die "缺少 openssl"
 
-  MONITOR_DIR="${DOWNLOAD_DIR}/monitor"
-  CHART="${MONITOR_DIR}/kube-prometheus-stack-72.7.0.tgz"
+  CHART="$(artifact_get_path_by_name "monitor.chart.kube-prometheus-stack.v72.7.0")"
+  DCGM_YAML="$(artifact_get_path_by_name "monitor.manifest.dcgm-exporter")"
 
-  DCGM_YAML="${K8S_DEPLOY_ROOT}/config/dcgm-exporter.yaml"
   ASCEND_YAML="${K8S_DEPLOY_ROOT}/config/npu-exporter.yaml"
   INGRESS_TMPL="${K8S_DEPLOY_ROOT}/config/grafana-ingress.yaml"
   SM_YAML="${K8S_DEPLOY_ROOT}/config/service-monitor.yaml"
 
-  [ -d "${MONITOR_DIR}" ] || die "缺少目录: ${MONITOR_DIR}"
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
-  [ -f "${DCGM_YAML}" ] || die "缺少配置: ${DCGM_YAML}"
+  [ -f "${DCGM_YAML}" ] || die "缺少制品: ${DCGM_YAML}"
   [ -f "${ASCEND_YAML}" ] || log_warn "未找到 ${ASCEND_YAML}，Ascend 分支将不可用"
   [ -f "${INGRESS_TMPL}" ] || die "缺少配置: ${INGRESS_TMPL}"
   [ -f "${SM_YAML}" ] || die "缺少配置: ${SM_YAML}"
@@ -81,27 +84,18 @@ detect_accelerator() {
 # Function: import_monitor_images
 ################################################################################
 import_monitor_images() {
-  local imported=0
-  local skipped=0
-  local f
-
-  shopt -s nullglob
-  local files=("${MONITOR_DIR}"/*.tar)
-  shopt -u nullglob
-
-  for f in "${files[@]}"; do
-    [ -f "${f}" ] || continue
-    log_info "导入镜像 tar: ${f}"
-    log_command "ctr -n k8s.io images import \"${f}\""
-    imported=$((imported+1))
-  done
-
-  if [ "${imported}" -eq 0 ]; then
-    log_warn "未找到任何 .tar 镜像（目录: ${MONITOR_DIR}），继续执行 Helm/Manifest"
-    skipped=1
-  fi
-
-  log_info "镜像导入完成：imported=${imported}, note=${skipped}"
+  log_info "导入 monitoring 所需镜像..."
+  import_image_artifacts \
+    "monitor.image.kube-state-metrics.v2.15.0" \
+    "monitor.image.grafana.v12.0.0" \
+    "monitor.image.ingress-nginx.kube-webhook-certgen.v1.5.3" \
+    "monitor.image.kiwigrid.k8s-sidecar.v1.30.0" \
+    "monitor.image.prometheus-config-reloader.v0.82.2" \
+    "monitor.image.prometheus-operator.v0.82.2" \
+    "monitor.image.alertmanager.v0.28.1" \
+    "monitor.image.node-exporter.v1.9.1" \
+    "monitor.image.prometheus.v3.4.0" \
+    "monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless"
 }
 
 ################################################################################
@@ -208,15 +202,11 @@ get_tls_domain_from_host() {
 ################################################################################
 apply_monitoring_addons() {
   local host="${GRAFANA_INGRESS_HOST:-grafana.sensecorex.com}"
-  local dcgm_local="${MONITOR_DIR}/dcgm-exporter.yaml"
 
   case "${RUNTIME_ACCELERATOR}" in
     nvidia)
-      # 每次部署都覆盖拷贝到下载目录，确保与 config 保持一致。
-      log_info "覆盖拷贝 dcgm-exporter.yaml 到 ${dcgm_local}"
-      log_command "cp -f \"${DCGM_YAML}\" \"${dcgm_local}\""
       log_info "检测到 nvidia，部署 dcgm-exporter"
-      log_command "kubectl apply -n \"${NS}\" -f \"${dcgm_local}\""
+      log_command "kubectl apply -n \"${NS}\" -f \"${DCGM_YAML}\""
       log_command "kubectl apply -f \"${SM_YAML}\""
       ;;
     ascend)
