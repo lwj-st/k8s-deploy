@@ -4,8 +4,13 @@
 ## Description: 离线部署 NVIDIA GPU 相关组件
 ## Usage:
 ##   bash 15-Deploy-nvidia.sh
+## Artifacts:
+##   - nvidia.dir.toolkit
+##   - nvidia.manifest.device-plugin.v0.17.2
 ## Images:
 ##   - nvidia.image.device-plugin.v0.17.2
+## Env:
+##   - NVIDIA_TOOLKIT_DIR: 可选，覆盖 NVIDIA toolkit 离线包目录
 ## Notes:
 ##   - 仅做“装包 + 配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动本身（nvidia-smi / 内核驱动需提前就绪）

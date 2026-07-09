@@ -4,6 +4,12 @@
 ## Description: 导入 Dragonfly Operator 镜像 tar，并以 Helm 安装 chart（tgz）
 ## Usage:
 ##   bash 26-Deploy-dragonfly-operator.sh
+## Artifacts:
+##   - dragonfly.chart.operator.v1.1.8
+##   - dragonfly.values.operator.yaml
+## Images:
+##   - dragonfly.image.kube-rbac-proxy.v0.16.0
+##   - dragonfly.image.operator.v1.1.8
 ## Notes:
 ##   - 与 install.md 一致：release dragonfly-operator，命名空间 infra（--create-namespace）
 ################################################################################

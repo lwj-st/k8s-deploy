@@ -4,10 +4,17 @@
 ## Description: 离线部署 Ascend（昇腾）NPU 相关组件 x86
 ## Usage:
 ##   bash 15-Deploy-ascend.sh
+## Artifacts:
+##   - ascend.manifest.device-plugin.master
 ## Images:
 ##   - ${DOWNLOAD_DIR}/ascend/ascend-k8sdeviceplugin-v3.0.0.tar
 ## Env:
 ##   - ASCEND_DEVICE_PLUGIN_IMAGE_TAR: 可覆盖 Ascend device-plugin 镜像 tar 路径
+##   - ASCEND_DEVICE_PLUGIN_YAML: 可覆盖 Ascend device-plugin YAML 路径
+##   - ASCEND_DEVICE_PLUGIN_NAMESPACE: 默认 kube-system
+##   - ASCEND_RUNTIME_CONFIG_CMD: 可选，覆盖 runtime 配置命令
+##   - ASCEND_SKIP_RUNTIME_CONFIG: true 时跳过 runtime 配置
+##   - ASCEND_TOOLKIT_DIR: 预留，Ascend 离线安装包目录
 ## Notes:
 ##   - 仅做“装包 +（可选）配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动/固件本身（npu-smi / 驱动需提前就绪）

@@ -4,6 +4,8 @@
 ## Description: 部署 local-path-provisioner
 ## Usage:
 ##   bash 20-Deploy-local-path.sh
+## Artifacts:
+##   - local-path.manifest.storage
 ## Images:
 ##   - local-path.image.provisioner.master-head
 ##   - local-path.image.busybox.1.33.1

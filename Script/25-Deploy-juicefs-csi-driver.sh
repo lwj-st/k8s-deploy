@@ -4,6 +4,17 @@
 ## Description: 导入 JuiceFS CSI 相关镜像 tar，解压 chart 后以 Helm 安装/升级
 ## Usage:
 ##   bash 25-Deploy-juicefs-csi-driver.sh
+## Artifacts:
+##   - juicefs.chart.csi-driver.v0.28.1
+##   - juicefs.values.csi-driver.yaml
+## Images:
+##   - juicefs.image.csi-dashboard.v0.28.1
+##   - juicefs.image.csi-node-driver-registrar.v2.13.0
+##   - juicefs.image.csi-provisioner.v2.2.2
+##   - juicefs.image.csi-resizer.v1.9.0
+##   - juicefs.image.juicefs-csi-driver.v0.28.1
+##   - juicefs.image.livenessprobe.v2.12.0
+##   - juicefs.image.mount-ce.v1.2.3
 ## Notes:
 ##   - 与 install.md 一致：chart 解压目录名为 juicefs-csi-driver
 ##   - release: juicefs-csi-driver，命名空间: juicefs-csi

@@ -6,6 +6,21 @@
 ##   bash 23-Deploy-seaweedfs.sh install   # 默认
 ##   bash 23-Deploy-seaweedfs.sh upgrade
 ##   bash 23-Deploy-seaweedfs.sh uninstall
+## Artifacts:
+##   - seaweedfs.chart.seaweedfs.v4.20.0
+##   - seaweedfs-csi.chart.driver.v0.2.14
+## Images:
+##   - seaweedfs.image.seaweedfs.v4.20.0
+##   - seaweedfs-csi.image.driver.v1.4.8
+##   - seaweedfs-csi.image.mount.v1.4.8
+##   - seaweedfs-csi.image.csi-attacher.v4.3.0
+##   - seaweedfs-csi.image.csi-node-driver-registrar.v2.8.0
+##   - seaweedfs-csi.image.csi-provisioner.v3.5.0
+##   - seaweedfs-csi.image.csi-resizer.v1.8.0
+##   - seaweedfs-csi.image.livenessprobe.v2.10.0
+## Env:
+##   - SEAWEEDFS_STORAGE_*: 可选，覆盖 StorageClass 参数
+##   - SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID/SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY: 默认 minioadmin
 ################################################################################
 set -euo pipefail
 
@@ -251,4 +266,3 @@ main() {
 }
 
 main "$@"
-

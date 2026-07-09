@@ -4,8 +4,18 @@
 ## Description: 部署/卸载 Hygon DCU device-plugin（mixed/mig/hami）
 ## Usage:
 ##   bash 15-Deploy-dcu.sh [install|uninstall|status]
+## Artifacts:
+##   - dcu.manifest.device-plugin.mixed.v2.4.2
+##   - dcu.manifest.device-plugin.mig.v2.4.2
+##   - dcu.manifest.device-plugin.hami.v2.4.2
 ## Images:
 ##   - dcu.image.device-plugin.v2.4.2
+## Env:
+##   - DCU_PLUGIN_DIR: 可选，覆盖 DCU 清单目录
+##   - DCU_MODE: mixed|mig|hami，默认 mixed
+##   - DCU_ACTION: install|uninstall，默认 install
+##   - DCU_AUTO_LABEL_NODE: 默认 true
+##   - DCU_NODE_NAME: 可选，覆盖当前节点名
 ## Notes:
 ##   - 复用 k8s-deploy 的 framework.sh 日志与错误处理
 ##   - 默认从 manifests/artifacts.yaml 读取 DCU device-plugin YAML

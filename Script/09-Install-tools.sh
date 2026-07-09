@@ -4,6 +4,9 @@
 ## Description: 安装 Helm / Helmfile 等基础工具
 ## Usage:
 ##   bash 09-Install-tools.sh
+## Artifacts:
+##   - base.helm.linux-amd64.tgz
+##   - base.helmfile.linux-amd64.tgz
 ## Notes:
 ##   - 仅使用离线 tar 包安装，不做在线下载
 ##   - 重复执行会先备份已有二进制，再覆盖安装

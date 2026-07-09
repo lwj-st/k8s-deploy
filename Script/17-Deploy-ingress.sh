@@ -4,6 +4,8 @@
 ## Description: 部署 ingress-nginx
 ## Usage:
 ##   bash 17-Deploy-ingress.sh
+## Artifacts:
+##   - ingress.manifest.ingress-nginx
 ## Images:
 ##   - ingress.image.controller.v1.12.2
 ##   - ingress.image.webhook-certgen.v1.5.3
