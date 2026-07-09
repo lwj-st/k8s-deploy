@@ -4,10 +4,13 @@
 ## Description: 部署 nfs-subdir-external-provisioner
 ## Usage:
 ##   bash 21-Deploy-nfs-provisioner.sh
+## Artifacts:
+##   - nfs-provisioner.chart.v4.0.18
 ## Images:
 ##   - nfs-provisioner.image.v4.0.2
 ## Env:
 ##   - NFS_SERVER/NFS_PATH: NFS 服务地址与导出路径
+##   - NFS_IMAGE_REPOSITORY/NFS_IMAGE_TAG: 可选，覆盖 chart 镜像仓库和 tag
 ################################################################################
 set -euo pipefail
 

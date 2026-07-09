@@ -4,6 +4,14 @@
 ## Description: 安装/重装 containerd（离线制品）并修正关键配置（cgroup v2/runc.v2）
 ## Usage:
 ##   bash 11-Install-containerd.sh
+## Artifacts:
+##   - containerd.tarball.1.7.4.linux-amd64
+##   - containerd.systemd.unit
+##   - containerd.runc.binary.amd64
+##   - containerd.cni-plugins.tgz.linux-amd64.v1.7.1
+##   - containerd.config.template.toml
+## Env:
+##   - CONTAINERD_ROOT: 可选，覆盖 containerd 数据目录
 ## Notes:
 ##   - 幂等：发现已安装则 stop -> 备份 -> 重装
 ##   - 兼容 unit ExecStart=/usr/bin/containerd 与 /usr/local/bin/containerd 的差异
@@ -158,4 +166,3 @@ main() {
 }
 
 main "$@"
-

@@ -4,10 +4,14 @@
 ## Description: 部署 Calico CNI
 ## Usage:
 ##   bash 16-Deploy-cni.sh
+## Artifacts:
+##   - cni.manifest.calico
 ## Images:
 ##   - cni.image.calico-cni.v3.30
 ##   - cni.image.kube-controllers.v3.30
 ##   - cni.image.calico-node.v3.30
+## Env:
+##   - CALICO_IP_AUTODETECTION_METHOD: 可选，设置 calico-node IP 探测方式
 ################################################################################
 set -euo pipefail
 

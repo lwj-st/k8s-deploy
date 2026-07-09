@@ -4,6 +4,10 @@
 ## Description: 部署 TiDB Operator（不自动部署具体 TiDB 集群实例）
 ## Usage:
 ##   bash 22-Deploy-tidb-operator.sh
+## Artifacts:
+##   - tidb.chart.operator.v1.6.1
+##   - tidb.crd.yaml
+##   - tidb.values.operator.yaml
 ## Images:
 ##   - tidb.image.operator.v1.6.1
 ## Notes:
