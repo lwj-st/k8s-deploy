@@ -35,7 +35,13 @@ jobs:
       - name: Validate built-in Kubernetes resources
         run: |
           set -euo pipefail
-          find config manifests -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | \
+          # Skip Helm values and artifact catalogs: they are not Kubernetes manifests
+          # and have no apiVersion/kind, so kubeconform reports "missing 'kind' key".
+          find config manifests -type f \( -name '*.yaml' -o -name '*.yml' \) \
+            ! -name '*values*.yaml' \
+            ! -name '*values*.yml' \
+            ! -name 'artifacts.yaml' \
+            -print0 | \
             xargs -0 kubeconform \
               -summary \
               -strict \
