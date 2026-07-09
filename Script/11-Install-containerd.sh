@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    11-Install-containerd.sh
 ## Description: 安装/重装 containerd（离线制品）并修正关键配置（cgroup v2/runc.v2）
+## Usage:
+##   bash 11-Install-containerd.sh
 ## Notes:
 ##   - 幂等：发现已安装则 stop -> 备份 -> 重装
 ##   - 兼容 unit ExecStart=/usr/bin/containerd 与 /usr/local/bin/containerd 的差异
@@ -156,5 +158,4 @@ main() {
 }
 
 main "$@"
-
 

@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    02-Download.sh
 ## Description: 根据 artifacts.yaml 下载所有缺失制品（可选做 md5 校验）
+## Usage:
+##   bash 02-Download.sh
 ## Notes:
 ##   - 只负责下载，不做镜像导入/包安装
 ##   - 已存在文件：根据 MAAS_MD5_CHECK 决定是否重下
@@ -94,4 +96,3 @@ main() {
 }
 
 main "$@"
-

@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    00-Download-tools-packages.sh
+## Description: 在当前宿主机下载常用工具离线包（deb/rpm）
+## Usage:
+##   bash 00-Download-tools-packages.sh [ubuntu|debian|centos|rocky|openeuler|kylin] [输出目录]
+## Examples:
+##   bash 00-Download-tools-packages.sh ubuntu /data/download/packages/ubuntu/tools
+##   bash 00-Download-tools-packages.sh debian /data/download/packages/ubuntu/tools
+##   bash 00-Download-tools-packages.sh centos /data/download/packages/centos/tools
+##   bash 00-Download-tools-packages.sh rocky /data/download/packages/rocky/tools
+##   bash 00-Download-tools-packages.sh openeuler /data/download/packages/openeuler/tools
+##   bash 00-Download-tools-packages.sh kylin /data/download/packages/kylin/tools
+## Notes:
+##   - 仅下载保存，不安装工具到系统
+##   - 需在与目标离线环境相同或兼容的发行版上执行
+################################################################################
 set -euo pipefail
-
-# 在**当前宿主机**上下载常用工具离线包（deb/rpm），不依赖 Docker；仅下载保存，不安装工具到系统。
-# 用法：
-#   bash 00-Download-tools-packages.sh [ubuntu|debian|centos|rocky|openeuler|kylin] [输出目录]
-#
-# 示例：
-#   bash 00-Download-tools-packages.sh ubuntu /data/download/packages/ubuntu/tools
-#   bash 00-Download-tools-packages.sh rocky /data/download/packages/rocky/tools
-#
-# 说明：需在**与目标离线环境相同或兼容的发行版**上执行（以便 yum/dnf/apt 解析依赖）。
-#       可能为解析依赖而安装本机上的少量组件（如 epel-release、yum-utils），与 00-Download-tools-packages-docker.sh 在容器内的行为类似。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091

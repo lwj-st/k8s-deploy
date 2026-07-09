@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    00-Download-k8s-packages-docker.sh
+## Description: 使用 Docker/Podman 容器下载 Kubernetes 离线安装包
+## Usage:
+##   bash 00-Download-k8s-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录] [K8S版本]
+## Examples:
+##   bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
+##   bash 00-Download-k8s-packages-docker.sh rocky /data/download/packages/rocky/kubernetes 1.31.11
+##   bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.11
+##   bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.11
+##   bash 00-Download-k8s-packages-docker.sh ubuntu /data/download/packages/ubuntu/kubernetes 1.31.11
+##   bash 00-Download-k8s-packages-docker.sh debian /data/download/packages/ubuntu/kubernetes 1.31.11
+## Notes:
+##   - 适用于没有对应 OS 环境的下载场景
+################################################################################
 set -euo pipefail
-
-# 使用 Docker 容器下载 Kubernetes 离线安装包（适用于没有对应 OS 环境的情况） 可选
-# 用法：
-#   bash 00-Download-k8s-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录] [K8S版本]
-#
-# 示例：
-#   bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
-#   bash 00-Download-k8s-packages-docker.sh ubuntu /data/download/packages/ubuntu/kubernetes 1.31.11
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"

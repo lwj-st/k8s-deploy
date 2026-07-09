@@ -1,23 +1,20 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    00-Download-nvidia-packages-docker.sh
+## Description: 使用 Docker/Podman 容器下载 NVIDIA container toolkit 离线安装包
+## Usage:
+##   bash 00-Download-nvidia-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu] [输出目录]
+## Examples:
+##   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia/ubuntu
+##   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia/centos
+##   bash 00-Download-nvidia-packages-docker.sh rocky /data/download/nvidia/rocky
+##   bash 00-Download-nvidia-packages-docker.sh openeuler /data/download/nvidia/openeuler
+##   bash 00-Download-nvidia-packages-docker.sh kylin /data/download/nvidia/kylin
+## Notes:
+##   - 适用于没有对应 OS 环境、但需要提前准备 deb/rpm 离线包的场景
+##   - RPM 系（含 openeuler/kylin）使用 NVIDIA stable/rpm 通用仓库，版本固定 1.17.8-1
+################################################################################
 set -euo pipefail
-
-# 待验证
-# 使用 Docker 容器下载 NVIDIA container toolkit 离线安装包
-# 适用于没有对应 OS 环境、但需要提前准备 deb/rpm 离线包的场景
-#
-# 查看已安装版本
-# dpkg -l | grep -E 'nvidia-container-toolkit|libnvidia-container'
-# rpm -q nvidia-container-toolkit nvidia-container-toolkit-base libnvidia-container-tools libnvidia-container1
-#
-# 用法：
-#   bash 00-Download-nvidia-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu] [输出目录]
-# 示例：
-#   bash 00-Download-nvidia-packages-docker.sh ubuntu /data/download/nvidia/ubuntu
-#   bash 00-Download-nvidia-packages-docker.sh centos /data/download/nvidia/centos
-#   bash 00-Download-nvidia-packages-docker.sh openeuler /data/download/nvidia/openeuler
-#
-# 说明：
-#   - RPM 系（含 openeuler/kylin）使用 NVIDIA stable/rpm 通用仓库，版本固定 1.17.8-1
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"

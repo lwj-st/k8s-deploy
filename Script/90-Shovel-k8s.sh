@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    90-Shovel-k8s.sh
+## Description: 清理 kubeadm 集群和 KUBE/CALI iptables 链
+## Usage:
+##   bash 90-Shovel-k8s.sh
+## Notes:
+##   - 会执行 kubeadm reset 并清理 Kubernetes 相关目录
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,5 +60,4 @@ if have systemctl; then
 fi
 
 log_info "集群清理完成"
-
 

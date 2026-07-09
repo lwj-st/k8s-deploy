@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    00-Download-tools-packages-docker.sh
+## Description: 使用 Docker/Podman 容器下载常用工具离线安装包
+## Usage:
+##   bash 00-Download-tools-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录]
+## Examples:
+##   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/centos/tools
+##   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/rocky/tools
+##   bash 00-Download-tools-packages-docker.sh openeuler /data/download/packages/openeuler/tools
+##   bash 00-Download-tools-packages-docker.sh kylin /data/download/packages/kylin/tools
+##   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/ubuntu/tools
+##   bash 00-Download-tools-packages-docker.sh debian /data/download/packages/ubuntu/tools
+## Notes:
+##   - 适用于没有对应 OS 环境的下载场景
+################################################################################
 set -uo pipefail
-
-# 使用 Docker 容器下载常用工具离线安装包（适用于没有对应 OS 环境的情况） 可选
-# 用法：
-#   bash 00-Download-tools-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录]
-#
-# 示例：
-#   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/centos/tools
-#   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/rocky/tools
-#   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/ubuntu/tools
-
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"

@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    10-Env.sh
 ## Description: 宿主机预置（防火墙/swap/modules/sysctl/iptables KUBE+CALI 链）
+## Usage:
+##   bash 10-Env.sh
 ## Notes:
 ##   - 只做脚本需要的宿主机变更；默认不修改 /etc/fstab（避免误伤挂载）
 ##   - iptables 默认只清理 KUBE-*/CALI-* 链（不 flush 全表）
@@ -127,5 +129,4 @@ main() {
 }
 
 main "$@"
-
 

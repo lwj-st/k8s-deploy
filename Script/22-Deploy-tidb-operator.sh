@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    22-Deploy-tidb-operator.sh
 ## Description: 部署 TiDB Operator（不自动部署具体 TiDB 集群实例）
+## Usage:
+##   bash 22-Deploy-tidb-operator.sh
 ## Notes:
 ##   - 仅安装 CRD + Operator，tidb-cluster.yaml 等由用户按需手动 apply
 ##   - 使用 server-side apply 避免 CRD annotations 过大问题
@@ -85,4 +87,3 @@ main() {
 }
 
 main "$@"
-

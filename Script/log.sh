@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    log.sh
+## Description: k8s-deploy 统一日志函数库
+## Usage:
+##   source Script/log.sh
+## Notes:
+##   - 由 framework.sh source，不直接执行
+################################################################################
 
 # 统一日志（参考 k8s-data-amd64/Script/log.sh 的风格，但改为 stdout 打印 + 由框架统一重定向到文件）
 
@@ -29,5 +37,4 @@ log_message() {
 log_error() { log_message "ERROR" "$1"; }
 log_warn()  { log_message "WARN"  "$1"; }
 log_info()  { log_message "INFO"  "$1"; }
-
 

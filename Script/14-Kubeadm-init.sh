@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    14-Kubeadm-init.sh
+## Description: 使用 kubeadm 初始化 Kubernetes 控制平面
+## Usage:
+##   bash 14-Kubeadm-init.sh
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -88,5 +94,4 @@ if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
     ensure_kubeconfig_for_user "${sudo_home}" "${sudo_uid}" "${sudo_gid}" || true
   fi
 fi
-
 

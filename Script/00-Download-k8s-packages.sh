@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    00-Download-k8s-packages.sh
+## Description: 下载 Kubernetes 离线安装包（deb/rpm）
+## Usage:
+##   bash 00-Download-k8s-packages.sh [ubuntu|centos|rocky|openeuler|kylin] [输出目录]
+## Examples:
+##   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
+##   bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
+##   bash 00-Download-k8s-packages.sh rocky /data/download/packages/rocky/kubernetes
+##   bash 00-Download-k8s-packages.sh openeuler /data/download/packages/openeuler/kubernetes
+##   bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
+## Notes:
+##   - 需在与目标离线环境相同或兼容的发行版上执行
+################################################################################
 set -euo pipefail
-
-# 下载 Kubernetes v1.31.11 离线安装包（deb/rpm） 可选
-# 用法：
-#   bash 00-Download-k8s-packages.sh [ubuntu|centos|rocky|openeuler|kylin] [输出目录]
-#
-# 示例：
-#   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
-#   bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"

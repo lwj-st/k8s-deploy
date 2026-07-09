@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    01-Cluster-host.sh
+## Description: 交互式生成 Script/environment.sh 集群配置
+## Usage:
+##   bash 01-Cluster-host.sh
+## Notes:
+##   - 生成的 environment.sh 会被后续部署脚本读取
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -96,6 +104,14 @@ CONTAINERD_ROOT="${CONTAINERD_ROOT:-}"
 
 cat > "${SCRIPT_DIR}/environment.sh" <<EOF
 #!/usr/bin/env bash
+################################################################################
+## Filename:    environment.sh
+## Description: k8s-deploy 集群部署配置
+## Usage:
+##   source Script/environment.sh
+## Notes:
+##   - 通常由 01-Cluster-host.sh 生成
+################################################################################
 export DOWNLOAD_DIR="${DOWNLOAD_DIR}"
 export K8S_VERSION="${K8S_VERSION}"
 export POD_CIDR="${POD_CIDR}"
@@ -118,4 +134,3 @@ EOF
 chmod 600 "${SCRIPT_DIR}/environment.sh"
 log_info "已生成: ${SCRIPT_DIR}/environment.sh"
 log_info "下一步建议：bash 02-Download.sh"
-

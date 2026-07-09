@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    13-Install-k8s-packages.sh
+## Description: 按当前 OS 安装 Kubernetes 离线 deb/rpm 包
+## Usage:
+##   bash 13-Install-k8s-packages.sh
+## Env:
+##   - ALLOW_ONLINE: yes 时允许部分在线兜底
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -82,5 +90,4 @@ if have systemctl; then
 fi
 
 log_info "k8s 包安装完成"
-
 

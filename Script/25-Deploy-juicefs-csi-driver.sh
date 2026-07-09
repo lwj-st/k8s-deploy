@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    25-Deploy-juicefs-csi-driver.sh
 ## Description: 导入 JuiceFS CSI 相关镜像 tar，解压 chart 后以 Helm 安装/升级
+## Usage:
+##   bash 25-Deploy-juicefs-csi-driver.sh
 ## Notes:
 ##   - 与 install.md 一致：chart 解压目录名为 juicefs-csi-driver
 ##   - release: juicefs-csi-driver，命名空间: juicefs-csi

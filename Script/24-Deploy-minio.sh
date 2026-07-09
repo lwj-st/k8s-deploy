@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    24-Deploy-minio.sh
 ## Description: 离线导入 MinIO 镜像并 apply 清单（与 install.md 步骤一致）
+## Usage:
+##   bash 24-Deploy-minio.sh
 ## Notes:
 ##   - minio-deploy.yaml 按文档删除第 91–92 行后 apply（每次从制品原文件拷贝到临时文件处理，可重复执行）
 ##   - 制品路径来自 manifests/artifacts.yaml，下载走 02-Download.sh

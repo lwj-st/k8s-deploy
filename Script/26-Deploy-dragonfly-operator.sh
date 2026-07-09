@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    26-Deploy-dragonfly-operator.sh
 ## Description: 导入 Dragonfly Operator 镜像 tar，并以 Helm 安装 chart（tgz）
+## Usage:
+##   bash 26-Deploy-dragonfly-operator.sh
 ## Notes:
 ##   - 与 install.md 一致：release dragonfly-operator，命名空间 infra（--create-namespace）
 ################################################################################

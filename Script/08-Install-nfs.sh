@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    08-Install-nfs.sh
+## Description: 按 environment.sh 中 NFS 配置安装本机 NFS 服务端
+## Usage:
+##   bash 08-Install-nfs.sh
+## Env:
+##   - NFS_SERVER/NFS_PATH: 为空时跳过
+## Notes:
+##   - 21-Deploy-nfs-provisioner.sh 的前置条件
+##   - 已安装 NFS 服务端包时跳过
+################################################################################
 set -euo pipefail
-
-################################################################################
-## 08-install-nfs.sh：按 environment.sh 中 NFS 配置，在本机安装 NFS 服务端（若未安装）
-## - 21-Deploy-nfs-provisioner.sh 脚本前置条件
-## - 若 NFS_SERVER 为空则跳过（未配置 NFS）
-## - 若已安装 NFS 服务端包则跳过
-## - 否则从 DOWNLOAD_DIR/packages/<os>/tools/ 下对应子目录离线安装
-################################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
