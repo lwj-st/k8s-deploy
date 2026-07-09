@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    27-Deploy-monitoring.sh
 ## Description: 部署 monitoring（自动识别 nvidia/ascend；都无则默认 nvidia）
+## Usage:
+##   bash 27-Deploy-monitoring.sh
 ## Notes:
 ##   - 依赖离线目录: ${DOWNLOAD_DIR}/monitor
 ##   - 需要提前准备:

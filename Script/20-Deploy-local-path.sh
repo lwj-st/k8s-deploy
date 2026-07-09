@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    20-Deploy-local-path.sh
+## Description: 部署 local-path-provisioner
+## Usage:
+##   bash 20-Deploy-local-path.sh
+## Notes:
+##   - 默认创建 PV 路径在 /data/local-path-provisioner
+################################################################################
 set -euo pipefail
 
 # 默认创建pv路径在 /data/local-path-provisioner
@@ -21,5 +29,4 @@ log_command "kubectl apply -f \"${f1}\""
 
 kubectl get storageclass 2>/dev/null || true
 log_info "local-path 部署完成"
-
 

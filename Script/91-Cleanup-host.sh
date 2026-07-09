@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    91-Cleanup-host.sh
+## Description: 回滚 k8s-deploy 记录的备份并清理本项目写入的配置
+## Usage:
+##   bash 91-Cleanup-host.sh
+## Notes:
+##   - 会调用 90-Shovel-k8s.sh 清理集群资源
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,5 +55,4 @@ if have systemctl; then
 fi
 
 log_info "Cleanup 完成"
-
 

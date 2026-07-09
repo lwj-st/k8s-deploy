@@ -4,8 +4,7 @@ set -euo pipefail
 ################################################################################
 ## Filename:    89-Generate-tls.sh
 ## Description: 生成自签 TLS 证书并批量更新多个命名空间的 kubernetes tls secret
-##
-## 用法示例：
+## Usage:
 ##   bash 89-Generate-tls.sh --domain websense.ai
 ##
 ##   bash 89-Generate-tls.sh \

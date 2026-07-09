@@ -2,6 +2,8 @@
 ################################################################################
 ## Filename:    15-Deploy-ascend.sh
 ## Description: 离线部署 Ascend（昇腾）NPU 相关组件 x86
+## Usage:
+##   bash 15-Deploy-ascend.sh
 ## Notes:
 ##   - 仅做“装包 +（可选）配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动/固件本身（npu-smi / 驱动需提前就绪）
@@ -231,4 +233,3 @@ main() {
 }
 
 main "$@"
-

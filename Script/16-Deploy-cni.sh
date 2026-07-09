@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    16-Deploy-cni.sh
+## Description: 部署 Calico CNI
+## Usage:
+##   bash 16-Deploy-cni.sh
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,5 +33,4 @@ else
 fi
 
 log_info "CNI 部署完成"
-
 

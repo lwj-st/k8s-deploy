@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    framework.sh
+## Description: k8s-deploy 脚本公共函数库
+## Usage:
+##   source Script/framework.sh
+## Notes:
+##   - 由其他脚本 source，不直接执行
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -370,5 +378,4 @@ init_framework() {
   detect_os
   log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
 }
-
 

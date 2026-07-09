@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    21-Deploy-nfs-provisioner.sh
+## Description: 部署 nfs-subdir-external-provisioner
+## Usage:
+##   bash 21-Deploy-nfs-provisioner.sh
+## Env:
+##   - NFS_SERVER/NFS_PATH: NFS 服务地址与导出路径
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,5 +48,4 @@ log_command "helm -n \"${ns}\" upgrade --install nfs-provisioner \"${chart}\" \
   --set image.pullPolicy=IfNotPresent"
 
 log_info "nfs-provisioner 部署完成"
-
 

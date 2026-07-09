@@ -2,8 +2,7 @@
 ################################################################################
 ## Filename:    30-Deploy-rsyslog.sh
 ## Description: 后置配置 Kubernetes 集群 rsyslog 集中日志审计，支持日志服务器和节点复用同一脚本
-##
-## 用法示例（须以 root 执行，例如 ssh root@节点 或 su - 后执行）：
+## Usage:
 ##   bash 30-Deploy-rsyslog.sh
 ##
 ##   bash 30-Deploy-rsyslog.sh client  #把当前机器配置成日志发送节点。 需要每个节点都执行一次。

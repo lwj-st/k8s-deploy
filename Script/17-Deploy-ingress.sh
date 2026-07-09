@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+################################################################################
+## Filename:    17-Deploy-ingress.sh
+## Description: 部署 ingress-nginx
+## Usage:
+##   bash 17-Deploy-ingress.sh
+## Env:
+##   - INGRESS_NODE_NAME: 需要打 ingress-node=true 的节点名
+################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -55,5 +63,4 @@ if [ $attempt -ge 60 ]; then
 fi
 
 log_info "Ingress 部署完成"
-
 
