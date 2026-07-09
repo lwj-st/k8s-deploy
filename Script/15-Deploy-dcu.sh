@@ -6,16 +6,15 @@
 ##   bash 15-Deploy-dcu.sh [install|uninstall|status]
 ## Notes:
 ##   - 复用 k8s-deploy 的 framework.sh 日志与错误处理
-##   - 默认从 /data/download/dcu 读取 YAML
-##   - 可通过环境变量覆盖路径和行为
+##   - 默认从 manifests/artifacts.yaml 读取 DCU device-plugin YAML
+##   - 可通过 DCU_PLUGIN_DIR 覆盖清单目录，通过环境变量覆盖行为
 ################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
-DCU_PLUGIN_DIR_DEFAULT="/data/download/dcu"
-DCU_PLUGIN_DIR="${DCU_PLUGIN_DIR:-${DCU_PLUGIN_DIR_DEFAULT}}"
+DCU_PLUGIN_DIR="${DCU_PLUGIN_DIR:-}"
 
 DCU_MODE="${DCU_MODE:-mixed}"                # mixed|mig|hami
 DCU_ACTION="${DCU_ACTION:-install}"          # install|uninstall
@@ -24,10 +23,20 @@ DCU_NODE_NAME="${DCU_NODE_NAME:-}"
 
 dcu_manifest_by_mode() {
   local mode="$1"
+  if [ -n "${DCU_PLUGIN_DIR}" ]; then
+    case "${mode}" in
+      mixed) printf '%s\n' "${DCU_PLUGIN_DIR}/k8s-dcu-plugin.yaml" ;;
+      mig) printf '%s\n' "${DCU_PLUGIN_DIR}/k8s-dcu-plugin-mig.yaml" ;;
+      hami) printf '%s\n' "${DCU_PLUGIN_DIR}/k8s-dcu-plugin-hami.yaml" ;;
+      *) die "不支持的 DCU_MODE=${mode}，仅支持 mixed|mig|hami" ;;
+    esac
+    return 0
+  fi
+
   case "${mode}" in
-    mixed) printf '%s\n' "${DCU_PLUGIN_DIR}/k8s-dcu-plugin.yaml" ;;
-    mig) printf '%s\n' "${DCU_PLUGIN_DIR}/k8s-dcu-plugin-mig.yaml" ;;
-    hami) printf '%s\n' "${DCU_PLUGIN_DIR}/k8s-dcu-plugin-hami.yaml" ;;
+    mixed) artifact_get_path_by_name "dcu.manifest.device-plugin.mixed.v2.4.2" ;;
+    mig) artifact_get_path_by_name "dcu.manifest.device-plugin.mig.v2.4.2" ;;
+    hami) artifact_get_path_by_name "dcu.manifest.device-plugin.hami.v2.4.2" ;;
     *) die "不支持的 DCU_MODE=${mode}，仅支持 mixed|mig|hami" ;;
   esac
 }
@@ -119,8 +128,12 @@ main() {
 
   validate_inputs
 
-  [ -d "${DCU_PLUGIN_DIR}" ] || die "DCU_PLUGIN_DIR 不存在: ${DCU_PLUGIN_DIR}"
-  log_info "DCU_PLUGIN_DIR=${DCU_PLUGIN_DIR}"
+  if [ -n "${DCU_PLUGIN_DIR}" ]; then
+    [ -d "${DCU_PLUGIN_DIR}" ] || die "DCU_PLUGIN_DIR 不存在: ${DCU_PLUGIN_DIR}"
+    log_info "DCU_PLUGIN_DIR=${DCU_PLUGIN_DIR}"
+  else
+    log_info "DCU 清单路径来源: manifests/artifacts.yaml"
+  fi
   log_info "DCU_MODE=${DCU_MODE} DCU_ACTION=${DCU_ACTION}"
 
   case "${DCU_ACTION}" in

@@ -210,7 +210,7 @@ usage() {
   RSYSLOG_TLS_AUTH_MODE    默认 anon，简单稳定；如需双向证书认证需手工改为 x509/name 并分发证书
   RSYSLOG_SSL_DIR          默认 /etc/rsyslog/ssl
   RSYSLOG_RSYSLOGD_USER    默认 syslog；用于 TLS 私钥属组、集中日志目录权限等（实际运行用户以 systemd/发行版配置为准）
-  DOWNLOAD_DIR             仅在线安装失败走离线包时使用，默认 /data/download
+  DOWNLOAD_DIR             仅在线安装失败走离线包时使用，默认来自 environment.sh
   RSYSLOG_CLEANUP_*        仅 cleanup 模式使用，见上文
 EOF
 }
@@ -246,7 +246,7 @@ detect_pkg_manager() {
 # 离线目录与 00-Download-tools-packages-docker 支持的 OS 子目录一致；未单独列出的 RHEL 系发行版按与 rocky 兼容处理。
 # 与 manifests/artifacts.yaml 中 os.dir.kubernetes 的 path（一般为 .../packages）约定一致。
 offline_rsyslog_dir() {
-  local base="${DOWNLOAD_DIR:-/data/download}"
+  local base="${DOWNLOAD_DIR}"
   case "${OS_ID:-}" in
     ubuntu|debian)
       printf '%s\n' "${base}/packages/ubuntu/tools/rsyslog"
