@@ -4,6 +4,14 @@
 ## Description: 使用 kubeadm 初始化 Kubernetes 控制平面
 ## Usage:
 ##   bash 14-Kubeadm-init.sh
+## Images:
+##   - k8s.image.kube-apiserver.v1.31.11
+##   - k8s.image.kube-controller-manager.v1.31.11
+##   - k8s.image.kube-scheduler.v1.31.11
+##   - k8s.image.kube-proxy.v1.31.11
+##   - k8s.image.coredns.v1.11.3
+##   - k8s.image.pause.3.10
+##   - k8s.image.etcd.3.5.15-0
 ################################################################################
 set -euo pipefail
 
@@ -44,6 +52,16 @@ fi
 
 have kubeadm || die "缺少 kubeadm（请先执行 13-Install-k8s-packages.sh）"
 have kubelet || die "缺少 kubelet（请先执行 13-Install-k8s-packages.sh）"
+
+log_info "导入 kubeadm init 所需 Kubernetes 镜像..."
+import_image_artifacts \
+  "k8s.image.kube-apiserver.v1.31.11" \
+  "k8s.image.kube-controller-manager.v1.31.11" \
+  "k8s.image.kube-scheduler.v1.31.11" \
+  "k8s.image.kube-proxy.v1.31.11" \
+  "k8s.image.coredns.v1.11.3" \
+  "k8s.image.pause.3.10" \
+  "k8s.image.etcd.3.5.15-0"
 
 mkdir -p /etc/kubernetes
 
@@ -94,4 +112,3 @@ if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
     ensure_kubeconfig_for_user "${sudo_home}" "${sudo_uid}" "${sudo_gid}" || true
   fi
 fi
-

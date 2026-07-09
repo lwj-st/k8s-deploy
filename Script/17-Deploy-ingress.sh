@@ -4,6 +4,9 @@
 ## Description: 部署 ingress-nginx
 ## Usage:
 ##   bash 17-Deploy-ingress.sh
+## Images:
+##   - ingress.image.controller.v1.12.2
+##   - ingress.image.webhook-certgen.v1.5.3
 ## Env:
 ##   - INGRESS_NODE_NAME: 需要打 ingress-node=true 的节点名
 ################################################################################
@@ -18,6 +21,11 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 
 ing="$(artifact_get_path_by_name "ingress.manifest.ingress-nginx")"
 [ -f "${ing}" ] || die "缺少制品: ${ing}"
+
+log_info "导入 ingress-nginx 镜像..."
+import_image_artifacts \
+  "ingress.image.controller.v1.12.2" \
+  "ingress.image.webhook-certgen.v1.5.3"
 
 # 单节点提前去污点（避免 admission jobs Pending）
 node_name="$(hostname | tr 'A-Z' 'a-z')"
@@ -63,4 +71,3 @@ if [ $attempt -ge 60 ]; then
 fi
 
 log_info "Ingress 部署完成"
-

@@ -74,6 +74,34 @@ require_root() {
   fi
 }
 
+is_tar_readable() {
+  local file="$1"
+  tar -tf "${file}" >/dev/null 2>&1
+}
+
+import_image_tar() {
+  local name="$1" file="$2"
+  [ -f "${file}" ] || die "缺少镜像 tar: name=${name} path=${file}"
+  have tar || die "缺少 tar，无法校验镜像包"
+  is_tar_readable "${file}" || die "镜像 tar 不可读/疑似损坏: name=${name} path=${file}"
+  have ctr || die "缺少 ctr（containerd 未安装？请先执行 11-Install-containerd.sh）"
+  log_command "ctr -n k8s.io images import \"${file}\""
+}
+
+import_image_artifact() {
+  local name="$1"
+  local file
+  file="$(artifact_get_path_by_name "${name}")"
+  import_image_tar "${name}" "${file}"
+}
+
+import_image_artifacts() {
+  local name
+  for name in "$@"; do
+    import_image_artifact "${name}"
+  done
+}
+
 log_command() {
   local cmd="$1"
   log_info "执行命令: $cmd"
@@ -378,4 +406,3 @@ init_framework() {
   detect_os
   log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
 }
-

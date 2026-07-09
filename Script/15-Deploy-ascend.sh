@@ -4,10 +4,14 @@
 ## Description: 离线部署 Ascend（昇腾）NPU 相关组件 x86
 ## Usage:
 ##   bash 15-Deploy-ascend.sh
+## Images:
+##   - ${DOWNLOAD_DIR}/ascend/ascend-k8sdeviceplugin-v3.0.0.tar
+## Env:
+##   - ASCEND_DEVICE_PLUGIN_IMAGE_TAR: 可覆盖 Ascend device-plugin 镜像 tar 路径
 ## Notes:
 ##   - 仅做“装包 +（可选）配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动/固件本身（npu-smi / 驱动需提前就绪）
-##   - 默认通过环境变量指定离线目录与 device-plugin 清单路径
+##   - device-plugin 清单默认来自 manifests/artifacts.yaml，可通过 ASCEND_DEVICE_PLUGIN_YAML 覆盖
 ##   - ASCEND_DEVICE_PLUGIN_YAML https://gitcode.com/Ascend/mind-cluster/blob/master/component/ascend-device-plugin/build/ascendplugin-910.yaml
 ##                               https://raw.gitcode.com/Ascend/mind-cluster/blobs/c4639eea69b2d4d01771716114204143b5d49320/ascendplugin-910.yaml
 ##   - docker tag swr.cn-south-1.myhuaweicloud.com/ascendhub/ascend-k8sdeviceplugin:v3.0.0 ascend-k8sdeviceplugin:v3.0.0
@@ -147,7 +151,9 @@ configure_containerd_runtime_for_ascend() {
 ################################################################################
 deploy_ascend_device_plugin() {
   local yaml="${ASCEND_DEVICE_PLUGIN_YAML:-}"
-  [ -n "${yaml}" ] || die "请设置 ASCEND_DEVICE_PLUGIN_YAML（Ascend device-plugin YAML 路径）"
+  if [ -z "${yaml}" ]; then
+    yaml="$(artifact_get_path_by_name "ascend.manifest.device-plugin.master")"
+  fi
   [ -f "${yaml}" ] || die "缺少制品: ${yaml}"
 
   # device-plugin YAML 通常带 nodeSelector: { accelerator: huawei-AscendXXXX }
@@ -176,6 +182,16 @@ deploy_ascend_device_plugin() {
     trap - EXIT
     rm -f "${tmp}"
   fi
+}
+
+################################################################################
+# Function: import_ascend_device_plugin_image
+# Description: 导入 Ascend device-plugin 离线镜像
+################################################################################
+import_ascend_device_plugin_image() {
+  local image_tar="${ASCEND_DEVICE_PLUGIN_IMAGE_TAR:-${DOWNLOAD_DIR}/ascend/ascend-k8sdeviceplugin-v3.0.0.tar}"
+  log_info "导入 Ascend device-plugin 镜像..."
+  import_image_tar "ascend.device-plugin.image.v3.0.0" "${image_tar}"
 }
 
 ################################################################################
@@ -227,6 +243,7 @@ main() {
   # collect_ascend_pkgs #TUDO 后续补充
   # install_ascend_toolkit #TUDO 后续补充
   configure_containerd_runtime_for_ascend
+  import_ascend_device_plugin_image
   deploy_ascend_device_plugin
 
   log_info "ascend 部署完成"
