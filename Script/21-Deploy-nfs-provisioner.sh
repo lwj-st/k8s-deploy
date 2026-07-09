@@ -4,6 +4,8 @@
 ## Description: 部署 nfs-subdir-external-provisioner
 ## Usage:
 ##   bash 21-Deploy-nfs-provisioner.sh
+## Images:
+##   - nfs-provisioner.image.v4.0.2
 ## Env:
 ##   - NFS_SERVER/NFS_PATH: NFS 服务地址与导出路径
 ################################################################################
@@ -20,6 +22,9 @@ have helm || die "缺少 helm（请先执行 09-Install-tools.sh）"
 
 chart="$(artifact_get_path_by_name "nfs-provisioner.chart.v4.0.18")"
 [ -f "${chart}" ] || die "缺少制品: ${chart}"
+
+log_info "导入 nfs-subdir-external-provisioner 镜像..."
+import_image_artifact "nfs-provisioner.image.v4.0.2"
 
 ns="nfs-provisioner"
 kubectl create namespace "${ns}" --dry-run=client -o yaml | kubectl apply -f -
@@ -48,4 +53,3 @@ log_command "helm -n \"${ns}\" upgrade --install nfs-provisioner \"${chart}\" \
   --set image.pullPolicy=IfNotPresent"
 
 log_info "nfs-provisioner 部署完成"
-

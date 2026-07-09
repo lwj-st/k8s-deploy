@@ -4,6 +4,10 @@
 ## Description: 部署 Calico CNI
 ## Usage:
 ##   bash 16-Deploy-cni.sh
+## Images:
+##   - cni.image.calico-cni.v3.30
+##   - cni.image.kube-controllers.v3.30
+##   - cni.image.calico-node.v3.30
 ################################################################################
 set -euo pipefail
 
@@ -16,6 +20,12 @@ export KUBECONFIG=/etc/kubernetes/admin.conf
 
 calico="$(artifact_get_path_by_name "cni.manifest.calico")"
 [ -f "${calico}" ] || die "缺少制品: ${calico}"
+
+log_info "导入 Calico CNI 镜像..."
+import_image_artifacts \
+  "cni.image.calico-cni.v3.30" \
+  "cni.image.kube-controllers.v3.30" \
+  "cni.image.calico-node.v3.30"
 
 log_info "部署 Calico CNI..."
 log_command "kubectl apply -f \"${calico}\""
@@ -33,4 +43,3 @@ else
 fi
 
 log_info "CNI 部署完成"
-

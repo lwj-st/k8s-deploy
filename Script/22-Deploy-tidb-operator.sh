@@ -4,6 +4,8 @@
 ## Description: 部署 TiDB Operator（不自动部署具体 TiDB 集群实例）
 ## Usage:
 ##   bash 22-Deploy-tidb-operator.sh
+## Images:
+##   - tidb.image.operator.v1.6.1
 ## Notes:
 ##   - 仅安装 CRD + Operator，tidb-cluster.yaml 等由用户按需手动 apply
 ##   - 使用 server-side apply 避免 CRD annotations 过大问题
@@ -36,6 +38,15 @@ init_env() {
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
   [ -f "${CRD}" ] || die "缺少制品: ${CRD}"
   [ -f "${VALUES}" ] || die "缺少制品: ${VALUES}"
+}
+
+################################################################################
+# Function: import_tidb_operator_image
+# Description: 导入 TiDB Operator 离线镜像
+################################################################################
+import_tidb_operator_image() {
+  log_info "导入 TiDB Operator 镜像..."
+  import_image_artifact "tidb.image.operator.v1.6.1"
 }
 
 ################################################################################
@@ -78,6 +89,7 @@ install_tidb_operator() {
 ################################################################################
 main() {
   init_env
+  import_tidb_operator_image
   ensure_namespace
   apply_tidb_crd
   install_tidb_operator

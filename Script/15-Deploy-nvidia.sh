@@ -4,6 +4,8 @@
 ## Description: 离线部署 NVIDIA GPU 相关组件
 ## Usage:
 ##   bash 15-Deploy-nvidia.sh
+## Images:
+##   - nvidia.image.device-plugin.v0.17.2
 ## Notes:
 ##   - 仅做“装包 + 配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动本身（nvidia-smi / 内核驱动需提前就绪）
@@ -162,6 +164,9 @@ deploy_nvidia_device_plugin() {
   local yaml
   yaml="$(artifact_get_path_by_name "nvidia.manifest.device-plugin.v0.17.2")"
   [ -f "${yaml}" ] || die "缺少制品: ${yaml}"
+
+  log_info "导入 NVIDIA device plugin 镜像..."
+  import_image_artifact "nvidia.image.device-plugin.v0.17.2"
 
   log_info "部署 NVIDIA device plugin..."
   # 该 YAML 自带 nodeSelector: nvidia.com/gpu.present=true
