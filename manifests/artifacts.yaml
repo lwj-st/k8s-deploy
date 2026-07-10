@@ -5,7 +5,7 @@ artifacts:
     type: file
     name: base.python.source.tgz
     path: /data/download/base/Python-3.11.9.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/Python-3.11.9.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/base/Python-3.11.9.tgz"
     md5: "bfd4d3bfeac4216ce35d7a503bf02d5c"
     description: "Python source tgz"
 
@@ -13,7 +13,7 @@ artifacts:
     type: file
     name: base.helm.linux-amd64.tgz
     path: /data/download/base/helm-v3.18.3-linux-amd64.tar.gz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/helm-v3.18.3-linux-amd64.tar.gz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/base/helm-v3.18.3-linux-amd64.tar.gz"
     base_url: "https://get.helm.sh/helm-v3.18.3-linux-amd64.tar.gz"
     md5: "28ecc6ee582231ddc604b8a3623c48ea"
     description: "Helm tarball"
@@ -22,7 +22,7 @@ artifacts:
     type: file
     name: base.helmfile.linux-amd64.tgz
     path: /data/download/base/helmfile_1.1.2_linux_amd64.tar.gz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/helmfile_1.1.2_linux_amd64.tar.gz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/base/helmfile_1.1.2_linux_amd64.tar.gz"
     base_url: "https://github.com/helmfile/helmfile/releases/download/v1.1.2/helmfile_1.1.2_linux_amd64.tar.gz"
     md5: "450f7a51d35a7181f5c039ab3cbd9be3"
     description: "Helmfile tarball"
@@ -31,7 +31,7 @@ artifacts:
     type: file
     name: containerd.tarball.1.7.4.linux-amd64
     path: /data/download/containerd/containerd-1.7.4-linux-amd64.tar.gz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd-1.7.4-linux-amd64.tar.gz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/containerd/containerd-1.7.4-linux-amd64.tar.gz"
     base_url: "https://github.com/containerd/containerd/releases/download/v1.7.4/containerd-1.7.4-linux-amd64.tar.gz"
     md5: "9b6be86b7531a6f9809eb337f3177748"
     description: "containerd tarball"
@@ -40,7 +40,7 @@ artifacts:
     type: file
     name: containerd.systemd.unit
     path: /data/download/containerd/containerd.service
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd.service"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/containerd/containerd.service"
     md5: "75ea61286292c8addeacb8a5ea4f9c8b"
     description: "containerd systemd service"
 
@@ -48,7 +48,7 @@ artifacts:
     type: file
     name: containerd.runc.binary.amd64
     path: /data/download/containerd/runc.amd64
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/runc.amd64"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/containerd/runc.amd64"
     base_url: "https://github.com/opencontainers/runc/releases/download/v1.3.0/runc.amd64"
     md5: "b95479b0dfac6485299b2588991228d8"
     description: "runc binary"
@@ -57,7 +57,7 @@ artifacts:
     type: file
     name: containerd.cni-plugins.tgz.linux-amd64.v1.7.1
     path: /data/download/containerd/cni-plugins-linux-amd64-v1.7.1.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/cni-plugins-linux-amd64-v1.7.1.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/containerd/cni-plugins-linux-amd64-v1.7.1.tgz"
     base_url: "https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-amd64-v1.7.1.tgz"
     md5: "84c43dfb3ba5fe0be1771228ddbbea26"
     description: "CNI plugins tgz"
@@ -66,7 +66,7 @@ artifacts:
     type: file
     name: containerd.config.template.toml
     path: /data/download/containerd/containerd-config.toml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/containerd-config.toml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/containerd/containerd-config.toml"
     md5: "315d32846e46ee8a6d06aa73b2f251a4"
     description: "containerd config template"
 
@@ -74,7 +74,7 @@ artifacts:
     type: tar
     name: k8s.image.kube-apiserver.v1.31.11
     path: /data/download/k8s/kube-apiserver-v1.31.11.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-apiserver-v1.31.11.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/kube-apiserver-v1.31.11.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-apiserver:v1.31.11"
     md5: "2e6f07595e01bcc3614343f104721e63"
     description: "kube-apiserver image tar"
@@ -83,7 +83,7 @@ artifacts:
     type: tar
     name: k8s.image.kube-controller-manager.v1.31.11
     path: /data/download/k8s/kube-controller-manager-v1.31.11.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-controller-manager-v1.31.11.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/kube-controller-manager-v1.31.11.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-controller-manager:v1.31.11"
     md5: "a3f1578cad683509c364ac4d0bf49f06"
     description: "kube-controller-manager image tar"
@@ -92,7 +92,7 @@ artifacts:
     type: tar
     name: k8s.image.kube-scheduler.v1.31.11
     path: /data/download/k8s/kube-scheduler-v1.31.11.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-scheduler-v1.31.11.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/kube-scheduler-v1.31.11.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-scheduler:v1.31.11"
     md5: "137f62ab65399a9ebf17a4d504f6d48d"
     description: "kube-scheduler image tar"
@@ -101,7 +101,7 @@ artifacts:
     type: tar
     name: k8s.image.kube-proxy.v1.31.11
     path: /data/download/k8s/kube-proxy-v1.31.11.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-proxy-v1.31.11.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/kube-proxy-v1.31.11.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/kube-proxy:v1.31.11"
     md5: "55e8e8ee02de0b066db6e32845fe936a"
     description: "kube-proxy image tar"
@@ -110,7 +110,7 @@ artifacts:
     type: tar
     name: k8s.image.coredns.v1.11.3
     path: /data/download/k8s/coredns-v1.11.3.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/coredns-v1.11.3.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/coredns-v1.11.3.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/coredns:v1.11.3"
     md5: "900239dbef1fb263c271255f3087d195"
     description: "coredns image tar"
@@ -119,7 +119,7 @@ artifacts:
     type: tar
     name: k8s.image.pause.3.10
     path: /data/download/k8s/pause-3.10.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/pause-3.10.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/pause-3.10.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/pause:3.10"
     md5: "61852907a1ad4b185b6a7965a8258eae"
     description: "pause image tar"
@@ -128,7 +128,7 @@ artifacts:
     type: tar
     name: k8s.image.etcd.3.5.15-0
     path: /data/download/k8s/etcd-3.5.15-0.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/etcd-3.5.15-0.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/k8s/etcd-3.5.15-0.tar"
     base_url: "registry.cn-hangzhou.aliyuncs.com/google_containers/etcd:3.5.15-0"
     md5: "c9c0c4111650fc065b9229f7ef9b1d14"
     description: "etcd image tar"
@@ -137,7 +137,7 @@ artifacts:
     type: file
     name: cni.manifest.calico
     path: /data/download/cni/calico.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/calico.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/cni/calico.yaml"
     md5: "9cacb279f1b29b73340fcc46755efd79"
     description: "calico manifest"
 
@@ -145,7 +145,7 @@ artifacts:
     type: tar
     name: cni.image.calico-cni.v3.30
     path: /data/download/cni/cni-release-v3.30.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/cni-release-v3.30.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/cni/cni-release-v3.30.tar"
     base_url: "docker.io/calico/cni:release-v3.30"
     md5: "ad5fc5a30daf813e459664304c0d0842"
     description: "calico cni image tar"
@@ -154,7 +154,7 @@ artifacts:
     type: tar
     name: cni.image.kube-controllers.v3.30
     path: /data/download/cni/kube-controllers-release-v3.30.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/kube-controllers-release-v3.30.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/cni/kube-controllers-release-v3.30.tar"
     base_url: "docker.io/calico/kube-controllers:release-v3.30"
     md5: "cf64e4fb81cf2abf0b2c709eb219a834"
     description: "calico kube-controllers image tar"
@@ -163,7 +163,7 @@ artifacts:
     type: tar
     name: cni.image.calico-node.v3.30
     path: /data/download/cni/node-release-v3.30.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/node-release-v3.30.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/cni/node-release-v3.30.tar"
     base_url: "docker.io/calico/node:release-v3.30"
     md5: "1c4045cb86463790106fa81d44471550"
     description: "calico node image tar"
@@ -172,7 +172,7 @@ artifacts:
     type: file
     name: ingress.manifest.ingress-nginx
     path: /data/download/ingress/ingress_nginx.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/ingress_nginx.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/ingress/ingress_nginx.yaml"
     md5: "e5139c07cfa739eda074eddbd795f051"
     description: "ingress-nginx manifest"
 
@@ -180,7 +180,7 @@ artifacts:
     type: tar
     name: ingress.image.controller.v1.12.2
     path: /data/download/ingress/controller-v1.12.2.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/controller-v1.12.2.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/ingress/controller-v1.12.2.tar"
     base_url: "registry.k8s.io/ingress-nginx/controller:v1.12.2"
     md5: "b99276677a656f2cf6a8b3a0bfc101ad"
     description: "ingress-nginx controller image tar"
@@ -189,7 +189,7 @@ artifacts:
     type: tar
     name: ingress.image.webhook-certgen.v1.5.3
     path: /data/download/ingress/kube-webhook-certgen-v1.5.3.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86-images/kube-webhook-certgen-v1.5.3.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/ingress/kube-webhook-certgen-v1.5.3.tar"
     base_url: "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3"
     md5: "f8a7606f41649cfa16a6182ec3c33f25"
     description: "ingress-nginx webhook certgen image tar"
@@ -198,7 +198,7 @@ artifacts:
     type: file
     name: local-path.manifest.storage
     path: /data/download/local-path/local-path-storage.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/local-path-storage.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/local-path/local-path-storage.yaml"
     md5: "9e195740777921752bae8adfe0e85c0d"
     description: "local-path storageclass"
 
@@ -206,7 +206,7 @@ artifacts:
     type: file
     name: local-path.manifest.dynamic
     path: /data/download/local-path/local-dynamic.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/local-dynamic.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/local-path/local-dynamic.yaml"
     md5: "a2a3f8810dccc8a1a30ceff6a7cf37f8"
     description: "local-path dynamic pv"
 
@@ -214,7 +214,7 @@ artifacts:
     type: tar
     name: local-path.image.provisioner.master-head
     path: /data/download/local-path/local-path-provisioner-master-head.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/local-path-provisioner-master-head.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/local-path/local-path-provisioner-master-head.tar"
     base_url: "docker.io/rancher/local-path-provisioner:master-head"
     md5: "8e7e1c52ac43f09561c6c6570b5c71b7"
     description: "local-path provisioner image tar"
@@ -223,7 +223,7 @@ artifacts:
     type: tar
     name: local-path.image.busybox.1.33.1
     path: /data/download/local-path/busybox-1.33.1.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/x86/busybox-1.33.1.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/local-path/busybox-1.33.1.tar"
     base_url: "docker.io/library/busybox:1.33.1"
     md5: "62528f4fe5525ad3573b0b3012d74e0d"
     description: "busybox image tar"
@@ -232,7 +232,7 @@ artifacts:
     type: file
     name: nfs-provisioner.chart.v4.0.18
     path: /data/download/nfs-provisioner/nfs-subdir-external-provisioner-4.0.18.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/nfs-subdir-external-provisioner-4.0.18.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/nfs-provisioner/nfs-subdir-external-provisioner-4.0.18.tgz"
     base_url: "https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-4.0.18.tgz"
     md5: "6ae0e7c6676bceaa1b006e33e1d46824"
     description: "nfs-provisioner helm chart"
@@ -241,7 +241,7 @@ artifacts:
     type: tar
     name: nfs-provisioner.image.v4.0.2
     path: /data/download/nfs-provisioner/nfs-subdir-external-provisioner-v4.0.2.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/nfs-subdir-external-provisioner-v4.0.2.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/nfs-provisioner/nfs-subdir-external-provisioner-v4.0.2.tar"
     base_url: "docker.io/eipwork/nfs-subdir-external-provisioner:v4.0.2"
     md5: "e7653aebf180319de06dfe95fc28c9d3"
     description: "nfs-provisioner image tar"
@@ -250,7 +250,7 @@ artifacts:
     type: file
     name: tidb.chart.operator.v1.6.1
     path: /data/download/tidb/tidb-operator-v1.6.1.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/tidb-operator-v1.6.1.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/tidb/tidb-operator-v1.6.1.tgz"
     base_url: "https://github.com/pingcap/tidb-operator/archive/refs/tags/v1.6.1.tar.gz"
     md5: "3666e78088e0fa3b3c0ec030811eeada"
     description: "tidb-operator helm chart"
@@ -259,7 +259,7 @@ artifacts:
     type: file
     name: tidb.crd.yaml
     path: /data/download/tidb/crd.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/crd.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/tidb/crd.yaml"
     md5: "0c54bfeb9c12f3478285e96c8bad1331"
     description: "tidb crd yaml"
 
@@ -267,7 +267,7 @@ artifacts:
     type: file
     name: tidb.values.operator.yaml
     path: /data/download/tidb/values-tidb-operator.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/values-tidb-operator.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/tidb/values-tidb-operator.yaml"
     md5: "457c628b31e772b960b781175dd532ad"
     description: "tidb operator values"
 
@@ -275,7 +275,7 @@ artifacts:
     type: tar
     name: tidb.image.operator.v1.6.1
     path: /data/download/tidb/tidb-operator-v1.6.1-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/tidb/x86/tidb-operator-v1.6.1-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/tidb/tidb-operator-v1.6.1-amd64.tar"
     base_url: "docker.io/pingcap/tidb-operator:v1.6.1"
     md5: "0a3d547433bb277cf3ce52b10884ff67"
     description: "tidb operator image tar"
@@ -292,7 +292,7 @@ artifacts:
     type: file
     name: nvidia.manifest.device-plugin.v0.17.2
     path: /data/download/nvidia/device-plugin-nvidia-v0.17.2.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/device-plugin-nvidia-v0.17.2.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/nvidia/device-plugin-nvidia-v0.17.2.yaml"
     md5: "48ba13c2b9d1f3da664ef48de368246b"
     description: "nvidia device-plugin yaml"
 
@@ -300,7 +300,7 @@ artifacts:
     type: tar
     name: nvidia.image.device-plugin.v0.17.2
     path: /data/download/nvidia/k8s-device-plugin-v0.17.2.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/k8s-device-plugin-v0.17.2.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/nvidia/k8s-device-plugin-v0.17.2.tar"
     md5: "e805e9b00f0cc9d80a646f7170041842"
     description: "nvidia device-plugin image tar"
 
@@ -308,7 +308,7 @@ artifacts:
     type: file
     name: ascend.manifest.device-plugin.master
     path: /data/download/ascend/ascendplugin-910.yaml
-    url: "https://raw.gitcode.com/Ascend/mind-cluster/blobs/c4639eea69b2d4d01771716114204143b5d49320/ascendplugin-910.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/ascend/ascendplugin-910.yaml"
     md5: "e4148219c8342806e9cc58d21d300723"
     description: "acsend 910 device-plugin yaml"
 
@@ -324,7 +324,7 @@ artifacts:
     type: tar
     name: dcu.image.device-plugin.v2.4.2
     path: /data/download/dcu/dcu-device-plugin_v2.4.2.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dcu/dcu-device-plugin_v2.4.2.tar"
     base_url: "harbor.sourcefind.cn:5443/dcu/admin/base/dcu-device-plugin:v2.4.2"
     md5: "6b38b489cf00cf9d3c74bceedf342ed9"
     description: "hygon dcu device-plugin image tar"
@@ -333,7 +333,7 @@ artifacts:
     type: file
     name: dcu.manifest.device-plugin.mixed.v2.4.2
     path: /data/download/dcu/k8s-dcu-plugin.yaml
-    url: "https://raw.githubusercontent.com/HYGON-AI/k8s-dcu-device-plugin/master/deployment/static/k8s-dcu-plugin.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dcu/k8s-dcu-plugin.yaml"
     md5: "8bfc65d43b0c8efd2e81193f16786506"
     description: "hygon dcu device-plugin mixed manifest"
 
@@ -341,7 +341,7 @@ artifacts:
     type: file
     name: dcu.manifest.device-plugin.mig.v2.4.2
     path: /data/download/dcu/k8s-dcu-plugin-mig.yaml
-    url: "https://raw.githubusercontent.com/HYGON-AI/k8s-dcu-device-plugin/master/deployment/static/k8s-dcu-plugin-mig.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dcu/k8s-dcu-plugin-mig.yaml"
     md5: "8f74572d4220bf33660f61715185fb43"
     description: "hygon dcu device-plugin mig manifest"
 
@@ -349,7 +349,7 @@ artifacts:
     type: file
     name: dcu.manifest.device-plugin.hami.v2.4.2
     path: /data/download/dcu/k8s-dcu-plugin-hami.yaml
-    url: "https://raw.githubusercontent.com/HYGON-AI/k8s-dcu-device-plugin/master/deployment/static/k8s-dcu-plugin-hami.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dcu/k8s-dcu-plugin-hami.yaml"
     md5: "dd090a641b95f2f65b119b763eb0e77d"
     description: "hygon dcu device-plugin hami manifest"
 
@@ -365,7 +365,7 @@ artifacts:
     type: tar
     name: minio.image.amd64.20250524
     path: /data/download/minio/minio_20250524_amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/minio_20250524_amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/minio/minio_20250524_amd64.tar"
     base_url: "docker.io/minio/minio:RELEASE.2025-05-24T17-08-30Z"
     md5: "65e9448aca12e18236817062dee59740"
     description: "minio container image tar"
@@ -374,7 +374,7 @@ artifacts:
     type: file
     name: minio.manifest.pvc
     path: /data/download/minio/minio-pvc.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-pvc.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/minio/minio-pvc.yaml"
     md5: "d06c8cbf634bb73d689b742af2f6c1f2"
     description: "minio pvc manifest"
 
@@ -382,7 +382,7 @@ artifacts:
     type: file
     name: minio.manifest.secret
     path: /data/download/minio/minio-secret.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-secret.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/minio/minio-secret.yaml"
     md5: "da2265fdf42d60d5293e50e0111b2575"
     description: "minio secret manifest"
 
@@ -390,7 +390,7 @@ artifacts:
     type: file
     name: minio.manifest.service-account
     path: /data/download/minio/minio-service-account.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-service-account.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/minio/minio-service-account.yaml"
     md5: "a4518fd145b53a0b5b484b904b79f5d6"
     description: "minio service account manifest"
 
@@ -398,7 +398,7 @@ artifacts:
     type: file
     name: minio.manifest.deploy
     path: /data/download/minio/minio-deploy.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-deploy.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/minio/minio-deploy.yaml"
     md5: "0a0d29abc828d3dbd8724d37daf9fb1c"
     description: "minio deployment manifest"
 
@@ -406,7 +406,7 @@ artifacts:
     type: file
     name: minio.manifest.svc
     path: /data/download/minio/minio-svc.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/minio/minio-svc.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/minio/minio-svc.yaml"
     md5: "13222c6feef6ff854170fda1c54596de"
     description: "minio service manifest"
 
@@ -415,7 +415,7 @@ artifacts:
     type: tar
     name: juicefs.image.csi-dashboard.v0.28.1
     path: /data/download/juicefs/csi-dashboard-v0.28.1-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-dashboard-v0.28.1-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/csi-dashboard-v0.28.1-amd64.tar"
     base_url: "juicedata/csi-dashboard:v0.28.1"
     md5: "837f6b2337a03d40daea33c38fe64692"
     description: "juicefs csi dashboard image tar"
@@ -424,7 +424,7 @@ artifacts:
     type: tar
     name: juicefs.image.csi-node-driver-registrar.v2.13.0
     path: /data/download/juicefs/csi-node-driver-registrar-v2.13.0-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-node-driver-registrar-v2.13.0-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/csi-node-driver-registrar-v2.13.0-amd64.tar"
     base_url: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0"
     md5: "cd1c159df25af6cc3002cd183e349b0a"
     description: "csi node driver registrar image tar"
@@ -433,7 +433,7 @@ artifacts:
     type: tar
     name: juicefs.image.csi-provisioner.v2.2.2
     path: /data/download/juicefs/csi-provisioner-v2.2.2-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-provisioner-v2.2.2-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/csi-provisioner-v2.2.2-amd64.tar"
     base_url: "registry.k8s.io/sig-storage/csi-provisioner:v2.2.2"
     md5: "3d4bcece68c379b0fe4a7de24c24952a"
     description: "csi provisioner image tar"
@@ -442,7 +442,7 @@ artifacts:
     type: tar
     name: juicefs.image.csi-resizer.v1.9.0
     path: /data/download/juicefs/csi-resizer-v1.9.0-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/csi-resizer-v1.9.0-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/csi-resizer-v1.9.0-amd64.tar"
     base_url: "registry.k8s.io/sig-storage/csi-resizer:v1.9.0"
     md5: "7075e30be3be60dbb4695104fdbd4190"
     description: "csi resizer image tar"
@@ -451,7 +451,7 @@ artifacts:
     type: tar
     name: juicefs.image.juicefs-csi-driver.v0.28.1
     path: /data/download/juicefs/juicefs-csi-driver-v0.28.1-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/juicefs-csi-driver-v0.28.1-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/juicefs-csi-driver-v0.28.1-amd64.tar"
     base_url: "juicedata/juicefs-csi-driver:v0.28.1"
     md5: "4c7b67468e38be2f7d673c859de93bc9"
     description: "juicefs csi driver image tar"
@@ -460,7 +460,7 @@ artifacts:
     type: tar
     name: juicefs.image.livenessprobe.v2.12.0
     path: /data/download/juicefs/livenessprobe-v2.12.0-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/livenessprobe-v2.12.0-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/livenessprobe-v2.12.0-amd64.tar"
     base_url: "registry.k8s.io/sig-storage/livenessprobe:v2.12.0"
     md5: "6282660bb45ddeffd9aaf63438827e09"
     description: "livenessprobe image tar"
@@ -469,7 +469,7 @@ artifacts:
     type: tar
     name: juicefs.image.mount-ce.v1.2.3
     path: /data/download/juicefs/mount-ce-v1.2.3-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/mount-ce-v1.2.3-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/mount-ce-v1.2.3-amd64.tar"
     base_url: "juicedata/mount:ce-v1.2.3"
     md5: "58fa019845e57d5a372e626df67c9f44"
     description: "juicefs mount-ce image tar"
@@ -478,7 +478,7 @@ artifacts:
     type: file
     name: juicefs.chart.csi-driver.v0.28.1
     path: /data/download/juicefs/juicefs-csi-driver-0.28.1.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/juicefs-csi-driver-0.28.1.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/juicefs-csi-driver-0.28.1.tgz"
     base_url: "https://github.com/juicedata/charts/releases/download/helm-chart-juicefs-csi-driver-0.28.1/juicefs-csi-driver-0.28.1.tgz"
     md5: "7ffb06707f77c76bae51886c34310263"
     description: "juicefs csi driver helm chart"
@@ -487,7 +487,7 @@ artifacts:
     type: file
     name: juicefs.values.csi-driver.yaml
     path: /data/download/juicefs/juicefs-values.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/juicefs-values.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/juicefs/juicefs-values.yaml"
     md5: "0558c4918fe61b3d6769f82fd083b97f"
     description: "juicefs csi helm values"
 
@@ -496,7 +496,7 @@ artifacts:
     type: tar
     name: dragonfly.image.kube-rbac-proxy.v0.16.0
     path: /data/download/dragonfly/kube-rbac-proxy-v0.16.0-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-rbac-proxy-v0.16.0-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dragonfly/kube-rbac-proxy-v0.16.0-amd64.tar"
     base_url: "kubebuilder/kube-rbac-proxy:v0.16.0"
     md5: "db6d5400560528363dd158baafe825dd"
     description: "kube-rbac-proxy image tar for dragonfly-operator"
@@ -505,7 +505,7 @@ artifacts:
     type: tar
     name: dragonfly.image.operator.v1.1.8
     path: /data/download/dragonfly/dragonfly-operator-v1.1.8-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/dragonfly-operator-v1.1.8-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dragonfly/dragonfly-operator-v1.1.8-amd64.tar"
     base_url: "docker.dragonflydb.io/dragonflydb/operator:v1.1.8"
     md5: "751b358331b0bdc9306cf64132cf3041"
     description: "dragonfly-operator image tar"
@@ -514,7 +514,7 @@ artifacts:
     type: file
     name: dragonfly.chart.operator.v1.1.8
     path: /data/download/dragonfly/dragonfly-operator-1.1.8.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/dragonfly-operator-1.1.8.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dragonfly/dragonfly-operator-1.1.8.tgz"
     base_url: "oci://ghcr.io/dragonflydb/dragonfly-operator/helm:v1.1.8"
     md5: "c17cb38c836405132ef4e5804734149b"
     description: "dragonfly-operator helm chart"
@@ -523,7 +523,7 @@ artifacts:
     type: file
     name: dragonfly.values.operator.yaml
     path: /data/download/dragonfly/dragonfly-operator-values.yaml
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/dragonfly-operator-values.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/dragonfly/dragonfly-operator-values.yaml"
     md5: "26641eb74c288aa9dd352a3d5591cf6d"
     description: "dragonfly-operator helm values"
 
@@ -532,7 +532,7 @@ artifacts:
     type: file
     name: monitor.chart.kube-prometheus-stack.v72.7.0
     path: /data/download/monitor/kube-prometheus-stack-72.7.0.tgz
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/public/x86/kube-prometheus-stack-72.7.0.tgz"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/kube-prometheus-stack-72.7.0.tgz"
     md5: "09e35c59287e9670e2fa29c23f769c90"
     description: "kube-prometheus-stack helm chart"
 
@@ -540,7 +540,7 @@ artifacts:
     type: tar
     name: monitor.image.kube-state-metrics.v2.15.0
     path: /data/download/monitor/kube-state-metrics-v2.15.0-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/kube-state-metrics-v2.15.0-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/kube-state-metrics-v2.15.0-amd64.tar"
     base_url: "registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.15.0"
     md5: "44f8975b59e7567a2e761aa87aa36805"
     description: "kube-state-metrics image tar"
@@ -549,7 +549,7 @@ artifacts:
     type: tar
     name: monitor.image.grafana.v12.0.0
     path: /data/download/monitor/grafana-v12.0.0-amd64.tar
-    url: "https://sensear-map.oss-cn-hangzhou.aliyuncs.com/resource/maas/x86/grafana-v12.0.0-amd64.tar"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/grafana-v12.0.0-amd64.tar"
     base_url: "docker.io/grafana/grafana:12.0.0"
     md5: "9e7b817760a6c9c3106adfb3d66f15bc"
     description: "grafana image tar"
@@ -558,7 +558,7 @@ artifacts:
     type: file
     name: monitor.manifest.dcgm-exporter
     path: /data/download/monitor/dcgm-exporter.yaml
-    url: "https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/master/dcgm-exporter.yaml"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/dcgm-exporter.yaml"
     md5: "d8389fb0b7852ca6dfebc0ce55a4a94d"
     description: "dcgm-exporter manifest"
 
@@ -566,7 +566,7 @@ artifacts:
     type: tar
     name: monitor.image.ingress-nginx.kube-webhook-certgen.v1.5.3
     path: /data/download/monitor/registry.k8s.io_ingress-nginx_kube-webhook-certgen_v1.5.3.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/registry.k8s.io_ingress-nginx_kube-webhook-certgen_v1.5.3.tar"
     base_url: "registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3"
     md5: "d0b1bff598c124aebe406ff8c90b0ea0"
     description: "kube-webhook-certgen image tar for monitoring"
@@ -575,7 +575,7 @@ artifacts:
     type: tar
     name: monitor.image.kiwigrid.k8s-sidecar.v1.30.0
     path: /data/download/monitor/quay.io_kiwigrid_k8s-sidecar_1.30.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/quay.io_kiwigrid_k8s-sidecar_1.30.0.tar"
     base_url: "quay.io/kiwigrid/k8s-sidecar:1.30.0"
     md5: "64e6ea7758985aff5176002e29fd483e"
     description: "k8s-sidecar image tar"
@@ -584,7 +584,7 @@ artifacts:
     type: tar
     name: monitor.image.prometheus-config-reloader.v0.82.2
     path: /data/download/monitor/quay.io_prometheus-operator_prometheus-config-reloader_v0.82.2.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/quay.io_prometheus-operator_prometheus-config-reloader_v0.82.2.tar"
     base_url: "quay.io/prometheus-operator/prometheus-config-reloader:v0.82.2"
     md5: "4bdbb62b841391341fcaab73614b9af0"
     description: "prometheus-config-reloader image tar"
@@ -593,7 +593,7 @@ artifacts:
     type: tar
     name: monitor.image.prometheus-operator.v0.82.2
     path: /data/download/monitor/quay.io_prometheus-operator_prometheus-operator_v0.82.2.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/quay.io_prometheus-operator_prometheus-operator_v0.82.2.tar"
     base_url: "quay.io/prometheus-operator/prometheus-operator:v0.82.2"
     md5: "23ba9241061fb0b3f56f3cddf74c800b"
     description: "prometheus-operator image tar"
@@ -602,7 +602,7 @@ artifacts:
     type: tar
     name: monitor.image.alertmanager.v0.28.1
     path: /data/download/monitor/quay.io_prometheus_alertmanager_v0.28.1.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/quay.io_prometheus_alertmanager_v0.28.1.tar"
     base_url: "quay.io/prometheus/alertmanager:v0.28.1"
     md5: "3cbb223504bdfd76703427ff52a818ec"
     description: "alertmanager image tar"
@@ -611,7 +611,7 @@ artifacts:
     type: tar
     name: monitor.image.node-exporter.v1.9.1
     path: /data/download/monitor/quay.io_prometheus_node-exporter_v1.9.1.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/quay.io_prometheus_node-exporter_v1.9.1.tar"
     base_url: "quay.io/prometheus/node-exporter:v1.9.1"
     md5: "0ecea608423f3884d852cb8277fd3154"
     description: "node-exporter image tar"
@@ -620,7 +620,7 @@ artifacts:
     type: tar
     name: monitor.image.prometheus.v3.4.0
     path: /data/download/monitor/quay.io_prometheus_prometheus_v3.4.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/quay.io_prometheus_prometheus_v3.4.0.tar"
     base_url: "quay.io/prometheus/prometheus:v3.4.0"
     md5: "697c90779d056cb9beca2325466136ae"
     description: "prometheus image tar"
@@ -629,7 +629,7 @@ artifacts:
     type: tar
     name: monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless
     path: /data/download/monitor/nvcr.io_nvidia_k8s_dcgm-exporter_4.5.2-4.8.1-distroless.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/nvcr.io_nvidia_k8s_dcgm-exporter_4.5.2-4.8.1-distroless.tar"
     base_url: "nvcr.io/nvidia/k8s/dcgm-exporter:4.5.2-4.8.1-distroless"
     md5: "3ac89b8c5e39836b30dd1f590ff89892"
     description: "dcgm-exporter image tar"
@@ -638,7 +638,7 @@ artifacts:
     type: file
     name: seaweedfs.chart.seaweedfs.v4.20.0
     path: /data/download/seaweedfs/seaweedfs-4.20.0.tgz
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/seaweedfs-4.20.0.tgz"
     base_url: "https://seaweedfs.github.io/seaweedfs/helm/seaweedfs-4.20.0.tgz"
     md5: "31a77a1cb105237af861d0e4a8955c77"
     description: "seaweedfs helm chart"
@@ -647,7 +647,7 @@ artifacts:
     type: tar
     name: seaweedfs.image.seaweedfs.v4.20.0
     path: /data/download/seaweedfs/seaweedfs-4.20.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/seaweedfs-4.20.0.tar"
     base_url: "quay.io/flysangel/chrislusf/seaweedfs:4.20"
     md5: "8073334cb6ec5dfcb7e0aea418a3bf0e"
     description: "seaweedfs image tar"
@@ -656,7 +656,7 @@ artifacts:
     type: file
     name: seaweedfs-csi.chart.driver.v0.2.14
     path: /data/download/seaweedfs/seaweedfs-csi-driver-0.2.14.tgz
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/seaweedfs-csi-driver-0.2.14.tgz"
     base_url: "https://seaweedfs.github.io/seaweedfs-csi-driver/helm/seaweedfs-csi-driver-0.2.14.tgz"
     md5: "b58c8e34c1db66a0ee26cfe6d6b2b89b"
     description: "seaweedfs csi driver helm chart"
@@ -665,7 +665,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.driver.v1.4.8
     path: /data/download/seaweedfs/docker.io_chrislusf_seaweedfs-csi-driver_v1.4.8.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/docker.io_chrislusf_seaweedfs-csi-driver_v1.4.8.tar"
     base_url: "docker.io/chrislusf/seaweedfs-csi-driver:v1.4.8"
     md5: "7283f35bdc93f212b78a2977ba8ee99c"
     description: "seaweedfs csi driver image tar"
@@ -674,7 +674,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.mount.v1.4.8
     path: /data/download/seaweedfs/docker.io_chrislusf_seaweedfs-mount_v1.4.8.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/docker.io_chrislusf_seaweedfs-mount_v1.4.8.tar"
     base_url: "docker.io/chrislusf/seaweedfs-mount:v1.4.8"
     md5: "c3986e9a4887950b392515acb939b9ec"
     description: "seaweedfs mount image tar"
@@ -683,7 +683,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.csi-attacher.v4.3.0
     path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-attacher_v4.3.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/registry.k8s.io_sig-storage_csi-attacher_v4.3.0.tar"
     base_url: "registry.k8s.io/sig-storage/csi-attacher:v4.3.0"
     md5: "c96e298f9524623bdca3087e6736350e"
     description: "csi attacher image tar"
@@ -692,7 +692,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.csi-node-driver-registrar.v2.8.0
     path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-node-driver-registrar_v2.8.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/registry.k8s.io_sig-storage_csi-node-driver-registrar_v2.8.0.tar"
     base_url: "registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.8.0"
     md5: "5a7679a871687efe634b1d5f4092ef1d"
     description: "csi node driver registrar image tar"
@@ -701,7 +701,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.csi-provisioner.v3.5.0
     path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-provisioner_v3.5.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/registry.k8s.io_sig-storage_csi-provisioner_v3.5.0.tar"
     base_url: "registry.k8s.io/sig-storage/csi-provisioner:v3.5.0"
     md5: "1b4ec0162a63910ac36e644bb70f2f22"
     description: "csi provisioner image tar"
@@ -710,7 +710,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.csi-resizer.v1.8.0
     path: /data/download/seaweedfs/registry.k8s.io_sig-storage_csi-resizer_v1.8.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/registry.k8s.io_sig-storage_csi-resizer_v1.8.0.tar"
     base_url: "registry.k8s.io/sig-storage/csi-resizer:v1.8.0"
     md5: "6fdc2744217330b36b571ae6d629f6cf"
     description: "csi resizer image tar"
@@ -719,7 +719,7 @@ artifacts:
     type: tar
     name: seaweedfs-csi.image.livenessprobe.v2.10.0
     path: /data/download/seaweedfs/registry.k8s.io_sig-storage_livenessprobe_v2.10.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/seaweedfs/registry.k8s.io_sig-storage_livenessprobe_v2.10.0.tar"
     base_url: "registry.k8s.io/sig-storage/livenessprobe:v2.10.0"
     md5: "70e5fd1803616a3345ffa60663be70a9"
     description: "livenessprobe image tar"
