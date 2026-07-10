@@ -168,7 +168,10 @@ if [ "${OS_TYPE}" = "ubuntu" ] || [ "${OS_TYPE}" = "debian" ]; then
     exit 1
   fi
   log "下载完成！共 ${PKG_COUNT} 个 .deb 包"
-  ls -lh "${OUTPUT_DIR}"/*.deb 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}' || true
+  for pkg in "${DEB_FILES[@]}"; do
+    size="$(du -h "${pkg}" | awk '{print $1}')"
+    log "  ${pkg} (${size})"
+  done
   exit 0
 fi
 
@@ -365,7 +368,10 @@ fi
 
 # 列出下载的包
 log "下载的包列表:"
-ls -lh *.rpm 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}' || true
+for pkg in "${RPM_FILES[@]}"; do
+  size="$(du -h "${pkg}" | awk '{print $1}')"
+  log "  ${pkg} (${size})"
+done
 SCRIPT_EOF
 
 chmod +x "${TMP_SCRIPT}"
@@ -435,7 +441,14 @@ log_info "包数量: ${PKG_COUNT} (.${PKG_EXT})"
 log_info "总大小: ${TOTAL_SIZE}"
 log_info ""
 log_info "下载的包列表:"
-ls -lh "${OUTPUT_DIR}"/*.${PKG_EXT} 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}' || log_info "  （无）"
+if [ "${PKG_COUNT}" -gt 0 ]; then
+  for pkg in "${HOST_PKG_FILES[@]}"; do
+    size="$(du -h "${pkg}" | awk '{print $1}')"
+    log_info "  ${pkg} (${size})"
+  done
+else
+  log_info "  （无）"
+fi
 log_info ""
 log_info "下一步："
 log_info "1. 将 ${OUTPUT_DIR} 目录复制到离线环境"
@@ -445,4 +458,3 @@ if [ "${OS_TYPE}" = "ubuntu" ] || [ "${OS_TYPE}" = "debian" ]; then
 else
   log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装"
 fi
-

@@ -96,7 +96,7 @@ fi
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
 # 单节点：去污点（兼容 control-plane/master）
-node_name="$(hostname | tr 'A-Z' 'a-z')"
+node_name="$(hostname | tr '[:upper:]' '[:lower:]')"
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/control-plane- --overwrite 2>/dev/null || true
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/master- --overwrite 2>/dev/null || true
 

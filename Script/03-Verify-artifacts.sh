@@ -20,8 +20,9 @@ source "${SCRIPT_DIR}/framework.sh"
 verify_manifest() {
   local manifest="$1"
   local missing=0
+  local current_os="${OS_ID:-}"
 
-  while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
+  while IFS=$'\x1f' read -r module type name path _url md5 desc os_id; do
     [ -n "${module}" ] || continue
 
     # kubernetes 离线目录：单条基路径 + /<os>/kubernetes（与 artifact_get_os_kubernetes_dir 一致）
@@ -30,7 +31,7 @@ verify_manifest() {
         continue
       fi
       local ksub=""
-      case "${OS_ID}" in
+      case "${current_os}" in
         ubuntu|debian) ksub="ubuntu" ;;
         centos) ksub="centos" ;;
         rocky) ksub="rocky" ;;
@@ -56,8 +57,8 @@ verify_manifest() {
         continue
       fi
       [ -n "${os_id}" ] || continue
-      if [ "${OS_ID}" != "${os_id}" ]; then
-        case "${OS_ID}" in
+      if [ "${current_os}" != "${os_id}" ]; then
+        case "${current_os}" in
           kylin*) [ "${os_id}" = "kylin" ] || continue ;;
           *) continue ;;
         esac
@@ -67,7 +68,7 @@ verify_manifest() {
     # nvidia toolkit：清单为基目录，校验当前 OS 对应 <基目录>/<os>/
     if [ "${module}" = "nvidia" ] && [ "${type}" = "dir" ]; then
       local sub=""
-      case "${OS_ID}" in
+      case "${current_os}" in
         ubuntu|debian) sub="ubuntu" ;;
         centos) sub="centos" ;;
         rocky) sub="rocky" ;;

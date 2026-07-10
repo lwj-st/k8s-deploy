@@ -56,8 +56,8 @@ IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-registry.cn-hangzhou.aliyuncs.com/google_c
 read -r -p "是否允许在线安装 OS 依赖/ kube 包？ALLOW_ONLINE (yes/no, 默认: no): " ALLOW_ONLINE
 ALLOW_ONLINE="${ALLOW_ONLINE:-no}"
 
-read -r -p "Ingress 节点名（kubectl node 名，默认: $(hostname | tr 'A-Z' 'a-z')）: " INGRESS_NODE_NAME
-INGRESS_NODE_NAME="${INGRESS_NODE_NAME:-$(hostname | tr 'A-Z' 'a-z')}"
+read -r -p "Ingress 节点名（kubectl node 名，默认: $(hostname | tr '[:upper:]' '[:lower:]')）: " INGRESS_NODE_NAME
+INGRESS_NODE_NAME="${INGRESS_NODE_NAME:-$(hostname | tr '[:upper:]' '[:lower:]')}"
 
 read -r -p "Grafana Ingress 域名 GRAFANA_INGRESS_HOST (默认: grafana.sensecorex.com): " GRAFANA_INGRESS_HOST
 GRAFANA_INGRESS_HOST="${GRAFANA_INGRESS_HOST:-grafana.sensecorex.com}"

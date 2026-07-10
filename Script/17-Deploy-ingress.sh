@@ -30,7 +30,7 @@ import_image_artifacts \
   "ingress.image.webhook-certgen.v1.5.3"
 
 # 单节点提前去污点（避免 admission jobs Pending）
-node_name="$(hostname | tr 'A-Z' 'a-z')"
+node_name="$(hostname | tr '[:upper:]' '[:lower:]')"
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/control-plane- --overwrite 2>/dev/null || true
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/master- --overwrite 2>/dev/null || true
 

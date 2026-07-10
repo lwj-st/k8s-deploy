@@ -41,7 +41,7 @@ import_from_manifest() {
   [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
 
   local count=0
-  while IFS=$'\x1f' read -r module type name path url md5 desc os_id; do
+  while IFS=$'\x1f' read -r module type name path _url _md5 _desc _os_id; do
     [ -n "${module}" ] || continue
     [ "${module}" = "os" ] && continue
     [ "${type}" = "tar" ] || continue
@@ -68,4 +68,3 @@ main() {
 }
 
 main "$@"
-

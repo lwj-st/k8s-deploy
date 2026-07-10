@@ -73,8 +73,7 @@ collect_nvidia_pkgs() {
   [ -d "${nvidia_pkg_dir}" ] || die "缺少 NVIDIA 离线包目录: ${nvidia_pkg_dir}"
 
   shopt -s nullglob
-  local pat="${nvidia_pkg_dir}/*${suffix}"
-  local files=(${pat})
+  local files=("${nvidia_pkg_dir}"/*"${suffix}")
   shopt -u nullglob
 
   [ "${#files[@]}" -gt 0 ] || die "目录为空，未找到 *${suffix}: ${nvidia_pkg_dir}"
@@ -177,7 +176,7 @@ deploy_nvidia_device_plugin() {
   # 该 YAML 自带 nodeSelector: nvidia.com/gpu.present=true
   # 为避免 DS desired=0（节点没标签），在检测到 GPU 的节点上自动打 label
   if have nvidia-smi || [ -e /dev/nvidiactl ] || [ -e /dev/nvidia0 ]; then
-    node_name="$(hostname | tr 'A-Z' 'a-z')"
+    node_name="$(hostname | tr '[:upper:]' '[:lower:]')"
     if kubectl get node "${node_name}" >/dev/null 2>&1; then
       log_command "kubectl label node \"${node_name}\" nvidia.com/gpu.present=true --overwrite"
     else
