@@ -18,6 +18,42 @@ source "${SCRIPT_DIR}/framework.sh"
 init_framework
 require_root
 
+install_ubuntu_debs_from_dir() {
+  local dir="$1"
+  local -a debs=()
+  local -a install_debs=()
+  local deb pkg deb_version installed_version
+
+  shopt -s nullglob
+  debs=("${dir}"/*.deb)
+  shopt -u nullglob
+  [ "${#debs[@]}" -gt 0 ] || die "目录为空: ${dir}"
+
+  for deb in "${debs[@]}"; do
+    pkg="$(dpkg-deb -f "${deb}" Package 2>/dev/null || true)"
+    deb_version="$(dpkg-deb -f "${deb}" Version 2>/dev/null || true)"
+    if [ -n "${pkg}" ] && [ -n "${deb_version}" ]; then
+      installed_version="$(dpkg-query -W -f='${Version}' "${pkg}" 2>/dev/null || true)"
+      if [ -n "${installed_version}" ] && dpkg --compare-versions "${installed_version}" ge "${deb_version}"; then
+        log_info "[SKIP] ${pkg} 已安装且版本不低: installed=${installed_version}, deb=${deb_version}"
+        continue
+      fi
+    fi
+    install_debs+=("${deb}")
+  done
+
+  if [ "${#install_debs[@]}" -eq 0 ]; then
+    log_info "NFS 相关 .deb 均已满足，无需安装"
+    return 0
+  fi
+
+  log_info "离线安装 NFS 相关 .deb：${#install_debs[@]} 个"
+  apt-get install -y --no-install-recommends "${install_debs[@]}" || {
+    log_warn "apt-get 本地安装失败，回退到 dpkg -i"
+    dpkg -i "${install_debs[@]}"
+  }
+}
+
 # 未配置 NFS 则跳过
 if [ -z "${NFS_SERVER:-}" ] || [ -z "${NFS_PATH:-}" ]; then
   log_info "未配置 NFS（NFS_SERVER/NFS_PATH 为空），跳过安装 NFS 服务端"
@@ -79,11 +115,7 @@ else
 
   case "${OS_ID}" in
     ubuntu|debian)
-      shopt -s nullglob
-      debs=("${nfs_dir}"/*.deb)
-      shopt -u nullglob
-      [ ${#debs[@]} -gt 0 ] || die "目录为空: ${nfs_dir}"
-      log_command "dpkg -i ${nfs_dir}/*.deb"
+      install_ubuntu_debs_from_dir "${nfs_dir}"
       ;;
     *)
       shopt -s nullglob
