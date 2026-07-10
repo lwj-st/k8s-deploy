@@ -70,7 +70,7 @@ download_ubuntu_debs() {
   
   # 添加 Kubernetes GPG key
   mkdir -p /etc/apt/keyrings
-  curl -fsSL https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb/Release.key" | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
   
   # 添加 Kubernetes 仓库
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
@@ -83,7 +83,7 @@ download_ubuntu_debs() {
   
   # 方法1: 使用 apt-get download 下载主包
   log_info "  下载主包: kubelet kubeadm kubectl"
-  apt-get download kubelet=${K8S_VERSION}-* kubeadm=${K8S_VERSION}-* kubectl=${K8S_VERSION}-* 2>/dev/null || {
+  apt-get download kubelet="${K8S_VERSION}"-* kubeadm="${K8S_VERSION}"-* kubectl="${K8S_VERSION}"-* 2>/dev/null || {
     log_warn "  指定版本下载失败，尝试下载最新版本..."
     apt-get download kubelet kubeadm kubectl 2>/dev/null || true
   }
@@ -92,7 +92,7 @@ download_ubuntu_debs() {
   log_info "  解析并下载依赖包..."
   local deps_file="/tmp/k8s-deps-$$.txt"
   apt-cache depends --recurse --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances \
-    kubelet=${K8S_VERSION}-* kubeadm=${K8S_VERSION}-* kubectl=${K8S_VERSION}-* 2>/dev/null | \
+    kubelet="${K8S_VERSION}"-* kubeadm="${K8S_VERSION}"-* kubectl="${K8S_VERSION}"-* 2>/dev/null | \
     grep "^\w" | sort -u > "${deps_file}" || true
   
   if [ -s "${deps_file}" ]; then
@@ -106,8 +106,13 @@ download_ubuntu_debs() {
     rm -f "${deps_file}"
   fi
   
+  local deb_pkgs=()
+  shopt -s nullglob
+  deb_pkgs=("${OUTPUT_DIR}"/*.deb)
+  shopt -u nullglob
+
   log_info "✓ Ubuntu/Debian 包下载完成: ${OUTPUT_DIR}"
-  log_info "  包数量: $(ls -1 *.deb 2>/dev/null | wc -l)"
+  log_info "  包数量: ${#deb_pkgs[@]}"
 }
 
 download_centos_rpms() {
@@ -130,9 +135,9 @@ EOF
     dnf makecache
     log_info "下载 Kubernetes RPM 包及其依赖..."
     cd "${OUTPUT_DIR}"
-    dnf download --resolve --alldeps kubelet-${K8S_VERSION}-* kubeadm-${K8S_VERSION}-* kubectl-${K8S_VERSION}-* || {
+    dnf download --resolve --alldeps kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
       log_warn "依赖解析失败，使用简单下载方式..."
-      dnf download kubelet-${K8S_VERSION}-* kubeadm-${K8S_VERSION}-* kubectl-${K8S_VERSION}-* || true
+      dnf download kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
     }
   else
     yum clean all
@@ -141,16 +146,16 @@ EOF
     cd "${OUTPUT_DIR}"
     # yum 需要安装 yum-plugin-downloadonly（如果可用）
     if yum install -y yum-plugin-downloadonly 2>/dev/null; then
-      yumdownloader --resolve --destdir="${OUTPUT_DIR}" kubelet-${K8S_VERSION}-* kubeadm-${K8S_VERSION}-* kubectl-${K8S_VERSION}-* || {
+      yumdownloader --resolve --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
         log_warn "依赖解析失败，使用简单下载方式..."
-        yumdownloader --destdir="${OUTPUT_DIR}" kubelet-${K8S_VERSION}-* kubeadm-${K8S_VERSION}-* kubectl-${K8S_VERSION}-* || true
+        yumdownloader --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
       }
     else
       # 如果没有 downloadonly 插件，尝试直接下载
       log_warn "yum-plugin-downloadonly 不可用，尝试其他方法..."
       # 使用 repotrack（如果可用）
       if command -v repotrack &>/dev/null; then
-        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-${K8S_VERSION} kubeadm-${K8S_VERSION} kubectl-${K8S_VERSION} || true
+        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-"${K8S_VERSION}" kubeadm-"${K8S_VERSION}" kubectl-"${K8S_VERSION}" || true
       else
         log_error "无法下载 RPM 包，请手动安装 yum-plugin-downloadonly 或 repotrack"
         return 1
@@ -158,8 +163,13 @@ EOF
     fi
   fi
   
+  local rpm_pkgs=()
+  shopt -s nullglob
+  rpm_pkgs=("${OUTPUT_DIR}"/*.rpm)
+  shopt -u nullglob
+
   log_info "✓ CentOS/Rocky RPM 包下载完成: ${OUTPUT_DIR}"
-  log_info "  包数量: $(ls -1 *.rpm 2>/dev/null | wc -l)"
+  log_info "  包数量: ${#rpm_pkgs[@]}"
 }
 
 download_openeuler_rpms() {
@@ -201,4 +211,3 @@ log_info "下一步："
 log_info "1. 将 ${OUTPUT_DIR} 目录复制到离线环境"
 log_info "2. 确保 artifacts.yaml 中的 path 指向正确路径"
 log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装（按 OS 使用 <基目录>/<os>/）"
-

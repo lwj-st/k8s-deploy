@@ -303,5 +303,12 @@ log_info "包数量: ${PKG_COUNT} (.${PKG_EXT})"
 log_info "总大小: ${TOTAL_SIZE}"
 log_info ""
 log_info "下载的包列表:"
-ls -lh "${OUTPUT_DIR}"/*.${PKG_EXT} 2>/dev/null | awk '{print "  " $9 " (" $5 ")"}' || log_info "  （无）"
+if [ "${PKG_COUNT}" -gt 0 ]; then
+  for pkg in "${HOST_PKG_FILES[@]}"; do
+    size="$(du -h "${pkg}" | awk '{print $1}')"
+    log_info "  ${pkg} (${size})"
+  done
+else
+  log_info "  （无）"
+fi
 log_info ""

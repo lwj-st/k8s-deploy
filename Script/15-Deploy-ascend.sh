@@ -50,8 +50,7 @@ collect_ascend_pkgs() {
   log_info "Ascend 离线包目录: ${ascend_pkg_dir}"
 
   shopt -s nullglob
-  local pat="${ascend_pkg_dir}/*${suffix}"
-  local files=(${pat})
+  local files=("${ascend_pkg_dir}"/*"${suffix}")
   shopt -u nullglob
 
   [ "${#files[@]}" -gt 0 ] || die "目录为空，未找到 *${suffix}: ${ascend_pkg_dir}"
