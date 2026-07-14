@@ -30,20 +30,20 @@ OUTPUT_DIR="${2:-}"
 if [ -z "${OUTPUT_DIR}" ]; then
   case "${OS_TYPE_LC}" in
     ubuntu|debian)
-      OUTPUT_DIR="/data/download/packages/ubuntu/tools"
+      OUTPUT_DIR="$(artifact_get_os_tools_dir "ubuntu")"
       ;;
     centos)
-      OUTPUT_DIR="/data/download/packages/centos/tools"
+      OUTPUT_DIR="$(artifact_get_os_tools_dir "centos")"
       ;;
     rocky)
-      OUTPUT_DIR="/data/download/packages/rocky/tools"
+      OUTPUT_DIR="$(artifact_get_os_tools_dir "rocky")"
       ;;
     openeuler)
-      OUTPUT_DIR="/data/download/packages/openeuler/tools"
+      OUTPUT_DIR="$(artifact_get_os_tools_dir "openeuler")"
       ;;
     *)
       if [[ "${OS_TYPE_LC}" == *kylin* ]]; then
-        OUTPUT_DIR="/data/download/packages/kylin/tools"
+        OUTPUT_DIR="$(artifact_get_os_tools_dir "kylin")"
       else
         die "不支持的 OS 类型: ${OS_TYPE}（无法推断默认输出目录）。请显式传入输出目录，或使用 ubuntu|debian|centos|rocky|openeuler|kylin"
       fi

@@ -31,19 +31,19 @@ OUTPUT_DIR="${2:-}"
 if [ -z "${OUTPUT_DIR}" ]; then
   case "${OS_TYPE}" in
     ubuntu|debian)
-      OUTPUT_DIR="/data/download/packages/ubuntu/kubernetes"
+      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "ubuntu")"
       ;;
     centos)
-      OUTPUT_DIR="/data/download/packages/centos/kubernetes"
+      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "centos")"
       ;;
     rocky)
-      OUTPUT_DIR="/data/download/packages/rocky/kubernetes"
+      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "rocky")"
       ;;
     openeuler)
-      OUTPUT_DIR="/data/download/packages/openeuler/kubernetes"
+      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "openeuler")"
       ;;
     kylin*)
-      OUTPUT_DIR="/data/download/packages/kylin/kubernetes"
+      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "kylin")"
       ;;
     *)
       die "不支持的 OS 类型: ${OS_TYPE}"

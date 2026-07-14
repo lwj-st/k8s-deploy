@@ -6,18 +6,18 @@
 ##   bash 15-Deploy-ascend.sh
 ## Artifacts:
 ##   - ascend.manifest.device-plugin.master
+##   - ascend.image.device-plugin.v3.0.0
 ## Images:
-##   - ${DOWNLOAD_DIR}/ascend/ascend-k8sdeviceplugin-v3.0.0.tar
+##   - ascend.image.device-plugin.v3.0.0
 ## Env:
-##   - ASCEND_DEVICE_PLUGIN_IMAGE_TAR: 可覆盖 Ascend device-plugin 镜像 tar 路径
 ##   - ASCEND_DEVICE_PLUGIN_YAML: 可覆盖 Ascend device-plugin YAML 路径
 ##   - ASCEND_DEVICE_PLUGIN_NAMESPACE: 默认 kube-system
 ##   - ASCEND_RUNTIME_CONFIG_CMD: 可选，覆盖 runtime 配置命令
 ##   - ASCEND_SKIP_RUNTIME_CONFIG: true 时跳过 runtime 配置
-##   - ASCEND_TOOLKIT_DIR: 预留，Ascend 离线安装包目录
 ## Notes:
 ##   - 仅做“装包 +（可选）配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动/固件本身（npu-smi / 驱动需提前就绪）
+##   - Ascend 离线安装包流程暂未启用；后续需要时使用 ascend.dir.toolkit
 ##   - device-plugin 清单默认来自 manifests/artifacts.yaml，可通过 ASCEND_DEVICE_PLUGIN_YAML 覆盖
 ##   - ASCEND_DEVICE_PLUGIN_YAML https://gitcode.com/Ascend/mind-cluster/blob/master/component/ascend-device-plugin/build/ascendplugin-910.yaml
 ##                               https://raw.gitcode.com/Ascend/mind-cluster/blobs/c4639eea69b2d4d01771716114204143b5d49320/ascendplugin-910.yaml
@@ -30,15 +30,15 @@ source "${SCRIPT_DIR}/framework.sh"
 
 ################################################################################
 # Function: collect_ascend_pkgs
-# Description: 收集 Ascend 离线包（必填 ASCEND_TOOLKIT_DIR）
+# Description: 从 artifacts.yaml 收集 Ascend 离线包
 ################################################################################
 collect_ascend_pkgs() {
   ascend_pkgs=()
 
-  local ascend_pkg_dir="${ASCEND_TOOLKIT_DIR:-}"
+  local ascend_pkg_dir
   local suffix=""
 
-  [ -n "${ascend_pkg_dir}" ] || die "请设置 ASCEND_TOOLKIT_DIR（Ascend 离线包目录）"
+  ascend_pkg_dir="$(artifact_get_path_by_name "ascend.dir.toolkit")"
   [ -d "${ascend_pkg_dir}" ] || die "缺少 Ascend 离线包目录: ${ascend_pkg_dir}"
 
   case "${OS_ID}" in
@@ -195,7 +195,8 @@ deploy_ascend_device_plugin() {
 # Description: 导入 Ascend device-plugin 离线镜像
 ################################################################################
 import_ascend_device_plugin_image() {
-  local image_tar="${ASCEND_DEVICE_PLUGIN_IMAGE_TAR:-${DOWNLOAD_DIR}/ascend/ascend-k8sdeviceplugin-v3.0.0.tar}"
+  local image_tar
+  image_tar="$(artifact_get_path_by_name "ascend.image.device-plugin.v3.0.0")"
   log_info "导入 Ascend device-plugin 镜像..."
   import_image_tar "ascend.device-plugin.image.v3.0.0" "${image_tar}"
 }
@@ -246,8 +247,10 @@ main() {
   require_root
   export KUBECONFIG=/etc/kubernetes/admin.conf
 
-  # collect_ascend_pkgs #TUDO 后续补充
-  # install_ascend_toolkit #TUDO 后续补充
+  # TODO: 当前无 Ascend 离线依赖包，保持主流程不依赖 ascend.dir.toolkit。
+  # 后续新增 .deb/.rpm 包后，取消以下两行注释以启用离线安装。
+  # collect_ascend_pkgs
+  # install_ascend_toolkit
   configure_containerd_runtime_for_ascend
   import_ascend_device_plugin_image
   deploy_ascend_device_plugin

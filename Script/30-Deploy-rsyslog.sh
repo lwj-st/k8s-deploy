@@ -4,6 +4,8 @@
 ## Description: 后置配置 Kubernetes 集群 rsyslog 集中日志审计，支持日志服务器和节点复用同一脚本
 ## Usage:
 ##   bash 30-Deploy-rsyslog.sh
+## Artifacts:
+##   - os.dir.tools.<ubuntu|centos|rocky|openeuler|kylin>
 ##
 ##   bash 30-Deploy-rsyslog.sh client  #把当前机器配置成日志发送节点。 需要每个节点都执行一次。
 ##   bash 30-Deploy-rsyslog.sh server  #把当前机器配置成日志服务器。
@@ -38,23 +40,16 @@
 ##   RSYSLOG_AUDIT_MAXAGE / RSYSLOG_AUDIT_MAXBACKUP / RSYSLOG_AUDIT_MAXSIZE
 ##   RSYSLOG_JOURNAL_SYSTEM_MAX_USE / RSYSLOG_JOURNAL_RUNTIME_MAX_USE / RSYSLOG_JOURNAL_MAX_RETENTION
 ##   KUBE_APISERVER_MANIFEST_BACKUP_DIR（enable-audit 备份路径，须不在 /etc/kubernetes/manifests/ 下）
-##   离线安装 rsyslog 时使用 DOWNLOAD_DIR（来自 environment.sh）
+##   离线安装 rsyslog 时使用 manifests/artifacts.yaml 中的 OS 工具目录
 ################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
-# 本脚本需要在初始化早期读取父进程环境，因此不直接调用 init_framework；
-# 这里手动执行等价的日志/OS 探测，并 source environment.sh 获取 DOWNLOAD_DIR 等公共配置。
+# 本脚本需要在初始化早期读取父进程环境，因此不直接调用 init_framework。
 get_cur_path
 init_logging
-if [ -f "${SCRIPT_DIR}/environment.sh" ]; then
-  # shellcheck disable=SC1091
-  source "${SCRIPT_DIR}/environment.sh"
-else
-  die "未找到 ${SCRIPT_DIR}/environment.sh，请先执行 01-Cluster-host.sh"
-fi
 detect_os
 log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
 require_root
@@ -217,7 +212,6 @@ usage() {
   RSYSLOG_TLS_AUTH_MODE    默认 anon，简单稳定；如需双向证书认证需手工改为 x509/name 并分发证书
   RSYSLOG_SSL_DIR          默认 /etc/rsyslog/ssl
   RSYSLOG_RSYSLOGD_USER    默认 syslog；用于 TLS 私钥属组、集中日志目录权限等（实际运行用户以 systemd/发行版配置为准）
-  DOWNLOAD_DIR             仅在线安装失败走离线包时使用，默认来自 environment.sh
   RSYSLOG_CLEANUP_*        仅 cleanup 模式使用，见上文
 EOF
 }
@@ -253,31 +247,31 @@ detect_pkg_manager() {
 # 离线目录与 00-Download-tools-packages-docker 支持的 OS 子目录一致；未单独列出的 RHEL 系发行版按与 rocky 兼容处理。
 # 与 manifests/artifacts.yaml 中 os.dir.kubernetes 的 path（一般为 .../packages）约定一致。
 offline_rsyslog_dir() {
-  local base="${DOWNLOAD_DIR:-}"
-  [ -n "${base}" ] || die "environment.sh 未设置 DOWNLOAD_DIR，无法确定 rsyslog 离线包目录"
+  local base
   case "${OS_ID:-}" in
     ubuntu|debian)
-      printf '%s\n' "${base}/packages/ubuntu/tools/rsyslog"
+      base="$(artifact_get_os_tools_dir "ubuntu")"
       ;;
     centos)
-      printf '%s\n' "${base}/packages/centos/tools/rsyslog"
+      base="$(artifact_get_os_tools_dir "centos")"
       ;;
     rocky|rhel|almalinux|eurolinux|oraclelinux|miraclelinux|azurelinux|anolis)
-      printf '%s\n' "${base}/packages/rocky/tools/rsyslog"
+      base="$(artifact_get_os_tools_dir "rocky")"
       ;;
     amzn)
-      printf '%s\n' "${base}/packages/centos/tools/rsyslog"
+      base="$(artifact_get_os_tools_dir "centos")"
       ;;
     openeuler)
-      printf '%s\n' "${base}/packages/openeuler/tools/rsyslog"
+      base="$(artifact_get_os_tools_dir "openeuler")"
       ;;
     kylin*)
-      printf '%s\n' "${base}/packages/kylin/tools/rsyslog"
+      base="$(artifact_get_os_tools_dir "kylin")"
       ;;
     *)
-      die "未识别的 OS_ID=${OS_ID:-unknown}，无法确定 rsyslog 离线包目录。请将离线包放到 ${base}/packages/<centos|rocky|ubuntu|openeuler|kylin>/tools/rsyslog 之一，或扩展本脚本的 OS 映射。"
+      die "未识别的 OS_ID=${OS_ID:-unknown}，无法确定 rsyslog 离线包目录。请补充 manifests/artifacts.yaml 中的 OS 工具目录，或扩展本脚本的 OS 映射。"
       ;;
   esac
+  printf '%s\n' "${base}/rsyslog"
 }
 
 offline_rsyslog_hint() {

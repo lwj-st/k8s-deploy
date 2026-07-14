@@ -1,4 +1,4 @@
-yaml_content: "k8s-deploy 制品清单（已配置 url + md5；缺失文件 md5=__MISSING__；dir md5=__DIR__）"
+yaml_content: "k8s-deploy 制品清单（已配置 url + md5；本地预置制品 md5=__LOCAL_ONLY__；dir md5=__DIR__）"
 
 artifacts:
   - module: base
@@ -282,11 +282,48 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit
-    path: /data/download/nvidia
+    name: nvidia.dir.toolkit.ubuntu
+    path: /data/download/nvidia/ubuntu
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline base dir; append /<os> in 15-Deploy-nvidia.sh"
+    description: "nvidia toolkit offline packages for ubuntu/debian"
+    os_id: ubuntu
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.centos
+    path: /data/download/nvidia/centos
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for centos"
+    os_id: centos
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.rocky
+    path: /data/download/nvidia/rocky
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for rocky"
+    os_id: rocky
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.openeuler
+    path: /data/download/nvidia/openeuler
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for openeuler"
+    os_id: openeuler
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin
+    path: /data/download/nvidia/kylin
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin"
+    os_id: kylin
 
   - module: nvidia
     type: file
@@ -305,12 +342,28 @@ artifacts:
     description: "nvidia device-plugin image tar"
 
   - module: ascend
+    type: dir
+    name: ascend.dir.toolkit
+    path: /data/download/ascend
+    url: ""
+    md5: "__DIR__"
+    description: "Ascend offline toolkit packages directory"
+
+  - module: ascend
     type: file
     name: ascend.manifest.device-plugin.master
     path: /data/download/ascend/ascendplugin-910.yaml
     url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/ascend/ascendplugin-910.yaml"
     md5: "e4148219c8342806e9cc58d21d300723"
     description: "acsend 910 device-plugin yaml"
+
+  - module: ascend
+    type: tar
+    name: ascend.image.device-plugin.v3.0.0
+    path: /data/download/ascend/ascend-k8sdeviceplugin-v3.0.0.tar
+    url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "Ascend device-plugin image tar; obtain from the Ascend image source and place locally"
 
   - module: dcu
     type: dir
@@ -355,11 +408,93 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes
-    path: /data/download/packages
+    name: os.dir.kubernetes.ubuntu
+    path: /data/download/packages/ubuntu/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline kube packages base dir; append /<os>/kubernetes in artifact_get_os_kubernetes_dir"
+    description: "offline Kubernetes packages for ubuntu/debian"
+    os_id: ubuntu
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.centos
+    path: /data/download/packages/centos/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for centos"
+    os_id: centos
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky
+    path: /data/download/packages/rocky/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky"
+    os_id: rocky
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler
+    path: /data/download/packages/openeuler/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler"
+    os_id: openeuler
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin
+    path: /data/download/packages/kylin/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin"
+    os_id: kylin
+
+  - module: os
+    type: dir
+    name: os.dir.tools.ubuntu
+    path: /data/download/packages/ubuntu/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for ubuntu/debian"
+    os_id: ubuntu
+
+  - module: os
+    type: dir
+    name: os.dir.tools.centos
+    path: /data/download/packages/centos/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for centos"
+    os_id: centos
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky
+    path: /data/download/packages/rocky/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky"
+    os_id: rocky
+
+  - module: os
+    type: dir
+    name: os.dir.tools.openeuler
+    path: /data/download/packages/openeuler/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for openeuler"
+    os_id: openeuler
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin
+    path: /data/download/packages/kylin/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin"
+    os_id: kylin
 
   - module: minio
     type: tar

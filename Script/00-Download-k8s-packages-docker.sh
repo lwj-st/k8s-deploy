@@ -30,7 +30,7 @@ if [ "${OS_TYPE}" = "debian" ]; then
   # 让容器内下载逻辑走 ubuntu/apt 分支
   DOWNLOAD_OS_TYPE="ubuntu"
 fi
-OUTPUT_DIR="${2:-/data/download/packages/${K8S_OS_DIR}/kubernetes}"
+OUTPUT_DIR="${2:-$(artifact_get_os_kubernetes_dir "${K8S_OS_DIR}")}"
 K8S_VERSION="${3:-1.31.11}"
 K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 

@@ -43,8 +43,8 @@ for script in "${ROOT_DIR}"/Script/*.sh; do
     failed=1
   fi
 
-  if ! is_download_or_library_script "${rel}" && grep -q 'artifact_get_path_by_name' <<<"${content}" && ! has_header_field "${header}" "Artifacts"; then
-    echo "${rel}: 使用 artifact_get_path_by_name 但标头缺少 Artifacts" >&2
+  if ! is_download_or_library_script "${rel}" && grep -Eq 'artifact_get_(path_by_name|os_kubernetes_dir|os_tools_dir|nvidia_toolkit_dir)' <<<"${content}" && ! has_header_field "${header}" "Artifacts"; then
+    echo "${rel}: 使用制品路径 helper 但标头缺少 Artifacts" >&2
     failed=1
   fi
 

@@ -99,7 +99,7 @@ main() {
   install_tidb_operator
 
   log_warn "TiDB 集群实例部署（tidb-cluster.yaml 等）需要按你的实际资源/存储做定制，这里不默认自动 apply。"
-  log_info "如需部署 TiDB 集群，可手动执行：kubectl apply -f ${DOWNLOAD_DIR}/tidb/tidb-cluster.yaml"
+  log_info "如需部署 TiDB 集群，请将实例清单补入 manifests/artifacts.yaml 后再手动 apply。"
 }
 
 main "$@"
