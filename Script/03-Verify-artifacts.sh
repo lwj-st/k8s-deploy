@@ -20,72 +20,20 @@ source "${SCRIPT_DIR}/framework.sh"
 verify_manifest() {
   local manifest="$1"
   local missing=0
-  local current_os="${OS_ID:-}"
-
   while IFS=$'\x1f' read -r module type name path _url md5 desc os_id; do
     [ -n "${module}" ] || continue
 
-    # kubernetes 离线目录：单条基路径 + /<os>/kubernetes（与 artifact_get_os_kubernetes_dir 一致）
-    if [ "${module}" = "os" ] && [ "${type}" = "dir" ] && [ "${name}" = "os.dir.kubernetes" ]; then
-      if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-        continue
-      fi
-      local ksub=""
-      case "${current_os}" in
-        ubuntu|debian) ksub="ubuntu" ;;
-        centos) ksub="centos" ;;
-        rocky) ksub="rocky" ;;
-        openeuler) ksub="openeuler" ;;
-        kylin*) ksub="kylin" ;;
-        *) continue ;;
-      esac
-      local kb="${path}"
-      if [[ "${kb}" == /data/download/* ]]; then
-        kb="${DOWNLOAD_DIR}${kb#/data/download}"
-      fi
-      local kd="${kb}/${ksub}/kubernetes"
-      if [ ! -d "${kd}" ]; then
-        log_error "[MISSING] kubernetes offline 目录不存在: ${kd} (清单项: ${name}; ${desc})"
-        missing=$((missing + 1))
-      fi
+    if [ "${module}" = "os" ] && [ "${type}" = "dir" ] && [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
       continue
     fi
 
-    # 其它 os 模块 dir（若将来仍带 os_id 分条）
-    if [ "${module}" = "os" ]; then
-      if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-        continue
-      fi
-      [ -n "${os_id}" ] || continue
-      if [ "${current_os}" != "${os_id}" ]; then
-        case "${current_os}" in
-          kylin*) [ "${os_id}" = "kylin" ] || continue ;;
-          *) continue ;;
-        esac
-      fi
-    fi
-
-    # nvidia toolkit：清单为基目录，校验当前 OS 对应 <基目录>/<os>/
-    if [ "${module}" = "nvidia" ] && [ "${type}" = "dir" ]; then
-      local sub=""
-      case "${current_os}" in
-        ubuntu|debian) sub="ubuntu" ;;
-        centos) sub="centos" ;;
-        rocky) sub="rocky" ;;
-        openeuler) sub="openeuler" ;;
-        kylin*) sub="kylin" ;;
-        *) continue ;;
+    # 带 os_id 的目录仅校验当前 OS 对应条目。
+    if [ "${type}" = "dir" ] && [ -n "${os_id}" ]; then
+      case "${OS_ID}" in
+        debian) [ "${os_id}" = "ubuntu" ] || continue ;;
+        kylin*) [ "${os_id}" = "kylin" ] || continue ;;
+        *) [ "${OS_ID}" = "${os_id}" ] || continue ;;
       esac
-      local nb="${path}"
-      if [[ "${nb}" == /data/download/* ]]; then
-        nb="${DOWNLOAD_DIR}${nb#/data/download}"
-      fi
-      local nd="${nb}/${sub}"
-      if [ ! -d "${nd}" ]; then
-        log_error "[MISSING] nvidia toolkit 目录不存在: ${nd} (清单项: ${name}; ${desc})"
-        missing=$((missing + 1))
-      fi
-      continue
     fi
 
     if [ "${type}" = "dir" ]; then
@@ -99,6 +47,11 @@ verify_manifest() {
     if [ ! -f "${path}" ]; then
       log_error "[MISSING] ${module} 文件不存在: ${path} (清单项: ${name}; ${desc})"
       missing=$((missing+1))
+      continue
+    fi
+
+    if [ "${md5}" = "__LOCAL_ONLY__" ]; then
+      log_warn "[NO-MD5] 本地预置制品未配置 md5: ${path}"
       continue
     fi
 
@@ -136,7 +89,6 @@ main() {
   local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
   [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
 
-  log_info "DOWNLOAD_DIR: ${DOWNLOAD_DIR:-/data/download}"
   log_info "MAAS_MD5_CHECK: ${MAAS_MD5_CHECK:-0}"
 
   verify_manifest "${manifest}"

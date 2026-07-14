@@ -4,6 +4,8 @@
 ## Description: 按 environment.sh 中 NFS 配置安装本机 NFS 服务端
 ## Usage:
 ##   bash 08-Install-nfs.sh
+## Artifacts:
+##   - os.dir.tools.<ubuntu|centos|rocky|openeuler|kylin>
 ## Env:
 ##   - NFS_SERVER/NFS_PATH: 为空时跳过
 ## Notes:
@@ -86,27 +88,7 @@ esac
 if [ "$nfs_installed" -eq 1 ]; then
   log_info "NFS 服务端（${nfs_pkg_name}）已安装，跳过安装步骤"
 else
-  # 确定离线包目录：DOWNLOAD_DIR/packages/<os_id>/tools
-  case "${OS_ID}" in
-    ubuntu|debian)
-      tools_base="${DOWNLOAD_DIR}/packages/ubuntu/tools"
-      ;;
-    centos)
-      tools_base="${DOWNLOAD_DIR}/packages/centos/tools"
-      ;;
-    rocky)
-      tools_base="${DOWNLOAD_DIR}/packages/rocky/tools"
-      ;;
-    openeuler)
-      tools_base="${DOWNLOAD_DIR}/packages/openeuler/tools"
-      ;;
-    kylin*)
-      tools_base="${DOWNLOAD_DIR}/packages/kylin/tools"
-      ;;
-    *)
-      die "未识别的 OS_ID=${OS_ID}：请补齐 /packages/<os_id>/tools 离线工具目录"
-      ;;
-  esac
+  tools_base="$(artifact_get_os_tools_dir "${OS_ID}")"
 
   nfs_dir="${tools_base}/${tools_subdir}"
   if [ ! -d "${nfs_dir}" ]; then

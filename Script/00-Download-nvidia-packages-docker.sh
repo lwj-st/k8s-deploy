@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
 OS_TYPE="${1:-ubuntu}"
-OUTPUT_DIR="${2:-/data/download/nvidia/${OS_TYPE}}"
+OUTPUT_DIR="${2:-$(artifact_get_nvidia_toolkit_dir "${OS_TYPE}")}"
 
 declare -A DOCKER_IMAGES=(
   ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"

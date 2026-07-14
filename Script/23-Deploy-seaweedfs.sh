@@ -65,16 +65,12 @@ init_env() {
   CSI_CHART="$(artifact_get_path_by_name "seaweedfs-csi.chart.driver.v0.2.14")"
   SEAWEEDFS_IMAGE_TAR="$(artifact_get_path_by_name "seaweedfs.image.seaweedfs.v4.20.0")"
   VALUES_SRC="${K8S_DEPLOY_ROOT}/config/seaweedfs-values.yaml"
-  VALUES="${DOWNLOAD_DIR}/seaweedfs/seaweedfs-values.yaml"
+  VALUES="${VALUES_SRC}"
 
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
   [ -f "${CSI_CHART}" ] || die "缺少制品: ${CSI_CHART}"
   [ -f "${SEAWEEDFS_IMAGE_TAR}" ] || die "缺少制品: ${SEAWEEDFS_IMAGE_TAR}"
   [ -f "${VALUES_SRC}" ] || die "缺少配置文件: ${VALUES_SRC}"
-  mkdir -p "$(dirname "${VALUES}")"
-  log_info "覆盖拷贝 seaweedfs-values.yaml 到 ${VALUES}"
-  log_command "cp -f \"${VALUES_SRC}\" \"${VALUES}\""
-  [ -f "${VALUES}" ] || die "缺少 values 文件: ${VALUES}"
 
   # 可选：固定 S3 管理员 AK/SK，避免 chart 随机生成（不通过 --set，避免泄露到日志）
   # 注意：filer 内嵌 S3（filer.s3.enabled=true）时，chart 仍会读取顶层 s3.credentials 生成 ${RELEASE}-s3-secret。

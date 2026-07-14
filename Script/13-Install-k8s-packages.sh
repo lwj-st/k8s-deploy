@@ -4,6 +4,8 @@
 ## Description: 按当前 OS 安装 Kubernetes 离线 deb/rpm 包
 ## Usage:
 ##   bash 13-Install-k8s-packages.sh
+## Artifacts:
+##   - os.dir.kubernetes.<ubuntu|centos|rocky|openeuler|kylin>
 ## Env:
 ##   - ALLOW_ONLINE: yes 时允许部分在线兜底
 ################################################################################
@@ -80,7 +82,7 @@ case "${OS_ID}" in
     fi
     ;;
   *)
-    die "不支持的 OS_ID=${OS_ID}，请完善 DOWNLOAD_DIR/packages/<os>/kubernetes 离线包目录并扩展脚本"
+    die "不支持的 OS_ID=${OS_ID}，请补充 manifests/artifacts.yaml 中的 OS 离线包目录并扩展脚本"
     ;;
 esac
 

@@ -5,12 +5,10 @@
 ## Usage:
 ##   bash 15-Deploy-nvidia.sh
 ## Artifacts:
-##   - nvidia.dir.toolkit
+##   - nvidia.dir.toolkit.<ubuntu|centos|rocky|openeuler|kylin>
 ##   - nvidia.manifest.device-plugin.v0.17.2
 ## Images:
 ##   - nvidia.image.device-plugin.v0.17.2
-## Env:
-##   - NVIDIA_TOOLKIT_DIR: 可选，覆盖 NVIDIA toolkit 离线包目录
 ## Notes:
 ##   - 仅做“装包 + 配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动本身（nvidia-smi / 内核驱动需提前就绪）
@@ -22,8 +20,7 @@ source "${SCRIPT_DIR}/framework.sh"
 
 ################################################################################
 # Function: collect_nvidia_pkgs
-# Description: toolkit 基目录来自 artifacts.yaml（nvidia.dir.toolkit）；本脚本仅拼接 /<os>/ 再找包
-#              可选 NVIDIA_TOOLKIT_DIR 覆盖为单一目录（非空则直接使用）
+# Description: toolkit 目录来自 artifacts.yaml，按当前 OS 选择对应条目
 ################################################################################
 collect_nvidia_pkgs() {
   nvidia_pkgs=()
@@ -32,43 +29,33 @@ collect_nvidia_pkgs() {
   local suffix
   local os_key=""
 
-  if [ -n "${NVIDIA_TOOLKIT_DIR:-}" ]; then
-    nvidia_pkg_dir="${NVIDIA_TOOLKIT_DIR}"
-    case "${OS_ID}" in
-      ubuntu|debian) suffix=".deb" ;;
-      centos|rocky|openeuler|kylin*) suffix=".rpm" ;;
-      *) die "不支持的 OS_ID=${OS_ID}（使用 NVIDIA_TOOLKIT_DIR 时仍需合法 OS 以选择 deb/rpm）" ;;
-    esac
-    log_info "使用 NVIDIA_TOOLKIT_DIR=${nvidia_pkg_dir}"
-  else
-    case "${OS_ID}" in
-      ubuntu|debian)
-        os_key="ubuntu"
-        suffix=".deb"
-        ;;
-      centos)
-        os_key="centos"
-        suffix=".rpm"
-        ;;
-      rocky)
-        os_key="rocky"
-        suffix=".rpm"
-        ;;
-      openeuler)
-        os_key="openeuler"
-        suffix=".rpm"
-        ;;
-      kylin*)
-        os_key="kylin"
-        suffix=".rpm"
-        ;;
-      *)
-        die "不支持的 OS_ID=${OS_ID}，请在 collect_nvidia_pkgs 中增加 os_id 映射或设置 NVIDIA_TOOLKIT_DIR"
-        ;;
-    esac
-    nvidia_pkg_dir="$(artifact_get_nvidia_toolkit_base_dir)/${os_key}"
-    log_info "NVIDIA toolkit 离线目录: ${nvidia_pkg_dir}（基目录来自清单 + os=${os_key}）"
-  fi
+  case "${OS_ID}" in
+    ubuntu|debian)
+      os_key="ubuntu"
+      suffix=".deb"
+      ;;
+    centos)
+      os_key="centos"
+      suffix=".rpm"
+      ;;
+    rocky)
+      os_key="rocky"
+      suffix=".rpm"
+      ;;
+    openeuler)
+      os_key="openeuler"
+      suffix=".rpm"
+      ;;
+    kylin*)
+      os_key="kylin"
+      suffix=".rpm"
+      ;;
+    *)
+      die "不支持的 OS_ID=${OS_ID}，请在 collect_nvidia_pkgs 中增加 os_id 映射"
+      ;;
+  esac
+  nvidia_pkg_dir="$(artifact_get_nvidia_toolkit_dir "${os_key}")"
+  log_info "NVIDIA toolkit 离线目录: ${nvidia_pkg_dir}"
 
   [ -d "${nvidia_pkg_dir}" ] || die "缺少 NVIDIA 离线包目录: ${nvidia_pkg_dir}"
 

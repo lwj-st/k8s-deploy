@@ -301,7 +301,7 @@ artifact_get_path() {
 
   local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r m t p _url _md5 d _os_id; do
+  while IFS=$'\x1f' read -r m t _n p _url _md5 d _os_id; do
     [ "${m}" = "${module}" ] || continue
     [ "${t}" = "${type}" ] || continue
     [ "${d}" = "${desc}" ] || continue
@@ -320,73 +320,46 @@ artifact_get_path() {
 
 ################################################################################
 # Function: artifact_get_os_kubernetes_dir
-# Description: 清单中一条 module=os,name=os.dir.kubernetes,type=dir 声明基目录；
-#              返回 ${基目录}/${os_id}/kubernetes，path 中 /data/download 前缀替换为 DOWNLOAD_DIR
+# Description: 从清单读取当前 OS 的 Kubernetes 离线包目录
 # Parameter:
 #   $1 os_id  - ubuntu/centos/rocky/kylin/openeuler...
 ################################################################################
 artifact_get_os_kubernetes_dir() {
   local os_id="$1"
   [ -n "${os_id}" ] || die "artifact_get_os_kubernetes_dir: os_id 不能为空"
-  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
-  [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
-  if [ -z "${DOWNLOAD_DIR:-}" ]; then
-    die "environment.sh 未设置 DOWNLOAD_DIR，无法解析 kubernetes 离线包目录"
-  fi
-
-  local cnt=0
-  local base_from_yaml=""
-  while IFS=$'\x1f' read -r m t n artifact_path _url _md5 _d _oid; do
-    [ "${m}" = "os" ] || continue
-    [ "${t}" = "dir" ] || continue
-    [ "${n}" = "os.dir.kubernetes" ] || continue
-    cnt=$((cnt + 1))
-    base_from_yaml="${artifact_path}"
-  done < <(parse_artifacts_yaml "${manifest}")
-
-  if [ "${cnt}" -ne 1 ]; then
-    die "制品清单应恰好 1 条 name=os.dir.kubernetes（module=os type=dir），当前匹配数=${cnt}"
-  fi
-  [ -n "${base_from_yaml}" ] || die "制品清单 os.dir.kubernetes 的 path 为空"
-
-  local base="${base_from_yaml}"
-  if [[ "${base}" == /data/download/* ]]; then
-    base="${DOWNLOAD_DIR}${base#/data/download}"
-  fi
-  printf '%s\n' "${base}/${os_id}/kubernetes"
+  case "${os_id}" in
+    debian) os_id="ubuntu" ;;
+    kylin*) os_id="kylin" ;;
+  esac
+  artifact_get_path_by_name "os.dir.kubernetes.${os_id}"
 }
 
 ################################################################################
-# Function: artifact_get_nvidia_toolkit_base_dir
-# Description: 从清单读取 nvidia toolkit 离线包基目录（恰好 1 条 module=nvidia,type=dir）；
-#              path 以 /data/download 开头时替换为 ${DOWNLOAD_DIR}；不含 OS 子目录，由调用方拼接 /<os>
+# Function: artifact_get_os_tools_dir
+# Description: 从清单读取当前 OS 的常用工具离线包目录
 ################################################################################
-artifact_get_nvidia_toolkit_base_dir() {
-  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
-  [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
-  if [ -z "${DOWNLOAD_DIR:-}" ]; then
-    die "environment.sh 未设置 DOWNLOAD_DIR，无法解析 nvidia toolkit 基目录"
-  fi
+artifact_get_os_tools_dir() {
+  local os_id="$1"
+  [ -n "${os_id}" ] || die "artifact_get_os_tools_dir: os_id 不能为空"
+  case "${os_id}" in
+    debian) os_id="ubuntu" ;;
+    kylin*) os_id="kylin" ;;
+  esac
+  artifact_get_path_by_name "os.dir.tools.${os_id}"
+}
 
-  local cnt=0
-  local base_from_yaml=""
-  while IFS=$'\x1f' read -r m t _n artifact_path _url _md5 _d _oid; do
-    [ "${m}" = "nvidia" ] || continue
-    [ "${t}" = "dir" ] || continue
-    cnt=$((cnt + 1))
-    base_from_yaml="${artifact_path}"
-  done < <(parse_artifacts_yaml "${manifest}")
-
-  if [ "${cnt}" -ne 1 ]; then
-    die "制品清单应恰好 1 条 module=nvidia type=dir（toolkit 基目录），当前匹配数=${cnt}"
-  fi
-  [ -n "${base_from_yaml}" ] || die "制品清单 nvidia dir 的 path 为空"
-
-  local base="${base_from_yaml}"
-  if [[ "${base}" == /data/download/* ]]; then
-    base="${DOWNLOAD_DIR}${base#/data/download}"
-  fi
-  printf '%s\n' "${base}"
+################################################################################
+# Function: artifact_get_nvidia_toolkit_dir
+# Description: 从清单读取当前 OS 的 NVIDIA Container Toolkit 离线包目录
+################################################################################
+artifact_get_nvidia_toolkit_dir() {
+  local os_id="$1"
+  [ -n "${os_id}" ] || die "artifact_get_nvidia_toolkit_dir: os_id 不能为空"
+  case "${os_id}" in
+    debian) os_id="ubuntu" ;;
+    kylin*) os_id="kylin" ;;
+  esac
+  artifact_get_path_by_name "nvidia.dir.toolkit.${os_id}"
 }
 
 init_framework() {
@@ -397,11 +370,6 @@ init_framework() {
   fi
   # shellcheck disable=SC1090
   source "${SCRIPT_DIR}/environment.sh"
-
-  # 强约束：必须显式配置 DOWNLOAD_DIR（不在脚本里自作主张创建软链/改目录）
-  if [ -z "${DOWNLOAD_DIR:-}" ]; then
-    die "environment.sh 未设置 DOWNLOAD_DIR"
-  fi
 
   detect_os
   log_info "OS: ${OS_ID} ${OS_VERSION_ID}"

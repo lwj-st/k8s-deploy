@@ -36,6 +36,18 @@ download_from_manifest() {
       continue
     fi
 
+    # 无校验值的本地预置制品不下载，也不能用 md5 判定是否需要重下。
+    if [ "${md5}" = "__LOCAL_ONLY__" ]; then
+      if [ -f "${path}" ]; then
+        log_info "[SKIP] 本地预置制品（无 md5）: ${path}"
+        skipped=$((skipped+1))
+      else
+        log_warn "[LOCAL-ONLY] 缺少本地预置制品，无法自动下载: ${path} (name=${name})"
+        no_url=$((no_url+1))
+      fi
+      continue
+    fi
+
     # 已存在：按开关决定跳过或校验
     if [ -f "${path}" ]; then
       if [ "${MAAS_MD5_CHECK:-0}" = "1" ]; then

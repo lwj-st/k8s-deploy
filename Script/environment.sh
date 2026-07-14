@@ -7,7 +7,6 @@
 ## Notes:
 ##   - 通常由 01-Cluster-host.sh 生成
 ################################################################################
-export DOWNLOAD_DIR="/data/download"
 export K8S_VERSION="1.31.11"
 export POD_CIDR="10.112.0.0/16"
 export SERVICE_CIDR="10.96.0.0/12"

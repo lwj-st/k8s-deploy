@@ -23,16 +23,24 @@ default_ip() {
   fi
 }
 
-read -r -p "下载目录 DOWNLOAD_DIR (默认: /data/download): " DOWNLOAD_DIR
-DOWNLOAD_DIR="${DOWNLOAD_DIR:-/data/download}"
+trim_whitespace() {
+  local value="$1"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "${value}"
+}
 
 read -r -p "K8S_VERSION (默认: 1.31.11): " K8S_VERSION
+K8S_VERSION="$(trim_whitespace "${K8S_VERSION}")"
 K8S_VERSION="${K8S_VERSION:-1.31.11}"
+[[ "${K8S_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "K8S_VERSION 格式应为 x.y.z"
 
 read -r -p "Pod CIDR (默认: 10.112.0.0/16): " POD_CIDR
+POD_CIDR="$(trim_whitespace "${POD_CIDR}")"
 POD_CIDR="${POD_CIDR:-10.112.0.0/16}"
 
 read -r -p "Service CIDR (默认: 10.96.0.0/12): " SERVICE_CIDR
+SERVICE_CIDR="$(trim_whitespace "${SERVICE_CIDR}")"
 SERVICE_CIDR="${SERVICE_CIDR:-10.96.0.0/12}"
 
 # Calico IP 自动探测方式（可选）
@@ -41,29 +49,40 @@ SERVICE_CIDR="${SERVICE_CIDR:-10.96.0.0/12}"
 #   can-reach=10.0.0.1
 # 默认: interface=bond0（如不符合你环境，请在此处修改）
 read -r -p "Calico IP 网卡名 (默认: bond0): " CALICO_IP_AUTODETECTION_METHOD
+CALICO_IP_AUTODETECTION_METHOD="$(trim_whitespace "${CALICO_IP_AUTODETECTION_METHOD}")"
 CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD:-bond0}"
 
 ip_guess="$(default_ip || true)"
 read -r -p "API advertise 地址 (默认: ${ip_guess:-空，需要你填}): " API_ADVERTISE_ADDRESS
+API_ADVERTISE_ADDRESS="$(trim_whitespace "${API_ADVERTISE_ADDRESS}")"
 API_ADVERTISE_ADDRESS="${API_ADVERTISE_ADDRESS:-$ip_guess}"
 if [ -z "${API_ADVERTISE_ADDRESS}" ]; then
   die "必须提供 API_ADVERTISE_ADDRESS"
 fi
 
 read -r -p "镜像仓库 IMAGE_REPOSITORY (默认: registry.cn-hangzhou.aliyuncs.com/google_containers): " IMAGE_REPOSITORY
+IMAGE_REPOSITORY="$(trim_whitespace "${IMAGE_REPOSITORY}")"
 IMAGE_REPOSITORY="${IMAGE_REPOSITORY:-registry.cn-hangzhou.aliyuncs.com/google_containers}"
 
 read -r -p "是否允许在线安装 OS 依赖/ kube 包？ALLOW_ONLINE (yes/no, 默认: no): " ALLOW_ONLINE
+ALLOW_ONLINE="$(trim_whitespace "${ALLOW_ONLINE}")"
 ALLOW_ONLINE="${ALLOW_ONLINE:-no}"
+case "${ALLOW_ONLINE}" in
+  yes|no) : ;;
+  *) die "ALLOW_ONLINE 只能是 yes 或 no" ;;
+esac
 
 read -r -p "Ingress 节点名（kubectl node 名，默认: $(hostname | tr '[:upper:]' '[:lower:]')）: " INGRESS_NODE_NAME
+INGRESS_NODE_NAME="$(trim_whitespace "${INGRESS_NODE_NAME}")"
 INGRESS_NODE_NAME="${INGRESS_NODE_NAME:-$(hostname | tr '[:upper:]' '[:lower:]')}"
 
 read -r -p "Grafana Ingress 域名 GRAFANA_INGRESS_HOST (默认: grafana.sensecorex.com): " GRAFANA_INGRESS_HOST
+GRAFANA_INGRESS_HOST="$(trim_whitespace "${GRAFANA_INGRESS_HOST}")"
 GRAFANA_INGRESS_HOST="${GRAFANA_INGRESS_HOST:-grafana.sensecorex.com}"
 
 # MD5 校验开关（默认开启，便于发现坏包/截断包）
 read -r -p "下载/校验开关 MAAS_MD5_CHECK (1=开启校验,0=关闭, 默认: 1): " MAAS_MD5_CHECK
+MAAS_MD5_CHECK="$(trim_whitespace "${MAAS_MD5_CHECK}")"
 MAAS_MD5_CHECK="${MAAS_MD5_CHECK:-1}"
 case "${MAAS_MD5_CHECK}" in
   0|1) : ;;
@@ -74,6 +93,7 @@ esac
 # - NFS_SERVER: NFS 服务端 IP/域名（必须是已完成 export 的 NFS 服务端）
 # - NFS_PATH: 服务端导出的目录路径
 read -r -p "是否部署 NFS 动态供给器？DEPLOY_NFS (yes/no, 默认: no): " DEPLOY_NFS
+DEPLOY_NFS="$(trim_whitespace "${DEPLOY_NFS}")"
 DEPLOY_NFS="${DEPLOY_NFS:-no}"
 case "${DEPLOY_NFS}" in
   yes|no) : ;;
@@ -89,8 +109,10 @@ if [ "${DEPLOY_NFS}" = "yes" ]; then
   fi
   # 默认：如果你要部署 NFS，则默认使用当前控制节点 IP + /data/nfs
   read -r -p "NFS Server（用于 nfs-provisioner，默认: ${API_ADVERTISE_ADDRESS}）: " NFS_SERVER
+  NFS_SERVER="$(trim_whitespace "${NFS_SERVER}")"
   NFS_SERVER="${NFS_SERVER:-${API_ADVERTISE_ADDRESS}}"
   read -r -p "NFS Export Path（用于 nfs-provisioner，默认: ${nfs_path_guess}）: " NFS_PATH
+  NFS_PATH="$(trim_whitespace "${NFS_PATH}")"
   NFS_PATH="${NFS_PATH:-$nfs_path_guess}"
 
   if [ -z "${NFS_SERVER}" ] || [ -z "${NFS_PATH}" ]; then
@@ -100,9 +122,10 @@ fi
 
 # containerd 数据目录（镜像与元数据存储，默认 /var/lib/containerd）
 read -r -p "是否修改 containerd 数据目录？(直接回车=不修改使用默认 /var/lib/containerd；输入路径如 /data/containerd 则生效): " CONTAINERD_ROOT
+CONTAINERD_ROOT="$(trim_whitespace "${CONTAINERD_ROOT}")"
 CONTAINERD_ROOT="${CONTAINERD_ROOT:-}"
 
-cat > "${SCRIPT_DIR}/environment.sh" <<EOF
+cat > "${SCRIPT_DIR}/environment.sh" <<'EOF'
 #!/usr/bin/env bash
 ################################################################################
 ## Filename:    environment.sh
@@ -112,20 +135,29 @@ cat > "${SCRIPT_DIR}/environment.sh" <<EOF
 ## Notes:
 ##   - 通常由 01-Cluster-host.sh 生成
 ################################################################################
-export DOWNLOAD_DIR="${DOWNLOAD_DIR}"
-export K8S_VERSION="${K8S_VERSION}"
-export POD_CIDR="${POD_CIDR}"
-export SERVICE_CIDR="${SERVICE_CIDR}"
-export API_ADVERTISE_ADDRESS="${API_ADVERTISE_ADDRESS}"
-export IMAGE_REPOSITORY="${IMAGE_REPOSITORY}"
-export CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD}"
-export ALLOW_ONLINE="${ALLOW_ONLINE}"
-export INGRESS_NODE_NAME="${INGRESS_NODE_NAME}"
-export GRAFANA_INGRESS_HOST="${GRAFANA_INGRESS_HOST}"
-export MAAS_MD5_CHECK="${MAAS_MD5_CHECK}"
-export NFS_SERVER="${NFS_SERVER}"
-export NFS_PATH="${NFS_PATH}"
-export CONTAINERD_ROOT="${CONTAINERD_ROOT:-}"
+EOF
+
+write_env_var() {
+  printf 'export %s=%q\n' "$1" "$2"
+}
+
+{
+  write_env_var K8S_VERSION "${K8S_VERSION}"
+  write_env_var POD_CIDR "${POD_CIDR}"
+  write_env_var SERVICE_CIDR "${SERVICE_CIDR}"
+  write_env_var API_ADVERTISE_ADDRESS "${API_ADVERTISE_ADDRESS}"
+  write_env_var IMAGE_REPOSITORY "${IMAGE_REPOSITORY}"
+  write_env_var CALICO_IP_AUTODETECTION_METHOD "${CALICO_IP_AUTODETECTION_METHOD}"
+  write_env_var ALLOW_ONLINE "${ALLOW_ONLINE}"
+  write_env_var INGRESS_NODE_NAME "${INGRESS_NODE_NAME}"
+  write_env_var GRAFANA_INGRESS_HOST "${GRAFANA_INGRESS_HOST}"
+  write_env_var MAAS_MD5_CHECK "${MAAS_MD5_CHECK}"
+  write_env_var NFS_SERVER "${NFS_SERVER}"
+  write_env_var NFS_PATH "${NFS_PATH}"
+  write_env_var CONTAINERD_ROOT "${CONTAINERD_ROOT}"
+} >> "${SCRIPT_DIR}/environment.sh"
+
+cat >> "${SCRIPT_DIR}/environment.sh" <<'EOF'
 
 # 说明：MAAS_MD5_CHECK=1 时 verify/download 会强校验 md5；=0 时存在即跳过（更快但不防坏包）
 # CONTAINERD_ROOT 非空时，11-Install-containerd.sh 将把 containerd 数据目录设为该路径（默认 /var/lib/containerd）

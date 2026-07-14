@@ -27,7 +27,7 @@ if [ "${OS_TYPE}" = "debian" ]; then
   TOOLS_OS_DIR="ubuntu"
   DOWNLOAD_OS_TYPE="ubuntu"
 fi
-OUTPUT_DIR="${2:-/data/download/packages/${TOOLS_OS_DIR}/tools}"
+OUTPUT_DIR="${2:-$(artifact_get_os_tools_dir "${TOOLS_OS_DIR}")}"
 
 # Docker 镜像映射（RPM 系与 00-Download-k8s-packages-docker.sh 一致；ubuntu 为官方镜像）
 declare -A DOCKER_IMAGES=(
