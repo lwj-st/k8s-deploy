@@ -13,9 +13,9 @@ description: Use when creating or editing k8s-deploy shell scripts, especially s
 2. 非 `00` 开头脚本必须优先以 `manifests/artifacts.yaml` 为准。
 3. 所有离线制品、离线包目录和镜像 tar 路径都必须在 `manifests/artifacts.yaml` 声明，并通过 `framework.sh` 中的 helper 获取：
    - 优先用 `artifact_get_path_by_name "<artifact-name>"`。
-   - OS 相关 Kubernetes 包目录用 `artifact_get_os_kubernetes_dir "<os_id>"`。
-   - OS 相关常用工具目录用 `artifact_get_os_tools_dir "<os_id>"`。
-   - NVIDIA toolkit 目录用 `artifact_get_nvidia_toolkit_dir "<os_id>"`。
+   - OS 相关 Kubernetes 包目录用 `artifact_get_os_kubernetes_dir "<os_id>" "<os_version>"`。
+   - OS 相关常用工具目录用 `artifact_get_os_tools_dir "<os_id>" "<os_version>"`。
+   - NVIDIA toolkit 目录用 `artifact_get_nvidia_toolkit_dir "<os_id>" "<os_version>"`。
 4. 清单的 `path` 使用绝对路径。路径迁移时只修改 `manifests/artifacts.yaml` 对应条目，脚本不得使用 `DOWNLOAD_DIR` 或硬编码 `/data/download/...`。
 5. `00` 开头脚本保留用户传入的输出目录参数；未传入时也必须从清单中的目录制品取得默认值。
 6. 脚本只要会部署或应用依赖镜像的组件，就必须在脚本内先 import 需要的离线镜像 tar，不能只依赖 `12-Load-images.sh`。
@@ -29,6 +29,10 @@ description: Use when creating or editing k8s-deploy shell scripts, especially s
    - 标头字段与镜像兜底检查放在 `tests/check_script_standards.sh`。
    - `DOWNLOAD_DIR` 和直接 `/data/download` 路径检查放在 `tests/check_download_dir_usage.sh`。
    - `00` 下载脚本、`12-Load-images.sh`、公共库脚本不按普通部署脚本检查镜像兜底。
+8. OS 离线包必须按 `os_id + os_version + amd64` 精确区分；支持矩阵和下载容器镜像只维护在 `manifests/artifacts.yaml` 的 `platforms` 中。
+   - `01-Cluster-host.sh` 必须展示自动识别的版本，并要求用户从当前 OS 的支持列表选择 `TARGET_OS_VERSION`。
+   - 后续脚本只使用 `TARGET_OS_VERSION` 选择离线包；不允许以自动识别版本覆盖用户选择。
+   - 不在支持列表中的 OS 或版本必须退出，不能回退到其他发行版或版本；Debian 不作为受支持目标系统。
 
 ## 脚本标头
 

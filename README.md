@@ -52,20 +52,17 @@ bash 01-Cluster-host.sh
 **方式 1：在对应 OS 环境直接下载**
 
 ```bash
-# Ubuntu/Debian
-bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
+# Ubuntu 22.04
+bash 00-Download-k8s-packages.sh ubuntu 22.04 /data/download/packages/ubuntu/22.04/kubernetes
 
-# CentOS
-bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
+# Rocky 9.3
+bash 00-Download-k8s-packages.sh rocky 9.3 /data/download/packages/rocky/9.3/kubernetes
 
-# Rocky
-bash 00-Download-k8s-packages.sh rocky /data/download/packages/rocky/kubernetes
+# openEuler 24.03 LTS SP4
+bash 00-Download-k8s-packages.sh openeuler 24.03-lts-sp4 /data/download/packages/openeuler/24.03-lts-sp4/kubernetes
 
-# OpenEuler
-bash 00-Download-k8s-packages.sh openeuler /data/download/packages/openeuler/kubernetes
-
-# Kylin
-bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
+# Kylin V10 SP3
+bash 00-Download-k8s-packages.sh kylin v10-sp3 /data/download/packages/kylin/v10-sp3/kubernetes
 ```
 
 **方式 2：使用 Docker 容器模拟（推荐，无需对应 OS 环境）**
@@ -73,17 +70,17 @@ bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
 如果没有对应的 OS 环境，可以使用 Docker 容器来模拟：
 
 ```bash
-# CentOS
-bash 00-Download-k8s-packages-docker.sh centos /data/download/packages/centos/kubernetes 1.31.11
+# Ubuntu 22.04
+bash 00-Download-k8s-packages-docker.sh ubuntu 22.04 /data/download/packages/ubuntu/22.04/kubernetes 1.31.11
 
-# Rocky
-bash 00-Download-k8s-packages-docker.sh rocky /data/download/packages/rocky/kubernetes 1.31.11
+# Rocky 9.3
+bash 00-Download-k8s-packages-docker.sh rocky 9.3 /data/download/packages/rocky/9.3/kubernetes 1.31.11
 
-# OpenEuler
-bash 00-Download-k8s-packages-docker.sh openeuler /data/download/packages/openeuler/kubernetes 1.31.11
+# openEuler 24.03 LTS SP4
+bash 00-Download-k8s-packages-docker.sh openeuler 24.03-lts-sp4 /data/download/packages/openeuler/24.03-lts-sp4/kubernetes 1.31.11
 
-# Kylin
-bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kubernetes 1.31.11
+# Kylin V10 SP3
+bash 00-Download-k8s-packages-docker.sh kylin v10-sp3 /data/download/packages/kylin/v10-sp3/kubernetes 1.31.11
 
 ```
 
@@ -91,15 +88,11 @@ bash 00-Download-k8s-packages-docker.sh kylin /data/download/packages/kylin/kube
 - 脚本会在有网络的机器上配置 Kubernetes 官方仓库并下载所有依赖包
 - Docker 方式会自动拉取对应的 OS 镜像并在容器内执行下载
 - 下载完成后，将目录复制到离线环境
-- 默认下载版本为 `v1.31.11`，第三个参数可省略；文档中显式写出是为了避免歧义
+- 默认下载版本为 `v1.31.11`，第四个参数可省略；文档中显式写出是为了避免歧义
 - 下载的包会自动包含所有依赖（如 cri-tools、kubernetes-cni 等）
-- 包兼容性建议：
-  - `ubuntu|debian`：共享同一套目录（如 `/data/download/packages/ubuntu/kubernetes`）
-  - `centos`：独立目录（`/data/download/packages/centos/kubernetes`）
-  - `rocky`：独立目录（`/data/download/packages/rocky/kubernetes`）
-  - `openeuler`：建议使用独立目录，不与 centos 系混用
-  - `kylin`：建议使用独立目录，不与 centos 系混用
-- `kylin` 默认使用 `macrosan/kylin`
+- 包必须按 `发行版 + 精确版本` 使用对应目录，例如 `/data/download/packages/rocky/9.3/kubernetes`；不匹配时脚本会退出，不会回退到其他版本或发行版。
+- 支持平台、绝对路径和下载容器镜像均以 `manifests/artifacts.yaml` 的 `platforms` 为准；当前仅支持 amd64。
+- Debian 不作为受支持目标系统。
 
 按清单下载缺失制品（离线环境可跳过下载，仅作为"补齐工具"）：
 
@@ -337,5 +330,4 @@ sudo -E bash Script/11-Install-containerd.sh
    sudo ctr -n k8s.io images ls
    ```
    若之前做过镜像导入，应仍能看到镜像列表。
-
 

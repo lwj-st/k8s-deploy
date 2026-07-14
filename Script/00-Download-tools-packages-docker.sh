@@ -3,14 +3,12 @@
 ## Filename:    00-Download-tools-packages-docker.sh
 ## Description: 使用 Docker/Podman 容器下载常用工具离线安装包
 ## Usage:
-##   bash 00-Download-tools-packages-docker.sh [centos|rocky|openeuler|kylin|ubuntu|debian] [输出目录]
+##   bash 00-Download-tools-packages-docker.sh <os_id> <os_version> [输出目录]
 ## Examples:
-##   bash 00-Download-tools-packages-docker.sh centos /data/download/packages/centos/tools
-##   bash 00-Download-tools-packages-docker.sh rocky /data/download/packages/rocky/tools
-##   bash 00-Download-tools-packages-docker.sh openeuler /data/download/packages/openeuler/tools
-##   bash 00-Download-tools-packages-docker.sh kylin /data/download/packages/kylin/tools
-##   bash 00-Download-tools-packages-docker.sh ubuntu /data/download/packages/ubuntu/tools
-##   bash 00-Download-tools-packages-docker.sh debian /data/download/packages/ubuntu/tools
+##   bash 00-Download-tools-packages-docker.sh ubuntu 22.04 /data/download/packages/ubuntu/22.04/tools
+##   bash 00-Download-tools-packages-docker.sh rocky 9.3 /data/download/packages/rocky/9.3/tools
+##   bash 00-Download-tools-packages-docker.sh openeuler 24.03-lts-sp4 /data/download/packages/openeuler/24.03-lts-sp4/tools
+##   bash 00-Download-tools-packages-docker.sh kylin v10-sp3 /data/download/packages/kylin/v10-sp3/tools
 ## Notes:
 ##   - 适用于没有对应 OS 环境的下载场景
 ################################################################################
@@ -19,36 +17,18 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 
-OS_TYPE="${1:-centos}"
-TOOLS_OS_DIR="${OS_TYPE}"
+OS_TYPE="${1:?请指定 os_id}"
+OS_VERSION="${2:?请指定 os_version}"
+platform_is_supported "${OS_TYPE}" "${OS_VERSION}" || die "不支持的平台: ${OS_TYPE}-${OS_VERSION}"
 DOWNLOAD_OS_TYPE="${OS_TYPE}"
-if [ "${OS_TYPE}" = "debian" ]; then
-  # debian 与 ubuntu 共用目录与 apt 逻辑
-  TOOLS_OS_DIR="ubuntu"
-  DOWNLOAD_OS_TYPE="ubuntu"
-fi
-OUTPUT_DIR="${2:-$(artifact_get_os_tools_dir "${TOOLS_OS_DIR}")}"
+OUTPUT_DIR="${3:-$(artifact_get_os_tools_dir "${OS_TYPE}" "${OS_VERSION}")}"
 
-# Docker 镜像映射（RPM 系与 00-Download-k8s-packages-docker.sh 一致；ubuntu 为官方镜像）
-declare -A DOCKER_IMAGES=(
-  ["centos"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:centos-7"
-  ["rocky"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:rockylinux-8"
-  ["openeuler"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:openeuler-22.03"
-  ["kylin"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:kylin-v10-sp3-2403"
-  ["ubuntu"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
-  ["debian"]="registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:ubuntu-22.04"
-)
-
-if [ -z "${DOCKER_IMAGES[${OS_TYPE}]:-}" ]; then
-  die "不支持的 OS_TYPE: ${OS_TYPE}。支持: centos|rocky|openeuler|kylin|ubuntu|debian"
-fi
-
-DOCKER_IMAGE="${DOCKER_IMAGES[${OS_TYPE}]}"
+DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}")"
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "使用 Docker 容器下载常用工具离线安装包"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "OS 类型: ${OS_TYPE}"
+log_info "目标平台: ${OS_TYPE}-${OS_VERSION}"
 log_info "Docker 镜像: ${DOCKER_IMAGE}"
 log_info "输出目录: ${OUTPUT_DIR}"
 log_info ""
@@ -198,6 +178,12 @@ REPO_EOF
       sed -i 's|^mirrorlist=|#mirrorlist=|' /etc/yum.repos.d/epel*.repo 2>/dev/null || true
     fi
     log "CentOS 7 镜像源与 EPEL 配置完成"
+  elif [ "${CENTOS_VERSION}" = "8" ]; then
+    log "检测到 CentOS 8，切换到 8.3.2011 Vault 源..."
+    sed -i \
+      -e 's|^mirrorlist=|#mirrorlist=|g' \
+      -e 's|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=https://vault.centos.org/8.3.2011|g' \
+      /etc/yum.repos.d/CentOS-*.repo 2>/dev/null || true
   fi
 fi
 

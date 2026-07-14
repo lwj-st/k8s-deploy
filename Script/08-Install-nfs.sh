@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 08-Install-nfs.sh
 ## Artifacts:
-##   - os.dir.tools.<ubuntu|centos|rocky|openeuler|kylin>
+##   - os.dir.tools.<os_id>.<os_version>
 ## Env:
 ##   - NFS_SERVER/NFS_PATH: 为空时跳过
 ## Notes:
@@ -65,7 +65,7 @@ fi
 # 判断当前是否已安装 NFS 服务端（dpkg -l 未安装时也返回 0 且列出 un 状态，须看 Status）
 nfs_installed=0
 case "${OS_ID}" in
-  ubuntu|debian)
+  ubuntu)
     if dpkg-query -W -f='${Status}' nfs-kernel-server 2>/dev/null | grep -q 'install ok installed'; then
       nfs_installed=1
     fi
@@ -88,7 +88,7 @@ esac
 if [ "$nfs_installed" -eq 1 ]; then
   log_info "NFS 服务端（${nfs_pkg_name}）已安装，跳过安装步骤"
 else
-  tools_base="$(artifact_get_os_tools_dir "${OS_ID}")"
+  tools_base="$(artifact_get_os_tools_dir "${OS_ID}" "${TARGET_OS_VERSION}")"
 
   nfs_dir="${tools_base}/${tools_subdir}"
   if [ ! -d "${nfs_dir}" ]; then
@@ -96,7 +96,7 @@ else
   fi
 
   case "${OS_ID}" in
-    ubuntu|debian)
+    ubuntu)
       install_ubuntu_debs_from_dir "${nfs_dir}"
       ;;
     *)

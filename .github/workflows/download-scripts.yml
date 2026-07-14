@@ -9,17 +9,43 @@ on:
       - 'Script/00-Download-k8s-packages-docker.sh'
       - 'Script/00-Download-tools-packages-docker.sh'
       - 'Script/00-Download-nvidia-packages-docker.sh'
+      - 'Script/framework.sh'
+      - 'manifests/artifacts.yaml'
       - '.github/workflows/download-scripts.yml'
 
 jobs:
   download:
-    name: "${{ matrix.script }} / ${{ matrix.os }}"
+    name: "${{ matrix.script }} / ${{ matrix.os }}-${{ matrix.os_version }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         script: [k8s, tools, nvidia]
-        os: [centos, rocky, openeuler, kylin, ubuntu]
+        include:
+          - os: ubuntu
+            os_version: "22.04"
+          - os: ubuntu
+            os_version: "24.04"
+          - os: ubuntu
+            os_version: "26.04"
+          - os: centos
+            os_version: "8"
+          - os: rocky
+            os_version: "9"
+          - os: rocky
+            os_version: "9.3"
+          - os: rocky
+            os_version: "10"
+          - os: openeuler
+            os_version: "24.03"
+          - os: openeuler
+            os_version: "24.03-lts-sp4"
+          - os: kylin
+            os_version: "v10-sp1"
+          - os: kylin
+            os_version: "v10-sp2"
+          - os: kylin
+            os_version: "v10-sp3"
     env:
       K8S_VERSION: "1.31.11"
     steps:
@@ -29,19 +55,19 @@ jobs:
       - name: Run download and verify
         run: |
           set -e
-          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}"
+          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}-${{ matrix.os_version }}"
           rm -rf "$OUT"
           mkdir -p "$OUT"
 
           case "${{ matrix.script }}" in
             k8s)
-              bash Script/00-Download-k8s-packages-docker.sh "${{ matrix.os }}" "$OUT" "$K8S_VERSION"
+              bash Script/00-Download-k8s-packages-docker.sh "${{ matrix.os }}" "${{ matrix.os_version }}" "$OUT" "$K8S_VERSION"
               ;;
             tools)
-              bash Script/00-Download-tools-packages-docker.sh "${{ matrix.os }}" "$OUT"
+              bash Script/00-Download-tools-packages-docker.sh "${{ matrix.os }}" "${{ matrix.os_version }}" "$OUT"
               ;;
             nvidia)
-              bash Script/00-Download-nvidia-packages-docker.sh "${{ matrix.os }}" "$OUT"
+              bash Script/00-Download-nvidia-packages-docker.sh "${{ matrix.os }}" "${{ matrix.os_version }}" "$OUT"
               ;;
             *)
               echo "unknown matrix.script"
@@ -72,4 +98,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}"
+        run: sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}-${{ matrix.os_version }}"

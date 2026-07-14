@@ -30,6 +30,44 @@ trim_whitespace() {
   printf '%s' "${value}"
 }
 
+select_target_os_version() {
+  local selected=""
+  local prompt_default=""
+  local supported_versions=""
+
+  detect_os
+  supported_versions="$(platform_get_supported_versions "${OS_ID}" | paste -sd ',')"
+  [ -n "${supported_versions}" ] || die "当前系统 ${OS_ID} 不在支持列表中"
+
+  log_info "检测到本机系统: ${OS_ID_RAW} ${OS_VERSION_ID}${OS_VERSION_NAME:+ (${OS_VERSION_NAME})}"
+  log_info "识别的平台版本: ${OS_VERSION_DETECTED}"
+  log_info "${OS_ID} 支持的离线包版本: ${supported_versions}"
+
+  if platform_is_supported "${OS_ID}" "${OS_VERSION_DETECTED}"; then
+    prompt_default="${OS_VERSION_DETECTED}"
+  else
+    log_warn "识别的平台版本 ${OS_VERSION_DETECTED} 不在支持列表中，请手动选择目标离线包版本"
+  fi
+
+  while true; do
+    read -r -p "目标 OS_VERSION（${supported_versions}${prompt_default:+，默认: ${prompt_default}}）: " selected
+    selected="$(trim_whitespace "${selected}")"
+    selected="${selected:-${prompt_default}}"
+
+    if [ -z "${selected}" ]; then
+      log_warn "必须输入支持的目标 OS_VERSION"
+      continue
+    fi
+    if platform_is_supported "${OS_ID}" "${selected}"; then
+      TARGET_OS_VERSION="${selected}"
+      return 0
+    fi
+    log_warn "不支持的 ${OS_ID} OS_VERSION=${selected}；可选值: ${supported_versions}"
+  done
+}
+
+select_target_os_version
+
 read -r -p "K8S_VERSION (默认: 1.31.11): " K8S_VERSION
 K8S_VERSION="$(trim_whitespace "${K8S_VERSION}")"
 K8S_VERSION="${K8S_VERSION:-1.31.11}"
@@ -143,6 +181,7 @@ write_env_var() {
 
 {
   write_env_var K8S_VERSION "${K8S_VERSION}"
+  write_env_var TARGET_OS_VERSION "${TARGET_OS_VERSION}"
   write_env_var POD_CIDR "${POD_CIDR}"
   write_env_var SERVICE_CIDR "${SERVICE_CIDR}"
   write_env_var API_ADVERTISE_ADDRESS "${API_ADVERTISE_ADDRESS}"

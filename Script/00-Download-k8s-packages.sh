@@ -3,13 +3,12 @@
 ## Filename:    00-Download-k8s-packages.sh
 ## Description: 下载 Kubernetes 离线安装包（deb/rpm）
 ## Usage:
-##   bash 00-Download-k8s-packages.sh [ubuntu|centos|rocky|openeuler|kylin] [输出目录]
+##   bash 00-Download-k8s-packages.sh <os_id> <os_version> [输出目录]
 ## Examples:
-##   bash 00-Download-k8s-packages.sh ubuntu /data/download/packages/ubuntu/kubernetes
-##   bash 00-Download-k8s-packages.sh centos /data/download/packages/centos/kubernetes
-##   bash 00-Download-k8s-packages.sh rocky /data/download/packages/rocky/kubernetes
-##   bash 00-Download-k8s-packages.sh openeuler /data/download/packages/openeuler/kubernetes
-##   bash 00-Download-k8s-packages.sh kylin /data/download/packages/kylin/kubernetes
+##   bash 00-Download-k8s-packages.sh ubuntu 22.04 /data/download/packages/ubuntu/22.04/kubernetes
+##   bash 00-Download-k8s-packages.sh rocky 9.3 /data/download/packages/rocky/9.3/kubernetes
+##   bash 00-Download-k8s-packages.sh openeuler 24.03-lts-sp4 /data/download/packages/openeuler/24.03-lts-sp4/kubernetes
+##   bash 00-Download-k8s-packages.sh kylin v10-sp3 /data/download/packages/kylin/v10-sp3/kubernetes
 ## Notes:
 ##   - 需在与目标离线环境相同或兼容的发行版上执行
 ################################################################################
@@ -26,35 +25,18 @@ detect_os
 
 # 解析参数
 OS_TYPE="${1:-${OS_ID}}"
-OUTPUT_DIR="${2:-}"
+OS_VERSION="${2:-${OS_VERSION_DETECTED}}"
+platform_is_supported "${OS_TYPE}" "${OS_VERSION}" || die "不支持的平台: ${OS_TYPE}-${OS_VERSION}"
+OUTPUT_DIR="${3:-}"
 
 if [ -z "${OUTPUT_DIR}" ]; then
-  case "${OS_TYPE}" in
-    ubuntu|debian)
-      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "ubuntu")"
-      ;;
-    centos)
-      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "centos")"
-      ;;
-    rocky)
-      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "rocky")"
-      ;;
-    openeuler)
-      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "openeuler")"
-      ;;
-    kylin*)
-      OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "kylin")"
-      ;;
-    *)
-      die "不支持的 OS 类型: ${OS_TYPE}"
-      ;;
-  esac
+  OUTPUT_DIR="$(artifact_get_os_kubernetes_dir "${OS_TYPE}" "${OS_VERSION}")"
 fi
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "下载 Kubernetes ${K8S_VERSION} 离线安装包"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "OS 类型: ${OS_TYPE}"
+log_info "目标平台: ${OS_TYPE}-${OS_VERSION}"
 log_info "输出目录: ${OUTPUT_DIR}"
 log_info ""
 
@@ -185,7 +167,7 @@ download_kylin_rpms() {
 }
 
 case "${OS_TYPE}" in
-  ubuntu|debian)
+  ubuntu)
     download_ubuntu_debs
     ;;
   centos|rocky)

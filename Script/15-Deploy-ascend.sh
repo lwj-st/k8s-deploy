@@ -42,8 +42,8 @@ collect_ascend_pkgs() {
   [ -d "${ascend_pkg_dir}" ] || die "缺少 Ascend 离线包目录: ${ascend_pkg_dir}"
 
   case "${OS_ID}" in
-    ubuntu|debian) suffix=".deb" ;;
-    centos|rocky|openeuler|kylin*) suffix=".rpm" ;;
+    ubuntu) suffix=".deb" ;;
+    centos|rocky|openeuler|kylin) suffix=".rpm" ;;
     *) die "不支持的 OS_ID=${OS_ID}（请扩展 collect_ascend_pkgs 的 OS 映射）" ;;
   esac
 
@@ -104,10 +104,10 @@ install_ascend_toolkit_rpm() {
 ################################################################################
 install_ascend_toolkit() {
   case "${OS_ID}" in
-    ubuntu|debian)
+    ubuntu)
       install_ascend_toolkit_deb
       ;;
-    centos|rocky|openeuler|kylin*)
+    centos|rocky|openeuler|kylin)
       install_ascend_toolkit_rpm
       ;;
     *)

@@ -1,5 +1,57 @@
 yaml_content: "k8s-deploy 制品清单（已配置 url + md5；本地预置制品 md5=__LOCAL_ONLY__；dir md5=__DIR__）"
 
+# OS 离线包支持矩阵。version 是用户在 01-Cluster-host.sh 中选择的目标版本，
+# download_image 是 00 下载脚本使用的 amd64 容器镜像。
+platforms:
+  - os_id: ubuntu
+    os_version: "22.04"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:22.04"
+  - os_id: ubuntu
+    os_version: "24.04"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:24.04"
+  - os_id: ubuntu
+    os_version: "26.04"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:26.04"
+  - os_id: centos
+    os_version: "8"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/centos:8"
+  - os_id: rocky
+    os_version: "9"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9"
+  - os_id: rocky
+    os_version: "9.3"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.3"
+  - os_id: rocky
+    os_version: "10"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:10"
+  - os_id: openeuler
+    os_version: "24.03"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03"
+  - os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4"
+  - os_id: kylin
+    os_version: "v10-sp1"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp1"
+  - os_id: kylin
+    os_version: "v10-sp2"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp2"
+  - os_id: kylin
+    os_version: "v10-sp3"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp3"
+
 artifacts:
   - module: base
     type: file
@@ -282,48 +334,135 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.ubuntu
-    path: /data/download/nvidia/ubuntu
+    name: nvidia.dir.toolkit.ubuntu.22.04
+    path: /data/download/nvidia/ubuntu/22.04
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for ubuntu/debian"
+    description: "nvidia toolkit offline packages for ubuntu 22.04"
     os_id: ubuntu
+    os_version: "22.04"
+    arch: amd64
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.centos
-    path: /data/download/nvidia/centos
+    name: nvidia.dir.toolkit.ubuntu.24.04
+    path: /data/download/nvidia/ubuntu/24.04
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for centos"
+    description: "nvidia toolkit offline packages for ubuntu 24.04"
+    os_id: ubuntu
+    os_version: "24.04"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.ubuntu.26.04
+    path: /data/download/nvidia/ubuntu/26.04
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for ubuntu 26.04"
+    os_id: ubuntu
+    os_version: "26.04"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.centos.8
+    path: /data/download/nvidia/centos/8
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for centos 8"
     os_id: centos
+    os_version: "8"
+    arch: amd64
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.rocky
-    path: /data/download/nvidia/rocky
+    name: nvidia.dir.toolkit.rocky.9
+    path: /data/download/nvidia/rocky/9
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for rocky"
+    description: "nvidia toolkit offline packages for rocky 9"
     os_id: rocky
+    os_version: "9"
+    arch: amd64
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.openeuler
-    path: /data/download/nvidia/openeuler
+    name: nvidia.dir.toolkit.rocky.9.3
+    path: /data/download/nvidia/rocky/9.3
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for openeuler"
+    description: "nvidia toolkit offline packages for rocky 9.3"
+    os_id: rocky
+    os_version: "9.3"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.rocky.10
+    path: /data/download/nvidia/rocky/10
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for rocky 10"
+    os_id: rocky
+    os_version: "10"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.openeuler.24.03
+    path: /data/download/nvidia/openeuler/24.03
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for openeuler 24.03"
     os_id: openeuler
+    os_version: "24.03"
+    arch: amd64
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.kylin
-    path: /data/download/nvidia/kylin
+    name: nvidia.dir.toolkit.openeuler.24.03-lts-sp4
+    path: /data/download/nvidia/openeuler/24.03-lts-sp4
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for kylin"
+    description: "nvidia toolkit offline packages for openeuler 24.03-lts-sp4"
+    os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin.v10-sp1
+    path: /data/download/nvidia/kylin/v10-sp1
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin v10-sp1"
     os_id: kylin
+    os_version: "v10-sp1"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin.v10-sp2
+    path: /data/download/nvidia/kylin/v10-sp2
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin v10-sp2"
+    os_id: kylin
+    os_version: "v10-sp2"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin.v10-sp3
+    path: /data/download/nvidia/kylin/v10-sp3
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin v10-sp3"
+    os_id: kylin
+    os_version: "v10-sp3"
+    arch: amd64
 
   - module: nvidia
     type: file
@@ -408,93 +547,267 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.ubuntu
-    path: /data/download/packages/ubuntu/kubernetes
+    name: os.dir.kubernetes.ubuntu.22.04
+    path: /data/download/packages/ubuntu/22.04/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline Kubernetes packages for ubuntu/debian"
+    description: "offline Kubernetes packages for ubuntu 22.04"
     os_id: ubuntu
+    os_version: "22.04"
+    arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.centos
-    path: /data/download/packages/centos/kubernetes
+    name: os.dir.tools.ubuntu.22.04
+    path: /data/download/packages/ubuntu/22.04/tools
     url: ""
     md5: "__DIR__"
-    description: "offline Kubernetes packages for centos"
-    os_id: centos
-
-  - module: os
-    type: dir
-    name: os.dir.kubernetes.rocky
-    path: /data/download/packages/rocky/kubernetes
-    url: ""
-    md5: "__DIR__"
-    description: "offline Kubernetes packages for rocky"
-    os_id: rocky
-
-  - module: os
-    type: dir
-    name: os.dir.kubernetes.openeuler
-    path: /data/download/packages/openeuler/kubernetes
-    url: ""
-    md5: "__DIR__"
-    description: "offline Kubernetes packages for openeuler"
-    os_id: openeuler
-
-  - module: os
-    type: dir
-    name: os.dir.kubernetes.kylin
-    path: /data/download/packages/kylin/kubernetes
-    url: ""
-    md5: "__DIR__"
-    description: "offline Kubernetes packages for kylin"
-    os_id: kylin
-
-  - module: os
-    type: dir
-    name: os.dir.tools.ubuntu
-    path: /data/download/packages/ubuntu/tools
-    url: ""
-    md5: "__DIR__"
-    description: "offline tools packages for ubuntu/debian"
+    description: "offline tools packages for ubuntu 22.04"
     os_id: ubuntu
+    os_version: "22.04"
+    arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.centos
-    path: /data/download/packages/centos/tools
+    name: os.dir.kubernetes.ubuntu.24.04
+    path: /data/download/packages/ubuntu/24.04/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for centos"
+    description: "offline Kubernetes packages for ubuntu 24.04"
+    os_id: ubuntu
+    os_version: "24.04"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.ubuntu.24.04
+    path: /data/download/packages/ubuntu/24.04/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for ubuntu 24.04"
+    os_id: ubuntu
+    os_version: "24.04"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.ubuntu.26.04
+    path: /data/download/packages/ubuntu/26.04/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for ubuntu 26.04"
+    os_id: ubuntu
+    os_version: "26.04"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.ubuntu.26.04
+    path: /data/download/packages/ubuntu/26.04/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for ubuntu 26.04"
+    os_id: ubuntu
+    os_version: "26.04"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.centos.8
+    path: /data/download/packages/centos/8/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for centos 8"
     os_id: centos
+    os_version: "8"
+    arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.rocky
-    path: /data/download/packages/rocky/tools
+    name: os.dir.tools.centos.8
+    path: /data/download/packages/centos/8/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for rocky"
+    description: "offline tools packages for centos 8"
+    os_id: centos
+    os_version: "8"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.9
+    path: /data/download/packages/rocky/9/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 9"
     os_id: rocky
+    os_version: "9"
+    arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.openeuler
-    path: /data/download/packages/openeuler/tools
+    name: os.dir.tools.rocky.9
+    path: /data/download/packages/rocky/9/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for openeuler"
+    description: "offline tools packages for rocky 9"
+    os_id: rocky
+    os_version: "9"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.9.3
+    path: /data/download/packages/rocky/9.3/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 9.3"
+    os_id: rocky
+    os_version: "9.3"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky.9.3
+    path: /data/download/packages/rocky/9.3/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky 9.3"
+    os_id: rocky
+    os_version: "9.3"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.10
+    path: /data/download/packages/rocky/10/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 10"
+    os_id: rocky
+    os_version: "10"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky.10
+    path: /data/download/packages/rocky/10/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky 10"
+    os_id: rocky
+    os_version: "10"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler.24.03
+    path: /data/download/packages/openeuler/24.03/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler 24.03"
     os_id: openeuler
+    os_version: "24.03"
+    arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.kylin
-    path: /data/download/packages/kylin/tools
+    name: os.dir.tools.openeuler.24.03
+    path: /data/download/packages/openeuler/24.03/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for kylin"
+    description: "offline tools packages for openeuler 24.03"
+    os_id: openeuler
+    os_version: "24.03"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler.24.03-lts-sp4
+    path: /data/download/packages/openeuler/24.03-lts-sp4/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler 24.03-lts-sp4"
+    os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.openeuler.24.03-lts-sp4
+    path: /data/download/packages/openeuler/24.03-lts-sp4/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for openeuler 24.03-lts-sp4"
+    os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin.v10-sp1
+    path: /data/download/packages/kylin/v10-sp1/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin v10-sp1"
     os_id: kylin
+    os_version: "v10-sp1"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin.v10-sp1
+    path: /data/download/packages/kylin/v10-sp1/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin v10-sp1"
+    os_id: kylin
+    os_version: "v10-sp1"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin.v10-sp2
+    path: /data/download/packages/kylin/v10-sp2/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin v10-sp2"
+    os_id: kylin
+    os_version: "v10-sp2"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin.v10-sp2
+    path: /data/download/packages/kylin/v10-sp2/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin v10-sp2"
+    os_id: kylin
+    os_version: "v10-sp2"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin.v10-sp3
+    path: /data/download/packages/kylin/v10-sp3/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin v10-sp3"
+    os_id: kylin
+    os_version: "v10-sp3"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin.v10-sp3
+    path: /data/download/packages/kylin/v10-sp3/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin v10-sp3"
+    os_id: kylin
+    os_version: "v10-sp3"
+    arch: amd64
 
   - module: minio
     type: tar

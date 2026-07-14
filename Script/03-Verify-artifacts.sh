@@ -27,12 +27,12 @@ verify_manifest() {
       continue
     fi
 
-    # 带 os_id 的目录仅校验当前 OS 对应条目。
+    # 带 os_id 的目录仅校验当前 OS 和目标版本对应的条目。
     if [ "${type}" = "dir" ] && [ -n "${os_id}" ]; then
-      case "${OS_ID}" in
-        debian) [ "${os_id}" = "ubuntu" ] || continue ;;
-        kylin*) [ "${os_id}" = "kylin" ] || continue ;;
-        *) [ "${OS_ID}" = "${os_id}" ] || continue ;;
+      [ "${OS_ID}" = "${os_id}" ] || continue
+      case "${name}" in
+        *."${TARGET_OS_VERSION}") ;;
+        *) continue ;;
       esac
     fi
 
