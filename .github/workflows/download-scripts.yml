@@ -25,7 +25,7 @@ jobs:
           - ubuntu:22.04
           - ubuntu:24.04
           - ubuntu:26.04
-          - centos:8
+          - centos:7
           - rocky:9
           - rocky:9.3
           - rocky:10

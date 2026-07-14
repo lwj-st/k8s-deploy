@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp_file="$(mktemp)"
 trap 'rm -f "${tmp_file}"' EXIT
 
-rg -n 'DOWNLOAD_DIR' "${ROOT_DIR}/Script" \
+grep -R -n --include='*.sh' 'DOWNLOAD_DIR' "${ROOT_DIR}/Script" \
   > "${tmp_file}" || true
 
 if [ -s "${tmp_file}" ]; then
@@ -15,7 +15,7 @@ if [ -s "${tmp_file}" ]; then
   exit 1
 fi
 
-rg -n '/data/download' "${ROOT_DIR}/Script" \
+grep -R -n --include='*.sh' '/data/download' "${ROOT_DIR}/Script" \
   | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
   > "${tmp_file}" || true
 
