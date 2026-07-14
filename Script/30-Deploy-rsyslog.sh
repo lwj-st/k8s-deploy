@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 30-Deploy-rsyslog.sh
 ## Artifacts:
-##   - os.dir.tools.<ubuntu|centos|rocky|openeuler|kylin>
+##   - os.dir.tools.<os_id>.<os_version>
 ##
 ##   bash 30-Deploy-rsyslog.sh client  #把当前机器配置成日志发送节点。 需要每个节点都执行一次。
 ##   bash 30-Deploy-rsyslog.sh server  #把当前机器配置成日志服务器。
@@ -50,8 +50,13 @@ source "${SCRIPT_DIR}/framework.sh"
 # 本脚本需要在初始化早期读取父进程环境，因此不直接调用 init_framework。
 get_cur_path
 init_logging
+if [ -f "${SCRIPT_DIR}/environment.sh" ]; then
+  # shellcheck disable=SC1090
+  source "${SCRIPT_DIR}/environment.sh"
+fi
 detect_os
-log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
+require_target_platform
+log_info "OS: ${OS_ID} ${OS_VERSION_DETECTED}（目标离线包版本: ${TARGET_OS_VERSION}）"
 require_root
 
 # 若当前进程未带 RSYSLOG_LOG_SERVER（例如从非 root 经 su 进入 root 时父 shell 曾 export），从父进程链 /proc/*/environ 尝试读取（仅 Linux）。
@@ -244,28 +249,12 @@ detect_pkg_manager() {
   fi
 }
 
-# 离线目录与 00-Download-tools-packages-docker 支持的 OS 子目录一致；未单独列出的 RHEL 系发行版按与 rocky 兼容处理。
-# 与 manifests/artifacts.yaml 中 os.dir.kubernetes 的 path（一般为 .../packages）约定一致。
+# 离线目录必须与 manifests/artifacts.yaml 中的精确 OS 版本条目一致。
 offline_rsyslog_dir() {
   local base
   case "${OS_ID:-}" in
-    ubuntu|debian)
-      base="$(artifact_get_os_tools_dir "ubuntu")"
-      ;;
-    centos)
-      base="$(artifact_get_os_tools_dir "centos")"
-      ;;
-    rocky|rhel|almalinux|eurolinux|oraclelinux|miraclelinux|azurelinux|anolis)
-      base="$(artifact_get_os_tools_dir "rocky")"
-      ;;
-    amzn)
-      base="$(artifact_get_os_tools_dir "centos")"
-      ;;
-    openeuler)
-      base="$(artifact_get_os_tools_dir "openeuler")"
-      ;;
-    kylin*)
-      base="$(artifact_get_os_tools_dir "kylin")"
+    ubuntu|centos|rocky|openeuler|kylin)
+      base="$(artifact_get_os_tools_dir "${OS_ID}" "${TARGET_OS_VERSION}")"
       ;;
     *)
       die "未识别的 OS_ID=${OS_ID:-unknown}，无法确定 rsyslog 离线包目录。请补充 manifests/artifacts.yaml 中的 OS 工具目录，或扩展本脚本的 OS 映射。"
@@ -279,7 +268,7 @@ offline_rsyslog_hint() {
   log_error "rsyslog 在线安装失败，现场可能是断网环境。"
   log_error "请在离线制品目录准备 rsyslog 安装包: ${dir}"
   case "${OS_ID:-}" in
-    ubuntu|debian)
+    ubuntu)
       log_error "目录内需有 .deb；脚本会自动合并同级工具目录下的包: rsyslog/、rsyslog-gnutls/、logrotate/、openssl/（与 00-Download-tools-packages 按工具分子目录的布局一致）。"
       log_error "若仍有缺依赖，请把对应 .deb 放进上述任一目录后重跑。"
       ;;
@@ -297,7 +286,7 @@ install_rsyslog_offline() {
   [ -d "${dir}" ] || die "离线包目录不存在: ${dir}"
 
   case "${OS_ID:-}" in
-    ubuntu|debian)
+    ubuntu)
       local tools_parent sd d
       tools_parent="$(dirname "${dir}")"
       declare -a deb_dirs=("${dir}")
@@ -416,7 +405,7 @@ install_packages() {
   fi
   if ! rsyslog_gnutls_available; then
     case "${OS_ID:-}" in
-      ubuntu|debian)
+      ubuntu)
         die "rsyslog 未检测到 GnuTLS 支持（TLS 须安装 rsyslog-gnutls）。离线时请保证 tools/rsyslog-gnutls/ 下有对应 .deb（脚本会与 tools/rsyslog/、logrotate/、openssl/ 一并 dpkg -i）。有网机器可在该目录执行: apt-get download rsyslog-gnutls 及依赖。仅需明文 TCP 时可设 RSYSLOG_TRANSPORT=plain。"
         ;;
       *)
@@ -479,7 +468,7 @@ require_log_server() {
 
 os_family() {
   case "${OS_ID:-}" in
-    ubuntu|debian) printf '%s\n' "debian" ;;
+    ubuntu) printf '%s\n' "debian" ;;
     *) printf '%s\n' "rhel" ;;
   esac
 }

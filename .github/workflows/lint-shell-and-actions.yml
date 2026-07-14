@@ -6,6 +6,8 @@ on:
       - 'Script/**'
       - 'Check/**'
       - 'common/**'
+      - 'manifests/artifacts.yaml'
+      - 'tests/**'
       - '.github/workflows/**'
   push:
     branches:
@@ -14,6 +16,8 @@ on:
       - 'Script/**'
       - 'Check/**'
       - 'common/**'
+      - 'manifests/artifacts.yaml'
+      - 'tests/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
@@ -71,6 +75,12 @@ jobs:
         run: |
           set -euo pipefail
           xargs -r -d '\n' shellcheck -x -e SC1091 < /tmp/changed_shell.txt
+
+      - name: Check script standards and platform paths
+        run: |
+          set -euo pipefail
+          bash tests/check_script_standards.sh
+          bash tests/check_download_dir_usage.sh
 
       - name: Lint GitHub Actions
         if: steps.changed.outputs.workflow_count != '0'

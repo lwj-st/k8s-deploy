@@ -148,13 +148,37 @@ detect_os() {
   if [ -r /etc/os-release ]; then
     # shellcheck disable=SC1091
     . /etc/os-release
-    OS_ID="${ID:-unknown}"
+    OS_ID_RAW="${ID:-unknown}"
     OS_VERSION_ID="${VERSION_ID:-unknown}"
+    OS_VERSION_NAME="${VERSION:-}"
   else
-    OS_ID="unknown"
+    OS_ID_RAW="unknown"
     OS_VERSION_ID="unknown"
+    OS_VERSION_NAME=""
   fi
-  export OS_ID OS_VERSION_ID
+
+  OS_ID="$(printf '%s' "${OS_ID_RAW}" | tr '[:upper:]' '[:lower:]')"
+  case "${OS_ID}" in
+    kylin*) OS_ID="kylin" ;;
+  esac
+  OS_VERSION_DETECTED="$(normalize_os_version "${OS_ID}" "${OS_VERSION_ID}" "${OS_VERSION_NAME}")"
+  export OS_ID OS_ID_RAW OS_VERSION_ID OS_VERSION_NAME OS_VERSION_DETECTED
+}
+
+# 将 /etc/os-release 中的版本统一为清单使用的平台版本标识。
+normalize_os_version() {
+  local os_id="$1" version_id="$2" version_name="$3"
+  local normalized
+  local version_name_lower
+  normalized="$(printf '%s' "${version_id}" | tr '[:upper:]' '[:lower:]')"
+  version_name_lower="$(printf '%s' "${version_name}" | tr '[:upper:]' '[:lower:]')"
+
+  if [ "${os_id}" = "openeuler" ] && [[ "${version_name_lower}" =~ ([0-9]+\.[0-9]+).*lts[-[:space:]]*sp([0-9]+) ]]; then
+    printf '%s-lts-sp%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+    return 0
+  fi
+
+  printf '%s\n' "${normalized}"
 }
 
 cleanup_kube_iptables() {
@@ -281,6 +305,60 @@ artifact_get_path_by_name() {
   printf '%s\n' "${found}"
 }
 
+# 输出清单中某个发行版可选的目标版本，每行一个。
+platform_get_supported_versions() {
+  local os_id="$1"
+  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
+  [ -n "${os_id}" ] || die "platform_get_supported_versions: os_id 不能为空"
+
+  awk -v wanted="${os_id}" '
+    function trim(s){ gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    function stripq(s){ s=trim(s); gsub(/^["\047]|["\047]$/, "", s); return s }
+    /^platforms:/ { in_platforms=1; next }
+    /^artifacts:/ { in_platforms=0 }
+    !in_platforms { next }
+    /^[[:space:]]*-[[:space:]]+os_id:/ {
+      id=$0; sub(/^[[:space:]]*-[[:space:]]+os_id:[[:space:]]*/, "", id); id=stripq(id); next
+    }
+    id == wanted && /^[[:space:]]+os_version:/ {
+      version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", version); print stripq(version)
+    }
+  ' "${manifest}"
+}
+
+platform_is_supported() {
+  local os_id="$1" os_version="$2"
+  platform_get_supported_versions "${os_id}" | grep -Fxq "${os_version}"
+}
+
+platform_get_download_image() {
+  local os_id="$1" os_version="$2"
+  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
+  local image=""
+
+  image="$(awk -v wanted_id="${os_id}" -v wanted_version="${os_version}" '
+    function trim(s){ gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    function stripq(s){ s=trim(s); gsub(/^["\047]|["\047]$/, "", s); return s }
+    function emit(){ if (id == wanted_id && version == wanted_version) { print image; emitted=1 } }
+    /^platforms:/ { in_platforms=1; next }
+    /^artifacts:/ { if (in_platforms) emit(); exit }
+    !in_platforms { next }
+    /^[[:space:]]*-[[:space:]]+os_id:/ {
+      emit(); id=$0; sub(/^[[:space:]]*-[[:space:]]+os_id:[[:space:]]*/, "", id); id=stripq(id); version=image=""; next
+    }
+    /^[[:space:]]+os_version:/ { version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", version); version=stripq(version); next }
+    /^[[:space:]]+download_image:/ { image=$0; sub(/^[[:space:]]+download_image:[[:space:]]*/, "", image); image=stripq(image); next }
+    END { if (in_platforms && !emitted) emit() }
+  ' "${manifest}")"
+  [ -n "${image}" ] || die "不支持的平台: ${os_id}-${os_version}"
+  printf '%s\n' "${image}"
+}
+
+require_target_platform() {
+  [ -n "${TARGET_OS_VERSION:-}" ] || die "未配置 TARGET_OS_VERSION，请先执行 01-Cluster-host.sh"
+  platform_is_supported "${OS_ID}" "${TARGET_OS_VERSION}" || die "不支持的平台: ${OS_ID}-${TARGET_OS_VERSION}；支持版本: $(platform_get_supported_versions "${OS_ID}" | paste -sd ',')"
+}
+
 ################################################################################
 # Function: artifact_get_path
 # Description: 从 manifests/artifacts.yaml 中按（module/type/description）精确查找制品 path
@@ -325,13 +403,9 @@ artifact_get_path() {
 #   $1 os_id  - ubuntu/centos/rocky/kylin/openeuler...
 ################################################################################
 artifact_get_os_kubernetes_dir() {
-  local os_id="$1"
-  [ -n "${os_id}" ] || die "artifact_get_os_kubernetes_dir: os_id 不能为空"
-  case "${os_id}" in
-    debian) os_id="ubuntu" ;;
-    kylin*) os_id="kylin" ;;
-  esac
-  artifact_get_path_by_name "os.dir.kubernetes.${os_id}"
+  local os_id="$1" os_version="$2"
+  [ -n "${os_id}" ] && [ -n "${os_version}" ] || die "artifact_get_os_kubernetes_dir: os_id/os_version 不能为空"
+  artifact_get_path_by_name "os.dir.kubernetes.${os_id}.${os_version}"
 }
 
 ################################################################################
@@ -339,13 +413,9 @@ artifact_get_os_kubernetes_dir() {
 # Description: 从清单读取当前 OS 的常用工具离线包目录
 ################################################################################
 artifact_get_os_tools_dir() {
-  local os_id="$1"
-  [ -n "${os_id}" ] || die "artifact_get_os_tools_dir: os_id 不能为空"
-  case "${os_id}" in
-    debian) os_id="ubuntu" ;;
-    kylin*) os_id="kylin" ;;
-  esac
-  artifact_get_path_by_name "os.dir.tools.${os_id}"
+  local os_id="$1" os_version="$2"
+  [ -n "${os_id}" ] && [ -n "${os_version}" ] || die "artifact_get_os_tools_dir: os_id/os_version 不能为空"
+  artifact_get_path_by_name "os.dir.tools.${os_id}.${os_version}"
 }
 
 ################################################################################
@@ -353,13 +423,9 @@ artifact_get_os_tools_dir() {
 # Description: 从清单读取当前 OS 的 NVIDIA Container Toolkit 离线包目录
 ################################################################################
 artifact_get_nvidia_toolkit_dir() {
-  local os_id="$1"
-  [ -n "${os_id}" ] || die "artifact_get_nvidia_toolkit_dir: os_id 不能为空"
-  case "${os_id}" in
-    debian) os_id="ubuntu" ;;
-    kylin*) os_id="kylin" ;;
-  esac
-  artifact_get_path_by_name "nvidia.dir.toolkit.${os_id}"
+  local os_id="$1" os_version="$2"
+  [ -n "${os_id}" ] && [ -n "${os_version}" ] || die "artifact_get_nvidia_toolkit_dir: os_id/os_version 不能为空"
+  artifact_get_path_by_name "nvidia.dir.toolkit.${os_id}.${os_version}"
 }
 
 init_framework() {
@@ -372,5 +438,6 @@ init_framework() {
   source "${SCRIPT_DIR}/environment.sh"
 
   detect_os
-  log_info "OS: ${OS_ID} ${OS_VERSION_ID}"
+  require_target_platform
+  log_info "OS: ${OS_ID} ${OS_VERSION_DETECTED}（目标离线包版本: ${TARGET_OS_VERSION}）"
 }

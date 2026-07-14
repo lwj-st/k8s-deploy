@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 13-Install-k8s-packages.sh
 ## Artifacts:
-##   - os.dir.kubernetes.<ubuntu|centos|rocky|openeuler|kylin>
+##   - os.dir.kubernetes.<os_id>.<os_version>
 ## Env:
 ##   - ALLOW_ONLINE: yes 时允许部分在线兜底
 ################################################################################
@@ -46,8 +46,8 @@ if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
 fi
 
 case "${OS_ID}" in
-  ubuntu|debian)
-    deb_dir="$(artifact_get_os_kubernetes_dir "ubuntu")"
+  ubuntu)
+    deb_dir="$(artifact_get_os_kubernetes_dir "${OS_ID}" "${TARGET_OS_VERSION}")"
     if [ -d "${deb_dir}" ]; then
       install_offline_debs "${deb_dir}"
     elif [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
@@ -59,18 +59,8 @@ case "${OS_ID}" in
       die "缺少离线包目录：${deb_dir}（并且 ALLOW_ONLINE=no）"
     fi
     ;;
-  centos|rocky|openeuler|kylin*)
-    # 统一走 rpm 目录（从清单中按 os_id 取）
-    rpm_dir=""
-    if [ "${OS_ID}" = "openeuler" ]; then
-      rpm_dir="$(artifact_get_os_kubernetes_dir "openeuler")"
-    elif [[ "${OS_ID}" == kylin* ]]; then
-      rpm_dir="$(artifact_get_os_kubernetes_dir "kylin")"
-    elif [ "${OS_ID}" = "rocky" ]; then
-      rpm_dir="$(artifact_get_os_kubernetes_dir "rocky")"
-    else
-      rpm_dir="$(artifact_get_os_kubernetes_dir "centos")"
-    fi
+  centos|rocky|openeuler|kylin)
+    rpm_dir="$(artifact_get_os_kubernetes_dir "${OS_ID}" "${TARGET_OS_VERSION}")"
 
     if [ -d "${rpm_dir}" ]; then
       install_offline_rpms "${rpm_dir}"
