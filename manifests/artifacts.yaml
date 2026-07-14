@@ -500,8 +500,9 @@ artifacts:
     type: tar
     name: ascend.image.device-plugin.v3.0.0
     path: /data/download/ascend/ascend-k8sdeviceplugin-v3.0.0.tar
-    url: ""
-    md5: "__LOCAL_ONLY__"
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/ascend/ascend-k8sdeviceplugin-v3.0.0.tar"
+    base_url: "docker.io/library/ascend-k8sdeviceplugin:v3.0.0"
+    md5: "80ad84dae4da03230d76021c0d3be05d"
     description: "Ascend device-plugin image tar; obtain from the Ascend image source and place locally"
 
   - module: dcu
