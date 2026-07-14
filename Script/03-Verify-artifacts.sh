@@ -20,6 +20,7 @@ source "${SCRIPT_DIR}/framework.sh"
 verify_manifest() {
   local manifest="$1"
   local missing=0
+  local current_os_id="${OS_ID:-}"
   while IFS=$'\x1f' read -r module type name path _url md5 desc os_id; do
     [ -n "${module}" ] || continue
 
@@ -29,7 +30,7 @@ verify_manifest() {
 
     # 带 os_id 的目录仅校验当前 OS 和目标版本对应的条目。
     if [ "${type}" = "dir" ] && [ -n "${os_id}" ]; then
-      [ "${OS_ID}" = "${os_id}" ] || continue
+      [ "${current_os_id}" = "${os_id}" ] || continue
       case "${name}" in
         *."${TARGET_OS_VERSION}") ;;
         *) continue ;;

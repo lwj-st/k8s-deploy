@@ -15,37 +15,25 @@ on:
 
 jobs:
   download:
-    name: "${{ matrix.script }} / ${{ matrix.os }}-${{ matrix.os_version }}"
+    name: "${{ matrix.script }} / ${{ matrix.platform }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         script: [k8s, tools, nvidia]
-        include:
-          - os: ubuntu
-            os_version: "22.04"
-          - os: ubuntu
-            os_version: "24.04"
-          - os: ubuntu
-            os_version: "26.04"
-          - os: centos
-            os_version: "8"
-          - os: rocky
-            os_version: "9"
-          - os: rocky
-            os_version: "9.3"
-          - os: rocky
-            os_version: "10"
-          - os: openeuler
-            os_version: "24.03"
-          - os: openeuler
-            os_version: "24.03-lts-sp4"
-          - os: kylin
-            os_version: "v10-sp1"
-          - os: kylin
-            os_version: "v10-sp2"
-          - os: kylin
-            os_version: "v10-sp3"
+        platform:
+          - ubuntu:22.04
+          - ubuntu:24.04
+          - ubuntu:26.04
+          - centos:8
+          - rocky:9
+          - rocky:9.3
+          - rocky:10
+          - openeuler:24.03
+          - openeuler:24.03-lts-sp4
+          - kylin:v10-sp1
+          - kylin:v10-sp2
+          - kylin:v10-sp3
     env:
       K8S_VERSION: "1.31.11"
     steps:
@@ -55,19 +43,22 @@ jobs:
       - name: Run download and verify
         run: |
           set -e
-          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}-${{ matrix.os_version }}"
+          platform="${{ matrix.platform }}"
+          os_id="${platform%%:*}"
+          os_version="${platform#*:}"
+          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${os_id}-${os_version}"
           rm -rf "$OUT"
           mkdir -p "$OUT"
 
           case "${{ matrix.script }}" in
             k8s)
-              bash Script/00-Download-k8s-packages-docker.sh "${{ matrix.os }}" "${{ matrix.os_version }}" "$OUT" "$K8S_VERSION"
+              bash Script/00-Download-k8s-packages-docker.sh "$os_id" "$os_version" "$OUT" "$K8S_VERSION"
               ;;
             tools)
-              bash Script/00-Download-tools-packages-docker.sh "${{ matrix.os }}" "${{ matrix.os_version }}" "$OUT"
+              bash Script/00-Download-tools-packages-docker.sh "$os_id" "$os_version" "$OUT"
               ;;
             nvidia)
-              bash Script/00-Download-nvidia-packages-docker.sh "${{ matrix.os }}" "${{ matrix.os_version }}" "$OUT"
+              bash Script/00-Download-nvidia-packages-docker.sh "$os_id" "$os_version" "$OUT"
               ;;
             *)
               echo "unknown matrix.script"
@@ -76,13 +67,13 @@ jobs:
           esac
 
           if [ "${{ matrix.script }}" = "tools" ]; then
-            if [ "${{ matrix.os }}" = "ubuntu" ]; then
+            if [ "$os_id" = "ubuntu" ]; then
               count=$(find "$OUT" -mindepth 2 -maxdepth 2 -name '*.deb' 2>/dev/null | wc -l)
             else
               count=$(find "$OUT" -mindepth 2 -maxdepth 2 -name '*.rpm' 2>/dev/null | wc -l)
             fi
           else
-            if [ "${{ matrix.os }}" = "ubuntu" ]; then
+            if [ "$os_id" = "ubuntu" ]; then
               count=$(find "$OUT" -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
             else
               count=$(find "$OUT" -maxdepth 1 -name '*.rpm' 2>/dev/null | wc -l)
@@ -90,7 +81,7 @@ jobs:
           fi
 
           if [ "${count:-0}" -lt 1 ]; then
-            echo "ERROR: 下载后无包 script=${{ matrix.script }} os=${{ matrix.os }} dir=$OUT"
+            echo "ERROR: 下载后无包 script=${{ matrix.script }} platform=${os_id}-${os_version} dir=$OUT"
             exit 1
           fi
           echo "OK: ${count} 个包"
@@ -98,4 +89,6 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${{ matrix.os }}-${{ matrix.os_version }}"
+        run: |
+          platform="${{ matrix.platform }}"
+          sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${platform%%:*}-${platform#*:}"
