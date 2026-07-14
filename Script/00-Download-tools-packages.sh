@@ -213,6 +213,7 @@ REPO_EOF
       fi
     elif [ "${CENTOS_VERSION}" = "8" ]; then
       log_info "检测到 CentOS 8，切换到 8.3.2011 Vault 源..."
+      # shellcheck disable=SC2016 # sed 需要匹配 repo 文件中的字面量 $contentdir/$releasever。
       sed -i \
         -e 's|^mirrorlist=|#mirrorlist=|g' \
         -e 's|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=https://vault.centos.org/8.3.2011|g' \

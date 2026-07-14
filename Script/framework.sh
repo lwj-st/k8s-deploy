@@ -16,6 +16,8 @@ K8S_DEPLOY_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_DIR="/var/lib/k8s-deploy"
 BACKUPS_FILE="${STATE_DIR}/backups.tsv"
 STATE_FILE="${STATE_DIR}/state.env"
+# 供 source framework.sh 的脚本安全引用；init_framework/detect_os 会覆盖实际值。
+OS_ID=""
 
 mkdir -p "${STATE_DIR}" >/dev/null 2>&1 || true
 
@@ -404,7 +406,9 @@ artifact_get_path() {
 ################################################################################
 artifact_get_os_kubernetes_dir() {
   local os_id="$1" os_version="$2"
-  [ -n "${os_id}" ] && [ -n "${os_version}" ] || die "artifact_get_os_kubernetes_dir: os_id/os_version 不能为空"
+  if [ -z "${os_id}" ] || [ -z "${os_version}" ]; then
+    die "artifact_get_os_kubernetes_dir: os_id/os_version 不能为空"
+  fi
   artifact_get_path_by_name "os.dir.kubernetes.${os_id}.${os_version}"
 }
 
@@ -414,7 +418,9 @@ artifact_get_os_kubernetes_dir() {
 ################################################################################
 artifact_get_os_tools_dir() {
   local os_id="$1" os_version="$2"
-  [ -n "${os_id}" ] && [ -n "${os_version}" ] || die "artifact_get_os_tools_dir: os_id/os_version 不能为空"
+  if [ -z "${os_id}" ] || [ -z "${os_version}" ]; then
+    die "artifact_get_os_tools_dir: os_id/os_version 不能为空"
+  fi
   artifact_get_path_by_name "os.dir.tools.${os_id}.${os_version}"
 }
 
@@ -424,7 +430,9 @@ artifact_get_os_tools_dir() {
 ################################################################################
 artifact_get_nvidia_toolkit_dir() {
   local os_id="$1" os_version="$2"
-  [ -n "${os_id}" ] && [ -n "${os_version}" ] || die "artifact_get_nvidia_toolkit_dir: os_id/os_version 不能为空"
+  if [ -z "${os_id}" ] || [ -z "${os_version}" ]; then
+    die "artifact_get_nvidia_toolkit_dir: os_id/os_version 不能为空"
+  fi
   artifact_get_path_by_name "nvidia.dir.toolkit.${os_id}.${os_version}"
 }
 
