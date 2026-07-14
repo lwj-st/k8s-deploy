@@ -934,7 +934,57 @@ ensure_client_ca() {
   die "缺少 ${RSYSLOG_SSL_DIR}/ca.crt。RSYSLOG_TLS_AUTH_MODE=x509/name 时，请先在日志服务器执行本脚本生成 CA，再复制 ca.crt 到每个节点 ${RSYSLOG_SSL_DIR}/"
 }
 
+# Ubuntu AppArmor 默认 rsyslogd profile 不放行自定义 TLS 目录与非 /var/log 落盘目录，
+# 会导致 rsyslogd -N1 / 启动时报 Permission denied（dmesg 可见 apparmor="DENIED"）。
+ensure_rsyslog_apparmor() {
+  local profile="/etc/apparmor.d/usr.sbin.rsyslogd"
+  local local_override="/etc/apparmor.d/local/usr.sbin.rsyslogd"
+  local begin="# BEGIN k8s-deploy rsyslog paths"
+  local end="# END k8s-deploy rsyslog paths"
+  local tmp
+
+  [ -f "${profile}" ] || return 0
+  have apparmor_parser || return 0
+
+  # 使用 Ubuntu 站点本地覆盖约定；profile 中必须包含该 local override。
+  if ! grep -Eq '^[[:space:]]*#include[[:space:]]+<local/usr\.sbin\.rsyslogd>' "${profile}"; then
+    log_warn "AppArmor profile 未包含 local/usr.sbin.rsyslogd，无法自动放行 ${RSYSLOG_SSL_DIR}；请检查 ${profile}"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "${local_override}")"
+  tmp="$(mktemp)"
+  if [ -f "${local_override}" ]; then
+    awk -v begin="${begin}" -v end="${end}" '
+      $0 == begin { skip = 1; next }
+      $0 == end { skip = 0; next }
+      !skip { print }
+    ' "${local_override}" >"${tmp}"
+  fi
+  cat >>"${tmp}" <<EOF
+${begin}
+  ${RSYSLOG_SSL_DIR}/ r,
+  ${RSYSLOG_SSL_DIR}/** r,
+  ${RSYSLOG_LOG_DIR}/ rw,
+  ${RSYSLOG_LOG_DIR}/** rw,
+${end}
+EOF
+
+  if [ ! -f "${local_override}" ] || ! cmp -s "${local_override}" "${tmp}"; then
+    install -m 0644 "${tmp}" "${local_override}"
+    log_info "已更新 AppArmor rsyslogd 本地规则: ${local_override}"
+  fi
+  rm -f "${tmp}"
+
+  if apparmor_parser -r "${profile}" 2>/dev/null; then
+    log_info "已刷新 AppArmor rsyslogd 规则（放行 ${RSYSLOG_SSL_DIR} 与 ${RSYSLOG_LOG_DIR}）"
+  else
+    log_warn "apparmor_parser -r ${profile} 失败；若仍遇 TLS/日志目录 Permission denied，请手工检查 AppArmor"
+  fi
+}
+
 restart_rsyslog() {
+  ensure_rsyslog_apparmor
   log_command "rsyslogd -N1"
   if have systemctl; then
     log_command "systemctl enable --now rsyslog"
