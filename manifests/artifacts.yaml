@@ -18,7 +18,7 @@ platforms:
   - os_id: centos
     os_version: "8"
     arch: amd64
-    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/centos:8"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:8"
   - os_id: rocky
     os_version: "9"
     arch: amd64
