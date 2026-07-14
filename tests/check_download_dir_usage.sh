@@ -28,7 +28,11 @@ fi
 assert_path() {
   local helper="$1" expected="$2"
   local got
-  got="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; ${helper}")"
+  if ! got="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; ${helper}" 2>&1)"; then
+    echo "制品路径 helper 执行失败: ${helper}" >&2
+    printf '%s\n' "${got}" >&2
+    exit 1
+  fi
   if [ "${got}" != "${expected}" ]; then
     echo "制品路径 helper 返回错误: ${helper}; got=${got}; expected=${expected}" >&2
     exit 1

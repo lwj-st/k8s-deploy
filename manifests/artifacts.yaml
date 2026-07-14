@@ -367,13 +367,13 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.centos.8
-    path: /data/download/nvidia/centos/8
+    name: nvidia.dir.toolkit.centos.7
+    path: /data/download/nvidia/centos/7
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for centos 8"
+    description: "nvidia toolkit offline packages for centos 7"
     os_id: centos
-    os_version: "8"
+    os_version: "7"
     arch: amd64
 
   - module: nvidia
@@ -614,24 +614,24 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.centos.8
-    path: /data/download/packages/centos/8/kubernetes
+    name: os.dir.kubernetes.centos.7
+    path: /data/download/packages/centos/7/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline Kubernetes packages for centos 8"
+    description: "offline Kubernetes packages for centos 7"
     os_id: centos
-    os_version: "8"
+    os_version: "7"
     arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.centos.8
-    path: /data/download/packages/centos/8/tools
+    name: os.dir.tools.centos.7
+    path: /data/download/packages/centos/7/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for centos 8"
+    description: "offline tools packages for centos 7"
     os_id: centos
-    os_version: "8"
+    os_version: "7"
     arch: amd64
 
   - module: os
