@@ -70,12 +70,10 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   apt-get update -qq || true
   apt-get install -y curl ca-certificates gnupg lsb-release || true
 
-  distribution=$(. /etc/os-release; echo "${ID}${VERSION_ID}")
-
-  log "配置 NVIDIA libnvidia-container APT 源 (distribution=${distribution})..."
+  log "配置 NVIDIA libnvidia-container 通用 APT 源..."
   mkdir -p /usr/share/keyrings
   curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-  curl -fsSL "https://nvidia.github.io/libnvidia-container/${distribution}/libnvidia-container.list" \
+  curl -fsSL "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list" \
     | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
     > /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
