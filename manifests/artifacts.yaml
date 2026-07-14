@@ -16,9 +16,9 @@ platforms:
     arch: amd64
     download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:26.04"
   - os_id: centos
-    os_version: "8"
+    os_version: "7"
     arch: amd64
-    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:8"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:7"
   - os_id: rocky
     os_version: "9"
     arch: amd64
