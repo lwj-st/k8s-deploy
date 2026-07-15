@@ -249,17 +249,17 @@ log "下载包: ${PKG_NAMES}（版本 ${K8S_YUM_VERSION}）"
 if [ "${PKG_MGR}" = "dnf" ]; then
   if has_dnf_download; then
     log "使用 dnf download 下载..."
-    dnf download --resolve --alldeps --arch=x86_64 --enablerepo=kubernetes --disablerepo="*" \
+    dnf download --resolve --alldeps --arch=x86_64,noarch --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      dnf download --resolve --alldeps --arch=x86_64 ${PKG_NAMES_VERSIONED} 2>&1 || true
+      dnf download --resolve --alldeps --arch=x86_64,noarch ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   elif command -v yumdownloader &>/dev/null; then
     log "dnf download 不可用，回退使用 yumdownloader..."
-    yumdownloader --resolve --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
+    yumdownloader --resolve --archlist=x86_64,noarch --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
@@ -268,10 +268,10 @@ if [ "${PKG_MGR}" = "dnf" ]; then
 else
   if command -v yumdownloader &>/dev/null; then
     log "使用 yumdownloader 下载..."
-    yumdownloader --resolve --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
+    yumdownloader --resolve --archlist=x86_64,noarch --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   else
     log "错误: yumdownloader 不可用（应该在安装工具阶段已安装）"
