@@ -7,6 +7,7 @@ on:
       - 'Check/**'
       - 'common/**'
       - 'manifests/artifacts.yaml'
+      - 'config/package-repos/**'
       - 'tests/**'
       - '.github/workflows/**'
   push:
@@ -17,6 +18,7 @@ on:
       - 'Check/**'
       - 'common/**'
       - 'manifests/artifacts.yaml'
+      - 'config/package-repos/**'
       - 'tests/**'
       - '.github/workflows/**'
   workflow_dispatch:
@@ -81,6 +83,7 @@ jobs:
           set -euo pipefail
           bash tests/check_script_standards.sh
           bash tests/check_download_dir_usage.sh
+          bash -n config/package-repos/apply.sh
 
       - name: Lint GitHub Actions
         if: steps.changed.outputs.workflow_count != '0'

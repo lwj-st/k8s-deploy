@@ -24,6 +24,8 @@ platform_is_supported "${OS_TYPE}" "${OS_VERSION}" || die "不支持的平台: $
 OUTPUT_DIR="${3:-$(artifact_get_nvidia_toolkit_dir "${OS_TYPE}" "${OS_VERSION}")}"
 
 DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}")"
+REPO_CONFIG_DIR="${K8S_DEPLOY_ROOT}/config/package-repos"
+[ -f "${REPO_CONFIG_DIR}/apply.sh" ] || die "未找到软件源配置应用脚本: ${REPO_CONFIG_DIR}/apply.sh"
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "使用 Docker 容器下载 NVIDIA container toolkit 离线安装包"
@@ -52,13 +54,17 @@ cat > "${TMP_SCRIPT}" <<'SCRIPT_EOF'
 set -euo pipefail
 
 OS_TYPE="${1}"
+OS_VERSION="${2}"
 OUTPUT_DIR="/output"
+source /repo-config/nvidia/stable/repositories.env
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >&2
 }
 
 mkdir -p "${OUTPUT_DIR}"
+source /repo-config/apply.sh
+apply_package_repos "${OS_TYPE}" "${OS_VERSION}"
 
 ################################################################################
 # Ubuntu：apt 下载 NVIDIA container toolkit 相关 deb
@@ -72,8 +78,8 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
 
   log "配置 NVIDIA libnvidia-container 通用 APT 源..."
   mkdir -p /usr/share/keyrings
-  curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-  curl -fsSL "https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list" \
+  curl -fsSL "${NVIDIA_APT_KEY_URL}" | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  curl -fsSL "${NVIDIA_APT_LIST_URL}" \
     | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
     > /etc/apt/sources.list.d/nvidia-container-toolkit.list
 
@@ -132,51 +138,11 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
     exit 1
   fi
 
-  ##############################################################################
-  # CentOS 7: 配置 vault 源，避免访问 mirrorlist.centos.org 失败
-  ##############################################################################
-  if [ -f /etc/centos-release ]; then
-    CENTOS_VERSION=$(rpm -q --qf "%{VERSION}" "$(rpm -q --whatprovides /etc/redhat-release)" 2>/dev/null || echo "7")
-    if [ "${CENTOS_VERSION}" = "7" ]; then
-      log "检测到 CentOS 7，配置 vault 镜像源..."
-      mkdir -p /etc/yum.repos.d/backup
-      mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ 2>/dev/null || true
-      cat > /etc/yum.repos.d/CentOS-Base.repo <<'REPO_EOF'
-[base]
-name=CentOS-$releasever - Base
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/os/$basearch/
-gpgcheck=0
-enabled=1
-
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/updates/$basearch/
-gpgcheck=0
-enabled=1
-
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/extras/$basearch/
-gpgcheck=0
-enabled=1
-REPO_EOF
-      log "CentOS 7 vault 镜像源配置完成"
-    elif [ "${CENTOS_VERSION}" = "8" ]; then
-      log "检测到 CentOS 8，切换到 8.3.2011 Vault 源..."
-      # shellcheck disable=SC2016 # sed 需要匹配 repo 文件中的字面量 $contentdir/$releasever。
-      sed -i \
-        -e 's|^mirrorlist=|#mirrorlist=|g' \
-        -e 's|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=https://vault.centos.org/8.3.2011|g' \
-        /etc/yum.repos.d/CentOS-*.repo 2>/dev/null || true
-    fi
-  fi
-
   ${PKG_MGR} ${PKG_MGR_FLAGS} install -y curl ca-certificates || true
 
   # 对于 RPM 系发行版，官方推荐使用通用 stable 仓库
-  # https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo
   log "配置 NVIDIA libnvidia-container YUM/DNF 源 (stable/rpm)..."
-  curl -fsSL "https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo" \
+  curl -fsSL "${NVIDIA_RPM_REPO_URL}" \
     -o /etc/yum.repos.d/nvidia-container-toolkit.repo
 
   ${PKG_MGR} makecache || true
@@ -246,11 +212,12 @@ log_info "启动容器并下载 NVIDIA container toolkit 包..."
 log_info "（这可能需要几分钟，请耐心等待...）"
 
 run_container() {
-  ${DOCKER_CMD} run --rm \
+  ${DOCKER_CMD} run --rm --platform linux/amd64 \
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
+    -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${OS_TYPE}" || {
+    /bin/bash /download.sh "${OS_TYPE}" "${OS_VERSION}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
@@ -263,11 +230,12 @@ else
     run_container
   else
     log_warn "docker 可能需要 root，尝试 sudo..."
-    sudo ${DOCKER_CMD} run --rm \
+    sudo ${DOCKER_CMD} run --rm --platform linux/amd64 \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
+      -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${OS_TYPE}" || {
+      /bin/bash /download.sh "${OS_TYPE}" "${OS_VERSION}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可尝试: sudo usermod -aG docker $USER）"
     }

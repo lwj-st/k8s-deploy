@@ -16,21 +16,25 @@ platforms:
     arch: amd64
     download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:26.04"
   - os_id: centos
-    os_version: "7"
+    os_version: "7.9.2009"
     arch: amd64
-    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:7"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:7.9.2009"
+  - os_id: centos
+    os_version: "8.4.2105"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:8.4.2105"
   - os_id: rocky
-    os_version: "9"
+    os_version: "9.2"
     arch: amd64
-    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.2"
   - os_id: rocky
     os_version: "9.3"
     arch: amd64
     download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.3"
   - os_id: rocky
-    os_version: "10"
+    os_version: "10.2"
     arch: amd64
-    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:10"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:10.2"
   - os_id: openeuler
     os_version: "24.03"
     arch: amd64
@@ -367,24 +371,35 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.centos.7
-    path: /data/download/nvidia/centos/7
+    name: nvidia.dir.toolkit.centos.7.9.2009
+    path: /data/download/nvidia/centos/7.9.2009
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for centos 7"
+    description: "nvidia toolkit offline packages for centos 7.9.2009"
     os_id: centos
-    os_version: "7"
+    os_version: "7.9.2009"
     arch: amd64
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.rocky.9
-    path: /data/download/nvidia/rocky/9
+    name: nvidia.dir.toolkit.centos.8.4.2105
+    path: /data/download/nvidia/centos/8.4.2105
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for rocky 9"
+    description: "nvidia toolkit offline packages for centos 8.4.2105"
+    os_id: centos
+    os_version: "8.4.2105"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.rocky.9.2
+    path: /data/download/nvidia/rocky/9.2
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for rocky 9.2"
     os_id: rocky
-    os_version: "9"
+    os_version: "9.2"
     arch: amd64
 
   - module: nvidia
@@ -400,13 +415,13 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.rocky.10
-    path: /data/download/nvidia/rocky/10
+    name: nvidia.dir.toolkit.rocky.10.2
+    path: /data/download/nvidia/rocky/10.2
     url: ""
     md5: "__DIR__"
-    description: "nvidia toolkit offline packages for rocky 10"
+    description: "nvidia toolkit offline packages for rocky 10.2"
     os_id: rocky
-    os_version: "10"
+    os_version: "10.2"
     arch: amd64
 
   - module: nvidia
@@ -614,46 +629,68 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.centos.7
-    path: /data/download/packages/centos/7/kubernetes
+    name: os.dir.kubernetes.centos.7.9.2009
+    path: /data/download/packages/centos/7.9.2009/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline Kubernetes packages for centos 7"
+    description: "offline Kubernetes packages for centos 7.9.2009"
     os_id: centos
-    os_version: "7"
+    os_version: "7.9.2009"
     arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.centos.7
-    path: /data/download/packages/centos/7/tools
+    name: os.dir.tools.centos.7.9.2009
+    path: /data/download/packages/centos/7.9.2009/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for centos 7"
+    description: "offline tools packages for centos 7.9.2009"
     os_id: centos
-    os_version: "7"
+    os_version: "7.9.2009"
     arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.rocky.9
-    path: /data/download/packages/rocky/9/kubernetes
+    name: os.dir.kubernetes.centos.8.4.2105
+    path: /data/download/packages/centos/8.4.2105/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline Kubernetes packages for rocky 9"
-    os_id: rocky
-    os_version: "9"
+    description: "offline Kubernetes packages for centos 8.4.2105"
+    os_id: centos
+    os_version: "8.4.2105"
     arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.rocky.9
-    path: /data/download/packages/rocky/9/tools
+    name: os.dir.tools.centos.8.4.2105
+    path: /data/download/packages/centos/8.4.2105/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for rocky 9"
+    description: "offline tools packages for centos 8.4.2105"
+    os_id: centos
+    os_version: "8.4.2105"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.9.2
+    path: /data/download/packages/rocky/9.2/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 9.2"
     os_id: rocky
-    os_version: "9"
+    os_version: "9.2"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky.9.2
+    path: /data/download/packages/rocky/9.2/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky 9.2"
+    os_id: rocky
+    os_version: "9.2"
     arch: amd64
 
   - module: os
@@ -680,24 +717,24 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.rocky.10
-    path: /data/download/packages/rocky/10/kubernetes
+    name: os.dir.kubernetes.rocky.10.2
+    path: /data/download/packages/rocky/10.2/kubernetes
     url: ""
     md5: "__DIR__"
-    description: "offline Kubernetes packages for rocky 10"
+    description: "offline Kubernetes packages for rocky 10.2"
     os_id: rocky
-    os_version: "10"
+    os_version: "10.2"
     arch: amd64
 
   - module: os
     type: dir
-    name: os.dir.tools.rocky.10
-    path: /data/download/packages/rocky/10/tools
+    name: os.dir.tools.rocky.10.2
+    path: /data/download/packages/rocky/10.2/tools
     url: ""
     md5: "__DIR__"
-    description: "offline tools packages for rocky 10"
+    description: "offline tools packages for rocky 10.2"
     os_id: rocky
-    os_version: "10"
+    os_version: "10.2"
     arch: amd64
 
   - module: os

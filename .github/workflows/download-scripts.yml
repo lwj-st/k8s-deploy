@@ -4,12 +4,22 @@ name: Test download scripts
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Script/00-Download-k8s-packages-docker.sh'
+      - 'Script/00-Download-tools-packages-docker.sh'
+      - 'Script/00-Download-nvidia-packages-docker.sh'
+      - 'Script/framework.sh'
+      - 'config/package-repos/**'
+      - 'manifests/artifacts.yaml'
+      - '.github/workflows/download-scripts.yml'
   push:
     paths:
       - 'Script/00-Download-k8s-packages-docker.sh'
       - 'Script/00-Download-tools-packages-docker.sh'
       - 'Script/00-Download-nvidia-packages-docker.sh'
       - 'Script/framework.sh'
+      - 'config/package-repos/**'
       - 'manifests/artifacts.yaml'
       - '.github/workflows/download-scripts.yml'
 
@@ -25,10 +35,11 @@ jobs:
           - ubuntu:22.04
           - ubuntu:24.04
           - ubuntu:26.04
-          - centos:7
-          - rocky:9
+          - centos:7.9.2009
+          - centos:8.4.2105
+          - rocky:9.2
           - rocky:9.3
-          - rocky:10
+          - rocky:10.2
           - openeuler:24.03
           - openeuler:24.03-lts-sp4
           - kylin:v10-sp1
@@ -40,9 +51,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install package metadata tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
       - name: Run download and verify
         run: |
-          set -e
+          set -euo pipefail
           platform="${{ matrix.platform }}"
           os_id="${platform%%:*}"
           os_version="${platform#*:}"
@@ -83,6 +100,25 @@ jobs:
           if [ "${count:-0}" -lt 1 ]; then
             echo "ERROR: 下载后无包 script=${{ matrix.script }} platform=${os_id}-${os_version} dir=$OUT"
             exit 1
+          fi
+
+          if [ "$os_id" = "ubuntu" ]; then
+            while IFS= read -r deb; do
+              arch=$(dpkg-deb -f "$deb" Architecture)
+              case "$arch" in amd64|all) ;; *) echo "ERROR: 非 amd64 deb: $deb ($arch)"; exit 1;; esac
+            done < <(find "$OUT" -name '*.deb' -type f)
+          else
+            while IFS= read -r rpm; do
+              arch=$(rpm -qp --qf '%{ARCH}' "$rpm")
+              case "$arch" in x86_64|noarch) ;; *) echo "ERROR: 非 x86_64 rpm: $rpm ($arch)"; exit 1;; esac
+              if [ "$os_id" = "rocky" ] && [[ "$os_version" =~ ^9\.([0-9]+)$ ]]; then
+                release=$(rpm -qp --qf '%{RELEASE}' "$rpm")
+                if [[ "$release" =~ el9_([0-9]+) ]] && [ "${BASH_REMATCH[1]}" != "${os_version#9.}" ]; then
+                  echo "ERROR: Rocky ${os_version} 下载到不匹配的小版本 RPM: $rpm ($release)"
+                  exit 1
+                fi
+              fi
+            done < <(find "$OUT" -name '*.rpm' -type f)
           fi
           echo "OK: ${count} 个包"
           sudo rm -rf "$OUT"
