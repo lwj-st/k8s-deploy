@@ -78,7 +78,9 @@ detect_packages() {
     if [[ "${line}" =~ ${dependency_re} ]]; then
       package="${BASH_REMATCH[2]}"
       version="${BASH_REMATCH[3]}"
-      [ -n "${package}" ] && [ -n "${version}" ] || continue
+      if [ -z "${package}" ] || [ -z "${version}" ]; then
+        continue
+      fi
       packages["${package}=${version}"]=1
     fi
   done <"${report}"
@@ -142,8 +144,9 @@ download_packages() {
   require_ubuntu_amd64
   manifest_os_version="$(sed -n 's/^# OS_VERSION=//p' "${manifest}" | head -n 1)"
   current_os_version="${VERSION_ID:-}"
-  [ -n "${manifest_os_version}" ] && [ "${manifest_os_version}" = "${current_os_version}" ] || \
+  if [ -z "${manifest_os_version}" ] || [ "${manifest_os_version}" != "${current_os_version}" ]; then
     die "清单系统版本 ${manifest_os_version:-unknown} 与当前下载机 ${current_os_version:-unknown} 不一致"
+  fi
 
   log "更新 APT 包索引（不会安装包）..."
   apt-get update
