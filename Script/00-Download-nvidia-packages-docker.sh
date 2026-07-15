@@ -167,9 +167,9 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
       return 0
     fi
     if command -v yumdownloader &>/dev/null; then
-      yumdownloader --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      yumdownloader --archlist=x86_64,noarch --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     else
-      dnf download --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      dnf download --arch=x86_64,noarch --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     fi
   }
 

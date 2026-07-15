@@ -172,9 +172,9 @@ download_pkgs() {
   if [ -z "${pkgs}" ]; then return 0; fi
   mkdir -p "${destdir}"
   if command -v yumdownloader &>/dev/null; then
-    yumdownloader --resolve --destdir="${destdir}" ${pkgs} 2>&1 || true
+    yumdownloader --resolve --archlist=x86_64,noarch --destdir="${destdir}" ${pkgs} 2>&1 || true
   else
-    dnf download --resolve --alldeps --arch=x86_64 --destdir="${destdir}" ${pkgs} 2>&1 || true
+    dnf download --resolve --alldeps --arch=x86_64,noarch --destdir="${destdir}" ${pkgs} 2>&1 || true
   fi
 }
 
