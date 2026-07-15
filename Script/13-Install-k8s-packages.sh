@@ -24,7 +24,11 @@ install_offline_debs() {
   local pkgs=("$dir"/*.deb)
   shopt -u nullglob
   [ ${#pkgs[@]} -gt 0 ] || die "离线 deb 目录为空: $dir"
-  log_command "dpkg -i \"$dir\"/*.deb"
+  if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+    log_command "apt-get install -y \"$dir\"/*.deb"
+  else
+    log_command "apt-get install -y --no-download \"$dir\"/*.deb"
+  fi
 }
 
 install_offline_rpms() {
@@ -35,9 +39,17 @@ install_offline_rpms() {
   shopt -u nullglob
   [ ${#pkgs[@]} -gt 0 ] || die "离线 rpm 目录为空: $dir"
   if have dnf; then
-    log_command "dnf -y install --allowerasing \"$dir\"/*.rpm"
+    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+      log_command "dnf -y install --allowerasing \"$dir\"/*.rpm"
+    else
+      log_command "dnf -y install --disablerepo='*' --setopt=install_weak_deps=False --allowerasing \"$dir\"/*.rpm"
+    fi
   else
-    log_command "yum -y localinstall \"$dir\"/*.rpm"
+    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+      log_command "yum -y localinstall \"$dir\"/*.rpm"
+    else
+      log_command "yum -y localinstall --disablerepo='*' \"$dir\"/*.rpm"
+    fi
   fi
 }
 

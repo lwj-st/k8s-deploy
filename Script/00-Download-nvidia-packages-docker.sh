@@ -160,16 +160,16 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
 
   cd "${OUTPUT_DIR}"
 
-  # 已指定精确版本，不加 --resolve 避免 dnf 把依赖解析成仓库里更新的 1.18.x
+  # 下载固定版本的 toolkit 包及其全部 RPM 依赖，确保可严格离线安装。
   download_pkgs() {
     local pkgs="$1"
     if [ -z "${pkgs}" ]; then
       return 0
     fi
     if command -v yumdownloader &>/dev/null; then
-      yumdownloader --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     else
-      dnf download --arch=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     fi
   }
 

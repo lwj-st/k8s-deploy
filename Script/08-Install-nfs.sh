@@ -8,6 +8,7 @@
 ##   - os.dir.tools.<os_id>.<os_version>
 ## Env:
 ##   - NFS_SERVER/NFS_PATH: 为空时跳过
+##   - ALLOW_ONLINE: yes 时允许使用系统源补齐依赖，默认 no
 ## Notes:
 ##   - 21-Deploy-nfs-provisioner.sh 的前置条件
 ##   - 已安装 NFS 服务端包时跳过
@@ -49,11 +50,18 @@ install_ubuntu_debs_from_dir() {
     return 0
   fi
 
-  log_info "离线安装 NFS 相关 .deb：${#install_debs[@]} 个"
-  apt-get install -y --no-install-recommends "${install_debs[@]}" || {
-    log_warn "apt-get 本地安装失败，回退到 dpkg -i"
-    dpkg -i "${install_debs[@]}"
-  }
+  log_info "安装 NFS 相关 .deb：${#install_debs[@]} 个"
+  if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+    apt-get install -y --no-install-recommends "${install_debs[@]}" || {
+      log_warn "apt-get 本地安装失败，回退到 dpkg -i"
+      dpkg -i "${install_debs[@]}"
+    }
+  else
+    apt-get install -y --no-download --no-install-recommends "${install_debs[@]}" || {
+      log_warn "严格离线 APT 安装失败，回退到 dpkg -i"
+      dpkg -i "${install_debs[@]}"
+    }
+  fi
 }
 
 # 未配置 NFS 则跳过
@@ -105,9 +113,17 @@ else
       shopt -u nullglob
       [ ${#rpms[@]} -gt 0 ] || die "目录为空: ${nfs_dir}"
       if have dnf; then
-        log_command "dnf -y install ${nfs_dir}/*.rpm"
+        if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+          log_command "dnf -y install ${nfs_dir}/*.rpm"
+        else
+          log_command "dnf -y install --disablerepo='*' --setopt=install_weak_deps=False ${nfs_dir}/*.rpm"
+        fi
       else
-        log_command "yum -y localinstall ${nfs_dir}/*.rpm"
+        if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+          log_command "yum -y localinstall ${nfs_dir}/*.rpm"
+        else
+          log_command "yum -y localinstall --disablerepo='*' ${nfs_dir}/*.rpm"
+        fi
       fi
       ;;
   esac

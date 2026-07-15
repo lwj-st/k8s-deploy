@@ -9,6 +9,8 @@
 ##   - nvidia.manifest.device-plugin.v0.17.2
 ## Images:
 ##   - nvidia.image.device-plugin.v0.17.2
+## Env:
+##   - ALLOW_ONLINE: yes 时允许使用系统源补齐依赖，默认 no
 ## Notes:
 ##   - 仅做“装包 + 配置 containerd runtime + 部署 device plugin”
 ##   - 不负责安装驱动本身（nvidia-smi / 内核驱动需提前就绪）
@@ -83,7 +85,15 @@ install_nvidia_toolkit_deb() {
   fi
 
   log_info "安装 NVIDIA container toolkit（离线 deb）..."
-  log_command "dpkg -i ${nvidia_pkgs[*]}"
+  if have apt-get; then
+    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+      log_command "apt-get install -y ${nvidia_pkgs[*]}"
+    else
+      log_command "apt-get install -y --no-download ${nvidia_pkgs[*]}"
+    fi
+  else
+    log_command "dpkg -i ${nvidia_pkgs[*]}"
+  fi
 
   have nvidia-ctk || die "未找到 nvidia-ctk（deb 安装失败或依赖缺失）"
 }
@@ -109,7 +119,13 @@ install_nvidia_toolkit_rpm() {
 
   if [ -n "${installer}" ]; then
     # dnf/yum 会自动处理依赖关系，比裸 rpm -ivh 更安全
-    log_command "${installer} -y localinstall ${nvidia_pkgs[*]}"
+    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+      log_command "${installer} -y localinstall ${nvidia_pkgs[*]}"
+    elif [ "${installer}" = "dnf" ]; then
+      log_command "${installer} -y localinstall --disablerepo='*' --setopt=install_weak_deps=False ${nvidia_pkgs[*]}"
+    else
+      log_command "${installer} -y localinstall --disablerepo='*' ${nvidia_pkgs[*]}"
+    fi
   else
     # 兜底：仅在没有 dnf/yum 的极简环境使用 rpm -ivh
     log_warn "未检测到 dnf/yum，改用 rpm -ivh 安装，可能需要你手动解决依赖"
