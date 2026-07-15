@@ -265,7 +265,7 @@ offline_rsyslog_dir() {
 
 offline_rsyslog_hint() {
   local dir="$1"
-  log_error "rsyslog 在线安装失败，现场可能是断网环境。"
+  log_info "使用 rsyslog 离线安装包。"
   log_error "请在离线制品目录准备 rsyslog 安装包: ${dir}"
   case "${OS_ID:-}" in
     ubuntu)
@@ -277,6 +277,22 @@ offline_rsyslog_hint() {
       log_error "若仍有缺依赖，请把对应 .rpm 放进上述任一目录后重跑。"
       ;;
   esac
+}
+
+# 多个工具目录通过 --resolve 下载时可能包含同名依赖；同一路径只能传给包管理器一次。
+dedupe_pkg_paths_by_basename() {
+  local -n input_paths="$1"
+  local -n output_paths="$2"
+  local -A seen=()
+  local path base
+  output_paths=()
+  for path in "${input_paths[@]}"; do
+    [ -n "${path}" ] || continue
+    base="$(basename "${path}")"
+    [ -n "${seen[${base}]+x}" ] && continue
+    seen["${base}"]=1
+    output_paths+=("${path}")
+  done
 }
 
 install_rsyslog_offline() {
@@ -293,12 +309,13 @@ install_rsyslog_offline() {
       for sd in rsyslog-gnutls logrotate openssl; do
         [ -d "${tools_parent}/${sd}" ] && deb_dirs+=("${tools_parent}/${sd}")
       done
-      declare -a debs=()
+      declare -a debs_raw=() debs=()
       shopt -s nullglob
       for d in "${deb_dirs[@]}"; do
-        debs+=("${d}"/*.deb)
+        debs_raw+=("${d}"/*.deb)
       done
       shopt -u nullglob
+      dedupe_pkg_paths_by_basename debs_raw debs
       [ "${#debs[@]}" -gt 0 ] || die "离线未找到 .deb：已检查 ${deb_dirs[*]}（至少需要 ${dir} 内有 rsyslog 相关 .deb）"
       log_info "离线安装：dpkg -i 共 ${#debs[@]} 个 .deb（目录: ${deb_dirs[*]}）"
       if ! dpkg -i "${debs[@]}"; then
@@ -313,12 +330,13 @@ install_rsyslog_offline() {
       for sd in rsyslog-gnutls logrotate openssl; do
         [ -d "${tools_parent}/${sd}" ] && rpm_dirs+=("${tools_parent}/${sd}")
       done
-      declare -a rpms=()
+      declare -a rpms_raw=() rpms=()
       shopt -s nullglob
       for d in "${rpm_dirs[@]}"; do
-        rpms+=("${d}"/*.rpm)
+        rpms_raw+=("${d}"/*.rpm)
       done
       shopt -u nullglob
+      dedupe_pkg_paths_by_basename rpms_raw rpms
       [ "${#rpms[@]}" -gt 0 ] || die "离线未找到 .rpm：已检查 ${rpm_dirs[*]}"
       log_info "离线安装：共 ${#rpms[@]} 个 .rpm（目录: ${rpm_dirs[*]}）"
       if have dnf; then
@@ -372,29 +390,33 @@ install_packages() {
     return 0
   fi
 
-  case "${pm}" in
-    apt)
-      if apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y rsyslog rsyslog-gnutls logrotate openssl; then
-        log_info "rsyslog 在线安装成功"
-      else
-        install_rsyslog_offline
-      fi
-      ;;
-    dnf)
-      if dnf install -y rsyslog rsyslog-gnutls logrotate openssl; then
-        log_info "rsyslog 在线安装成功"
-      else
-        install_rsyslog_offline
-      fi
-      ;;
-    yum)
-      if yum install -y rsyslog rsyslog-gnutls logrotate openssl; then
-        log_info "rsyslog 在线安装成功"
-      else
-        install_rsyslog_offline
-      fi
-      ;;
-  esac
+  if [ "${ALLOW_ONLINE:-no}" != "yes" ]; then
+    install_rsyslog_offline
+  else
+    case "${pm}" in
+      apt)
+        if apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y rsyslog rsyslog-gnutls logrotate openssl; then
+          log_info "rsyslog 在线安装成功"
+        else
+          install_rsyslog_offline
+        fi
+        ;;
+      dnf)
+        if dnf install -y rsyslog rsyslog-gnutls logrotate openssl; then
+          log_info "rsyslog 在线安装成功"
+        else
+          install_rsyslog_offline
+        fi
+        ;;
+      yum)
+        if yum install -y rsyslog rsyslog-gnutls logrotate openssl; then
+          log_info "rsyslog 在线安装成功"
+        else
+          install_rsyslog_offline
+        fi
+        ;;
+    esac
+  fi
 
   have rsyslogd || die "rsyslog 安装后仍未找到 rsyslogd"
   if [ "${RSYSLOG_TRANSPORT}" != "tls" ]; then
