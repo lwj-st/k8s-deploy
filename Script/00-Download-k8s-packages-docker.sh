@@ -26,6 +26,8 @@ K8S_VERSION="${4:-1.31.11}"
 K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 
 DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}")"
+REPO_CONFIG_DIR="${K8S_DEPLOY_ROOT}/config/package-repos"
+[ -f "${REPO_CONFIG_DIR}/apply.sh" ] || die "未找到软件源配置应用脚本: ${REPO_CONFIG_DIR}/apply.sh"
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "使用 Docker 容器下载 Kubernetes ${K8S_VERSION} 离线安装包"
@@ -87,15 +89,19 @@ cat > "${TMP_SCRIPT}" <<'SCRIPT_EOF'
 set -euo pipefail
 
 OS_TYPE="${1}"
-K8S_VERSION="${2}"
-K8S_VERSION_SHORT="${3}"
+OS_VERSION="${2}"
+K8S_VERSION="${3}"
+K8S_VERSION_SHORT="${4}"
 OUTPUT_DIR="/output"
+source "/repo-config/kubernetes/${K8S_VERSION_SHORT}/repositories.env"
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >&2
 }
 
 mkdir -p "${OUTPUT_DIR}"
+source /repo-config/apply.sh
+apply_package_repos "${OS_TYPE}" "${OS_VERSION}"
 
 ################################################################################
 # Ubuntu/Debian：apt 下载 .deb
@@ -107,19 +113,12 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   apt-get install -y -qq curl ca-certificates gpg 2>/dev/null || true
 
   # Kubernetes 官方 apt 源（URL 格式须为 core:/stable:/vX.XX，见 https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/change-package-repository/）
-  K8S_DEB_REPO="https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb"
+  : "${K8S_DEB_REPO:?未配置 Kubernetes APT 源}"
   log "配置 Kubernetes apt 源（v${K8S_VERSION_SHORT}）..."
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "${K8S_DEB_REPO}/Release.key" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
+  curl -fsSL "${K8S_DEB_KEY_URL}" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] ${K8S_DEB_REPO}/ /" > /etc/apt/sources.list.d/kubernetes.list
   apt-get update -qq || true
-  if ! apt-cache show kubelet &>/dev/null; then
-    log "警告: pkgs.k8s.io 不可用（可能 403/网络限制），尝试 packages.kubernetes.io 备用..."
-    K8S_DEB_REPO="https://packages.kubernetes.io/core:/stable:/v${K8S_VERSION_SHORT}/deb"
-    curl -fsSL "${K8S_DEB_REPO}/Release.key" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] ${K8S_DEB_REPO}/ /" > /etc/apt/sources.list.d/kubernetes.list
-    apt-get update -qq || true
-  fi
 
   log "下载 kubelet/kubeadm/kubectl 及其依赖（仅下载不安装）..."
   apt-get install -d -y kubelet="${K8S_VERSION}-*" kubeadm="${K8S_VERSION}-*" kubectl="${K8S_VERSION}-*" 2>&1 || true
@@ -164,56 +163,6 @@ else
   exit 1
 fi
 
-# 检测 CentOS 版本并配置镜像源（CentOS 7 已 EOL，需要使用 vault）
-if [ -f /etc/centos-release ]; then
-  CENTOS_VERSION=$(rpm -q --qf "%{VERSION}" $(rpm -q --whatprovides /etc/redhat-release) 2>/dev/null || echo "7")
-  if [ "${CENTOS_VERSION}" = "7" ]; then
-    log "检测到 CentOS 7，配置镜像源（CentOS 7 已 EOL）..."
-    # 备份原配置
-    mkdir -p /etc/yum.repos.d/backup
-    mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ 2>/dev/null || true
-    
-    # 优先尝试阿里云镜像，失败则使用 vault
-    log "尝试配置阿里云 CentOS 7 镜像源..."
-    cat > /etc/yum.repos.d/CentOS-Base.repo <<'REPO_EOF'
-[base]
-name=CentOS-$releasever - Base
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/os/$basearch/
-        http://vault.centos.org/7.9.2009/os/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=1
-failovermethod=priority
-
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/updates/$basearch/
-        http://vault.centos.org/7.9.2009/updates/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=1
-failovermethod=priority
-
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/extras/$basearch/
-        http://vault.centos.org/7.9.2009/extras/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=1
-failovermethod=priority
-REPO_EOF
-    log "CentOS 7 镜像源配置完成（优先使用阿里云镜像）"
-  elif [ "${CENTOS_VERSION}" = "8" ]; then
-    log "检测到 CentOS 8，切换到 8.3.2011 Vault 源..."
-    # shellcheck disable=SC2016 # sed 需要匹配 repo 文件中的字面量 $contentdir/$releasever。
-    sed -i \
-      -e 's|^mirrorlist=|#mirrorlist=|g' \
-      -e 's|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=https://vault.centos.org/8.3.2011|g' \
-      /etc/yum.repos.d/CentOS-*.repo 2>/dev/null || true
-  fi
-fi
-
 # 安装必要工具（禁用其他 repo，只使用 base 和 kubernetes）
 log "安装必要工具..."
 if [ "${PKG_MGR}" = "dnf" ]; then
@@ -235,10 +184,10 @@ log "配置 Kubernetes 仓库（阿里云镜像）..."
 cat > /etc/yum.repos.d/kubernetes.repo <<EOF
 [kubernetes]
 name=Kubernetes
-baseurl=https://mirrors.aliyun.com/kubernetes-new/core/stable/v${K8S_VERSION_SHORT}/rpm/
+baseurl=${K8S_RPM_REPO}
 enabled=1
 gpgcheck=1
-gpgkey=https://mirrors.aliyun.com/kubernetes-new/core/stable/v${K8S_VERSION_SHORT}/rpm/repodata/repomd.xml.key
+gpgkey=${K8S_RPM_GPGKEY}
 EOF
 
 # 清理并更新缓存
@@ -360,32 +309,35 @@ log_info "（这可能需要几分钟，请耐心等待...）"
 # 运行容器
 # 注意：podman 不需要 sudo，docker 可能需要（取决于配置）
 if [ "${DOCKER_CMD}" = "podman" ]; then
-  ${DOCKER_CMD} run --rm \
+  ${DOCKER_CMD} run --rm --platform linux/amd64 \
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
+    -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
 else
   # docker 可能需要 sudo，但先尝试不用 sudo
   if ${DOCKER_CMD} ps &>/dev/null; then
-    ${DOCKER_CMD} run --rm \
+    ${DOCKER_CMD} run --rm --platform linux/amd64 \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
+      -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败"
     }
   else
     log_warn "docker 命令需要 root 权限，尝试使用 sudo..."
-    sudo ${DOCKER_CMD} run --rm \
+    sudo ${DOCKER_CMD} run --rm --platform linux/amd64 \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
+      -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可能需要将当前用户添加到 docker 组：sudo usermod -aG docker $USER）"
     }

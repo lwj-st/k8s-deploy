@@ -24,6 +24,8 @@ DOWNLOAD_OS_TYPE="${OS_TYPE}"
 OUTPUT_DIR="${3:-$(artifact_get_os_tools_dir "${OS_TYPE}" "${OS_VERSION}")}"
 
 DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}")"
+REPO_CONFIG_DIR="${K8S_DEPLOY_ROOT}/config/package-repos"
+[ -f "${REPO_CONFIG_DIR}/apply.sh" ] || die "未找到软件源配置应用脚本: ${REPO_CONFIG_DIR}/apply.sh"
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "使用 Docker 容器下载常用工具离线安装包"
@@ -52,6 +54,7 @@ cat > "${TMP_SCRIPT}" <<'SCRIPT_EOF'
 set -euo pipefail
 
 OS_TYPE="${1}"
+OS_VERSION="${2}"
 OUTPUT_DIR="/output"
 
 log() {
@@ -59,6 +62,8 @@ log() {
 }
 
 mkdir -p "${OUTPUT_DIR}"
+source /repo-config/apply.sh
+apply_package_repos "${OS_TYPE}" "${OS_VERSION}"
 
 ################################################################################
 # Ubuntu/Debian：apt 下载 .deb
@@ -135,57 +140,6 @@ elif command -v yum &>/dev/null; then
 else
   log "错误: 未找到 dnf 或 yum"
   exit 1
-fi
-
-# CentOS 7 已 EOL，配置 vault 与 EPEL
-if [ -f /etc/centos-release ]; then
-  CENTOS_VERSION=$(rpm -q --qf "%{VERSION}" $(rpm -q --whatprovides /etc/redhat-release) 2>/dev/null || echo "7")
-  if [ "${CENTOS_VERSION}" = "7" ]; then
-    log "检测到 CentOS 7，配置镜像源与 EPEL..."
-    mkdir -p /etc/yum.repos.d/backup
-    mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/ 2>/dev/null || true
-    cat > /etc/yum.repos.d/CentOS-Base.repo <<'REPO_EOF'
-[base]
-name=CentOS-$releasever - Base
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/os/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=1
-
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/updates/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=1
-
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=https://mirrors.aliyun.com/centos-vault/7.9.2009/extras/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-enabled=1
-REPO_EOF
-    # EPEL for CentOS 7 (jq, tree, htop)
-    if ! rpm -q epel-release &>/dev/null; then
-      log "安装 EPEL 源..."
-      curl -sL -o /tmp/epel-release.rpm \
-        https://mirrors.aliyun.com/epel/epel-release-latest-7.noarch.rpm || \
-        curl -sL -o /tmp/epel-release.rpm \
-        https://download.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-      rpm -ivh /tmp/epel-release.rpm || true
-      sed -i 's|^#*baseurl=.*epel|baseurl=https://mirrors.aliyun.com/epel|' /etc/yum.repos.d/epel*.repo 2>/dev/null || true
-      sed -i 's|^mirrorlist=|#mirrorlist=|' /etc/yum.repos.d/epel*.repo 2>/dev/null || true
-    fi
-    log "CentOS 7 镜像源与 EPEL 配置完成"
-  elif [ "${CENTOS_VERSION}" = "8" ]; then
-    log "检测到 CentOS 8，切换到 8.3.2011 Vault 源..."
-    # shellcheck disable=SC2016 # sed 需要匹配 repo 文件中的字面量 $contentdir/$releasever。
-    sed -i \
-      -e 's|^mirrorlist=|#mirrorlist=|g' \
-      -e 's|^#baseurl=http://mirror.centos.org/\$contentdir/\$releasever|baseurl=https://vault.centos.org/8.3.2011|g' \
-      /etc/yum.repos.d/CentOS-*.repo 2>/dev/null || true
-  fi
 fi
 
 if [ "${OS_TYPE}" = "rocky" ]; then
@@ -271,11 +225,12 @@ log_info "启动容器并下载工具包..."
 log_info "（这可能需要几分钟，请耐心等待...）"
 
 run_container() {
-  ${DOCKER_CMD} run --rm \
+  ${DOCKER_CMD} run --rm --platform linux/amd64 \
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
+    -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" || {
+    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
@@ -288,11 +243,12 @@ else
     run_container
   else
     log_warn "docker 可能需要 root，尝试 sudo..."
-    sudo ${DOCKER_CMD} run --rm \
+    sudo ${DOCKER_CMD} run --rm --platform linux/amd64 \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
+      -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可尝试: sudo usermod -aG docker $USER）"
     }

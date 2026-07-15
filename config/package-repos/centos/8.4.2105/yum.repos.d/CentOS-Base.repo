@@ -1,0 +1,20 @@
+[baseos]
+name=CentOS-8.4.2105 - BaseOS
+baseurl=https://vault.centos.org/8.4.2105/BaseOS/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+
+[appstream]
+name=CentOS-8.4.2105 - AppStream
+baseurl=https://vault.centos.org/8.4.2105/AppStream/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+
+[powertools]
+name=CentOS-8.4.2105 - PowerTools
+baseurl=https://vault.centos.org/8.4.2105/PowerTools/$basearch/os/
+enabled=1
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
