@@ -265,7 +265,6 @@ offline_rsyslog_dir() {
 
 offline_rsyslog_hint() {
   local dir="$1"
-  log_info "使用 rsyslog 离线安装包。"
   log_error "请在离线制品目录准备 rsyslog 安装包: ${dir}"
   case "${OS_ID:-}" in
     ubuntu)
@@ -298,8 +297,10 @@ dedupe_pkg_paths_by_basename() {
 install_rsyslog_offline() {
   local dir
   dir="$(offline_rsyslog_dir)"
-  offline_rsyslog_hint "${dir}"
-  [ -d "${dir}" ] || die "离线包目录不存在: ${dir}"
+  if [ ! -d "${dir}" ]; then
+    offline_rsyslog_hint "${dir}"
+    die "离线包目录不存在: ${dir}"
+  fi
 
   case "${OS_ID:-}" in
     ubuntu)
@@ -316,7 +317,10 @@ install_rsyslog_offline() {
       done
       shopt -u nullglob
       dedupe_pkg_paths_by_basename debs_raw debs
-      [ "${#debs[@]}" -gt 0 ] || die "离线未找到 .deb：已检查 ${deb_dirs[*]}（至少需要 ${dir} 内有 rsyslog 相关 .deb）"
+      if [ "${#debs[@]}" -eq 0 ]; then
+        offline_rsyslog_hint "${dir}"
+        die "离线未找到 .deb：已检查 ${deb_dirs[*]}（至少需要 ${dir} 内有 rsyslog 相关 .deb）"
+      fi
       log_info "离线安装：dpkg -i 共 ${#debs[@]} 个 .deb（目录: ${deb_dirs[*]}）"
       if ! dpkg -i "${debs[@]}"; then
         log_warn "首次 dpkg -i 未完全成功（常见为依赖顺序或未配置包），将再执行一次"
@@ -337,7 +341,10 @@ install_rsyslog_offline() {
       done
       shopt -u nullglob
       dedupe_pkg_paths_by_basename rpms_raw rpms
-      [ "${#rpms[@]}" -gt 0 ] || die "离线未找到 .rpm：已检查 ${rpm_dirs[*]}"
+      if [ "${#rpms[@]}" -eq 0 ]; then
+        offline_rsyslog_hint "${dir}"
+        die "离线未找到 .rpm：已检查 ${rpm_dirs[*]}"
+      fi
       log_info "离线安装：共 ${#rpms[@]} 个 .rpm（目录: ${rpm_dirs[*]}）"
       if have dnf; then
         dnf -y install --disablerepo='*' --setopt=install_weak_deps=False "${rpms[@]}" || die "dnf localinstall 失败，请补齐依赖 .rpm"

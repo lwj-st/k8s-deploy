@@ -60,6 +60,7 @@ collect_nvidia_pkgs() {
   log_info "NVIDIA toolkit 离线目录: ${nvidia_pkg_dir}"
 
   [ -d "${nvidia_pkg_dir}" ] || die "缺少 NVIDIA 离线包目录: ${nvidia_pkg_dir}"
+  nvidia_pkg_dir="$(cd "${nvidia_pkg_dir}" && pwd -P)"
 
   shopt -s nullglob
   local files=("${nvidia_pkg_dir}"/*"${suffix}")
@@ -85,14 +86,32 @@ install_nvidia_toolkit_deb() {
   fi
 
   log_info "安装 NVIDIA container toolkit（离线 deb）..."
-  if have apt-get; then
-    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-      log_command "apt-get install -y ${nvidia_pkgs[*]}"
+  if [ "${ALLOW_ONLINE:-no}" != "yes" ]; then
+    log_info "严格离线：使用 dpkg --unpack 安装本地 deb"
+    dpkg --unpack "${nvidia_pkgs[@]}" || \
+      log_warn "部分 deb 暂未配置，继续执行 dpkg --configure -a"
+    dpkg --configure -a
+  elif have apt-get; then
+    local -a apt_args=(install -y)
+
+    log_info "执行命令: apt-get ${apt_args[*]} <${#nvidia_pkgs[@]} 个本地 deb>"
+    if apt-get "${apt_args[@]}" "${nvidia_pkgs[@]}"; then
+      :
     else
-      log_command "apt-get install -y --no-download ${nvidia_pkgs[*]}"
+      # APT 在目标机已有半配置/版本冲突时，可能在解包前直接拒绝本地包。
+      log_warn "APT 安装失败，回退到 dpkg --unpack 后统一配置"
+      dpkg --unpack "${nvidia_pkgs[@]}" || \
+        log_warn "部分 deb 暂未配置，继续执行 dpkg --configure -a"
+      if ! dpkg --configure -a; then
+        log_warn "dpkg 配置仍未完成，ALLOW_ONLINE=yes，尝试在线修复依赖"
+        log_command "apt-get -y -f install"
+      fi
     fi
   else
-    log_command "dpkg -i ${nvidia_pkgs[*]}"
+    log_info "执行命令: dpkg --unpack <${#nvidia_pkgs[@]} 个本地 deb>"
+    dpkg --unpack "${nvidia_pkgs[@]}" || \
+      log_warn "部分 deb 暂未配置，继续执行 dpkg --configure -a"
+    dpkg --configure -a
   fi
 
   have nvidia-ctk || die "未找到 nvidia-ctk（deb 安装失败或依赖缺失）"

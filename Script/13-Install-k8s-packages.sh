@@ -24,10 +24,30 @@ install_offline_debs() {
   local pkgs=("$dir"/*.deb)
   shopt -u nullglob
   [ ${#pkgs[@]} -gt 0 ] || die "离线 deb 目录为空: $dir"
+  local -a apt_args=(install -y)
+  if [ "${ALLOW_ONLINE:-no}" != "yes" ]; then
+    apt_args+=(--no-download)
+  fi
+
+  log_info "执行命令: apt-get ${apt_args[*]} \"${dir}\"/*.deb"
+  if apt-get "${apt_args[@]}" "${pkgs[@]}"; then
+    return 0
+  fi
+
+  # APT 在目标机已有半配置/版本冲突时，可能在解包前直接拒绝整批本地包。
+  # 先统一解包，再配置全部包，避免离线安装卡在 resolver 阶段。
+  log_warn "APT 安装失败，回退到 dpkg --unpack 后统一配置"
+  dpkg --unpack "${pkgs[@]}" || \
+    log_warn "部分 deb 暂未配置，继续执行 dpkg --configure -a"
+  if dpkg --configure -a; then
+    return 0
+  fi
+
   if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-    log_command "apt-get install -y \"$dir\"/*.deb"
+    log_warn "dpkg 配置仍未完成，ALLOW_ONLINE=yes，尝试在线修复依赖"
+    log_command "apt-get -y -f install"
   else
-    log_command "apt-get install -y --no-download \"$dir\"/*.deb"
+    die "严格离线 dpkg 配置失败，请补齐依赖 .deb 后重试"
   fi
 }
 
