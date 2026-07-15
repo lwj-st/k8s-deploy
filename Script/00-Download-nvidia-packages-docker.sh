@@ -167,7 +167,7 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
       return 0
     fi
     if command -v yumdownloader &>/dev/null; then
-      yumdownloader --resolve --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     else
       dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     fi
@@ -175,6 +175,23 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
 
   log "下载 NVIDIA container toolkit 相关 rpm..."
   download_pkgs "${NVIDIA_PKGS}"
+
+  # 依赖声明通常是 >= 1.17.8，解析器可能同时下载更新的 1.19.x。
+  # 当前制品固定为 1.17.8，删除同名的更高版本，避免离线安装时出现重复版本。
+  shopt -s nullglob
+  for pkg in "${OUTPUT_DIR}"/*.rpm; do
+    name="$(rpm -qp --qf '%{NAME}' "${pkg}" 2>/dev/null || true)"
+    version_release="$(rpm -qp --qf '%{VERSION}-%{RELEASE}' "${pkg}" 2>/dev/null || true)"
+    case "${name}" in
+      libnvidia-container-tools|libnvidia-container1|nvidia-container-toolkit|nvidia-container-toolkit-base)
+        if [ "${version_release}" != "1.17.8-1" ]; then
+          log "删除未固定版本的 NVIDIA RPM: ${pkg} (${version_release})"
+          rm -f "${pkg}"
+        fi
+        ;;
+    esac
+  done
+  shopt -u nullglob
 
   shopt -s nullglob
   RPM_FILES=("${OUTPUT_DIR}"/*.rpm)

@@ -256,10 +256,10 @@ if [ "${PKG_MGR}" = "dnf" ]; then
     }
   elif command -v yumdownloader &>/dev/null; then
     log "dnf download 不可用，回退使用 yumdownloader..."
-    yumdownloader --resolve --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
+    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
@@ -268,10 +268,10 @@ if [ "${PKG_MGR}" = "dnf" ]; then
 else
   if command -v yumdownloader &>/dev/null; then
     log "使用 yumdownloader 下载..."
-    yumdownloader --resolve --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
+    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --setopt=exactarch=1 --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   else
     log "错误: yumdownloader 不可用（应该在安装工具阶段已安装）"
