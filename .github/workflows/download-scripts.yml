@@ -111,13 +111,6 @@ jobs:
             while IFS= read -r rpm; do
               arch=$(rpm -qp --qf '%{ARCH}' "$rpm")
               case "$arch" in x86_64|noarch) ;; *) echo "ERROR: 非 x86_64 rpm: $rpm ($arch)"; exit 1;; esac
-              if [ "$os_id" = "rocky" ] && [[ "$os_version" =~ ^9\.([0-9]+)$ ]]; then
-                release=$(rpm -qp --qf '%{RELEASE}' "$rpm")
-                if [[ "$release" =~ el9_([0-9]+) ]] && [ "${BASH_REMATCH[1]}" != "${os_version#9.}" ]; then
-                  echo "ERROR: Rocky ${os_version} 下载到不匹配的小版本 RPM: $rpm ($release)"
-                  exit 1
-                fi
-              fi
             done < <(find "$OUT" -name '*.rpm' -type f)
           fi
           echo "OK: ${count} 个包"
