@@ -52,16 +52,22 @@ install_ubuntu_debs_from_dir() {
 
   log_info "安装 NFS 相关 .deb：${#install_debs[@]} 个"
   if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-    apt-get install -y --no-install-recommends "${install_debs[@]}" || {
-      log_warn "apt-get 本地安装失败，回退到 dpkg -i"
-      dpkg -i "${install_debs[@]}"
-    }
-  else
-    apt-get install -y --no-download --no-install-recommends "${install_debs[@]}" || {
-      log_warn "严格离线 APT 安装失败，回退到 dpkg -i"
-      dpkg -i "${install_debs[@]}"
-    }
+    # 禁止 APT 为解决本地包版本冲突删除宿主机已有包。
+    log_info "在线安装：apt-get --no-remove"
+    apt-get install -y --no-remove --no-install-recommends "${install_debs[@]}"
+    return 0
   fi
+
+  # 严格离线不调用 APT resolver。APT 可能在解析阶段删除 vim、ubuntu-server
+  # 等宿主机包；dpkg 两阶段安装可保留本地包并处理 Python Pre-Depends 顺序。
+  log_info "严格离线安装：dpkg --unpack 两阶段解包并统一配置"
+  dpkg --unpack "${install_debs[@]}" || \
+    log_warn "首轮解包存在依赖顺序问题，先配置已解包的基础包"
+  dpkg --configure -a || \
+    log_warn "首轮配置未完成，继续第二轮解包"
+  dpkg --unpack "${install_debs[@]}" || \
+    log_warn "第二轮解包仍有未满足依赖，继续最终配置"
+  dpkg --configure -a || die "严格离线 NFS 配置失败，请补齐依赖 .deb"
 }
 
 # 未配置 NFS 则跳过
