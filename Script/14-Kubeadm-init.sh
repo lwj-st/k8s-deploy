@@ -15,6 +15,9 @@
 ################################################################################
 set -euo pipefail
 
+# kubeadm 使用本地已导入镜像初始化，避免离线环境或本机 API 请求误走代理。
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+unset all_proxy ALL_PROXY
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
 

@@ -81,14 +81,19 @@ read -r -p "Service CIDR (默认: 10.96.0.0/12): " SERVICE_CIDR
 SERVICE_CIDR="$(trim_whitespace "${SERVICE_CIDR}")"
 SERVICE_CIDR="${SERVICE_CIDR:-10.96.0.0/12}"
 
-# Calico IP 自动探测方式（可选）
-# 示例：
-#   interface=enp65s0f1
-#   can-reach=10.0.0.1
-# 默认: interface=bond0（如不符合你环境，请在此处修改）
-read -r -p "Calico IP 网卡名 (默认: bond0): " CALICO_IP_AUTODETECTION_METHOD
-CALICO_IP_AUTODETECTION_METHOD="$(trim_whitespace "${CALICO_IP_AUTODETECTION_METHOD}")"
-CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD:-bond0}"
+# Calico IP 自动探测网卡。这里只接受本机已存在的网卡名；16-Deploy-cni.sh
+# 会在后续自动补全为 interface=<网卡名>。
+have ip || die "未找到 ip 命令，无法校验 Calico 网卡名"
+while true; do
+  read -r -p "Calico IP 网卡名 (默认: bond0): " CALICO_IP_AUTODETECTION_METHOD
+  CALICO_IP_AUTODETECTION_METHOD="$(trim_whitespace "${CALICO_IP_AUTODETECTION_METHOD}")"
+  CALICO_IP_AUTODETECTION_METHOD="${CALICO_IP_AUTODETECTION_METHOD:-bond0}"
+  if ip link show dev "${CALICO_IP_AUTODETECTION_METHOD}" >/dev/null 2>&1; then
+    break
+  fi
+  log_warn "网卡不存在: ${CALICO_IP_AUTODETECTION_METHOD}"
+  log_warn "当前可用网卡: $(ip -o link show | awk -F': ' '{print $2}' | cut -d@ -f1 | paste -sd ',')"
+done
 
 ip_guess="$(default_ip || true)"
 read -r -p "API advertise 地址 (默认: ${ip_guess:-空，需要你填}): " API_ADVERTISE_ADDRESS
