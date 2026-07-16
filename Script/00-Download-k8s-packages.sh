@@ -117,9 +117,9 @@ EOF
     dnf makecache
     log_info "下载 Kubernetes RPM 包及其依赖..."
     cd "${OUTPUT_DIR}"
-    dnf download --resolve --alldeps kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
+    dnf download --resolve --alldeps --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
       log_warn "依赖解析失败，使用简单下载方式..."
-      dnf download kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
+      dnf download --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
     }
   else
     yum clean all
@@ -128,9 +128,9 @@ EOF
     cd "${OUTPUT_DIR}"
     # yum 需要安装 yum-plugin-downloadonly（如果可用）
     if yum install -y yum-plugin-downloadonly 2>/dev/null; then
-      yumdownloader --resolve --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
+      yumdownloader --resolve --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
         log_warn "依赖解析失败，使用简单下载方式..."
-        yumdownloader --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
+        yumdownloader --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
       }
     else
       # 如果没有 downloadonly 插件，尝试直接下载
@@ -149,6 +149,11 @@ EOF
   shopt -s nullglob
   rpm_pkgs=("${OUTPUT_DIR}"/*.rpm)
   shopt -u nullglob
+
+  [ "${#rpm_pkgs[@]}" -gt 0 ] || die "未下载到 Kubernetes RPM 包，请检查 Kubernetes 仓库和版本"
+  for pkg in kubelet kubeadm kubectl; do
+    compgen -G "${OUTPUT_DIR}/${pkg}-*.rpm" >/dev/null || die "缺少 Kubernetes RPM 包: ${pkg}"
+  done
 
   log_info "✓ CentOS/Rocky RPM 包下载完成: ${OUTPUT_DIR}"
   log_info "  包数量: ${#rpm_pkgs[@]}"
