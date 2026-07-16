@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    05-Repair-ubuntu-dependencies.sh
+## Filename:    06-Repair-ubuntu-dependencies-downgrade.sh
 ## Description: 检测并修复 Ubuntu 离线环境中的精确版本依赖冲突
 ## Usage:
-##   bash 05-Repair-ubuntu-dependencies.sh detect /tmp/apt-repair-packages.txt
-##   bash 05-Repair-ubuntu-dependencies.sh download /tmp/apt-repair-packages.txt /tmp/apt-repair-debs
-##   bash 05-Repair-ubuntu-dependencies.sh install /tmp/apt-repair-debs
+##   bash 06-Repair-ubuntu-dependencies-downgrade.sh detect /tmp/apt-repair-packages.txt
+##   bash 06-Repair-ubuntu-dependencies-downgrade.sh download /tmp/apt-repair-packages.txt /tmp/apt-repair-debs
+##   bash 06-Repair-ubuntu-dependencies-downgrade.sh install /tmp/apt-repair-debs
 ## Examples:
-##   bash 05-Repair-ubuntu-dependencies.sh detect /tmp/ubuntu-apt-repair.txt
-##   bash 05-Repair-ubuntu-dependencies.sh download /tmp/ubuntu-apt-repair.txt /tmp/ubuntu-apt-repair-debs
-##   bash 05-Repair-ubuntu-dependencies.sh install /tmp/ubuntu-apt-repair-debs
+##   bash 06-Repair-ubuntu-dependencies-downgrade.sh detect /tmp/ubuntu-apt-repair.txt
+##   bash 06-Repair-ubuntu-dependencies-downgrade.sh download /tmp/ubuntu-apt-repair.txt /tmp/ubuntu-apt-repair-debs
+##   bash 06-Repair-ubuntu-dependencies-downgrade.sh install /tmp/ubuntu-apt-repair-debs
 ## Artifacts:
 ##   - 输入: apt-get -s --no-download -f install 输出中的精确依赖版本
 ##   - 输出: 包名=版本格式的离线修复清单和 .deb 文件
@@ -17,7 +17,7 @@
 ##   - 无
 ## Notes:
 ##   - 仅支持 Ubuntu amd64；download 必须在可访问同版本软件源的 Ubuntu 机器执行
-##   - 默认采用“下载报错中要求的旧版本依赖”方案，可能发生降级
+##   - 默认采用“将依赖降级到报错要求的精确版本”方案
 ##   - download 只下载，不安装到联网机器；install 使用严格离线模式
 ################################################################################
 set -euo pipefail
@@ -58,9 +58,8 @@ require_ubuntu_amd64() {
 
 detect_packages() {
   local manifest="$1"
-  local report line package version candidate
+  local report line package version
   local dependency_re='(PreDepends|Depends):[[:space:]]+([^[:space:]]+)[[:space:]]+\(=[[:space:]]*([^)]+)\)'
-  local additional_package_count=0
   declare -A packages=()
 
   mkdir -p "$(dirname "${manifest}")"
@@ -71,8 +70,8 @@ detect_packages() {
     apt-get -s --no-download -f install >"${report}" 2>&1
   set -e
 
-  # 只提取明确的“包 A 要求包 B=版本 R，但系统安装的是其他版本”关系。
-  # 这里的版本来自 apt-get 报错，不根据包名或 Ubuntu 点版本推断。
+  # 提取明确的“包 A 要求包 B=版本 R，但系统安装的是其他版本”关系。
+  # 降级方案下载错误右侧明确要求的 B=R，不根据包名或 Ubuntu 点版本推断。
   while IFS= read -r line; do
     [[ "${line}" == *but* && "${line}" == *" is installed"* ]] || continue
     if [[ "${line}" =~ ${dependency_re} ]]; then
@@ -85,35 +84,12 @@ detect_packages() {
     fi
   done <"${report}"
 
-  # 新版 APT 可能已经算出可行方案，只输出待安装包，不再输出逐条 Depends。
-  # 此时包名来自 apt-get，版本来自同一台机器的 apt-cache Candidate。
-  if [ "${#packages[@]}" -eq 0 ]; then
-    while IFS= read -r package; do
-      [ -n "${package}" ] || continue
-      candidate="$(apt-cache policy "${package}" 2>/dev/null | sed -n 's/^[[:space:]]*Candidate:[[:space:]]*//p' | head -n 1)"
-      if [ -n "${candidate}" ] && [ "${candidate}" != "(none)" ]; then
-        packages["${package}=${candidate}"]=1
-        additional_package_count=$((additional_package_count + 1))
-      else
-        log "无法从 apt-cache 获取 ${package} 的 Candidate 版本"
-      fi
-    done < <(
-      awk '
-        /^The following additional packages will be installed:/ { capture=1; next }
-        /^Suggested packages:/ { capture=0 }
-        capture { print }
-      ' "${report}" | tr -s '[:space:]' '\n' | \
-        grep -E '^[a-z0-9][a-z0-9+.-]*(:[a-z0-9]+)?$' | sort -u
-    )
-    [ "${additional_package_count}" -gt 0 ] && log "APT 已给出可行安装包，按 Candidate 版本生成清单"
-  fi
-
   {
     echo "# Ubuntu APT offline repair package manifest"
     echo "# Generated: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     echo "# OS: ${PRETTY_NAME:-unknown}"
     echo "# OS_VERSION=${VERSION_ID:-unknown}"
-    echo "# These exact versions are taken from apt-get dependency errors."
+    echo "# Package versions come directly from exact versions required by apt-get errors."
     for package in "${!packages[@]}"; do
       printf '%s\n' "${package}"
     done | sort
@@ -178,7 +154,7 @@ install_packages() {
   shopt -u nullglob
   [ "${#debs[@]}" -gt 0 ] || die "目录中没有 .deb: ${package_dir}"
 
-  log "严格离线写入 ${#debs[@]} 个修复包，允许必要的版本替换..."
+  log "严格离线写入 ${#debs[@]} 个降级修复包..."
   # 当前 dpkg 状态已损坏时，apt-get 可能在解析阶段拒绝本地包。
   # 先统一解包，让新版本包进入 dpkg 数据库，再统一配置依赖关系。
   dpkg --unpack "${debs[@]}" || \
