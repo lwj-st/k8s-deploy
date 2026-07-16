@@ -1276,7 +1276,7 @@ artifacts:
     name: pkg-download.md5.openeuler
     path: /data/download/pkg_md5_openeuler.txt
     url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_openeuler.txt"
-    md5: "131a6aedbd4b85645edc6d7671dfbf78"
+    md5: "e11350ab89c55a9a3172acbd6c71e320"
     description: "openEuler package MD5 manifest"
 
   - module: pkg-download
