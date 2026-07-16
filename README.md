@@ -104,6 +104,10 @@ bash 00-Download-k8s-packages-docker.sh kylin v10-sp3 /data/download/packages/ky
 
 ```bash
 bash 02-Download.sh
+
+# 根据对应系统下载相应的依赖包 ubuntu、centos、kylin、openeuler、rocky 
+cd /data/download
+bash pkg_download.sh pkg_md5_ubuntu24.04.txt 
 ```
 
 下载完成后校验制品（建议 `MAAS_MD5_CHECK=1`，能发现坏包/截断包）：
