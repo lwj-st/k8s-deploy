@@ -114,6 +114,9 @@ jobs:
               case "$arch" in x86_64|noarch) ;; *) echo "ERROR: 非 x86_64 rpm: $rpm ($arch)"; exit 1;; esac
             done < <(find "$OUT" -name '*.rpm' -type f)
           fi
+
+          echo "输出下载目录全部文件 MD5（仅计算，不做比对）..."
+          find "$OUT" -type f -exec md5sum {} \;
           echo "OK: ${count} 个包"
           sudo rm -rf "$OUT"
 
