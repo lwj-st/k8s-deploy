@@ -1209,3 +1209,59 @@ artifacts:
     base_url: "registry.k8s.io/sig-storage/livenessprobe:v2.10.0"
     md5: "70e5fd1803616a3345ffa60663be70a9"
     description: "livenessprobe image tar"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.script.pkg-download
+    path: /data/download/pkg_download.sh
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_download.sh"
+    md5: "47f142ff49b5f71e6755476a89ce338d"
+    description: "package download script"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.script.md5-check
+    path: /data/download/pkg_md5_check.sh
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_check.sh"
+    md5: "d2ef3d0944416f9a63547cd259fc81cf"
+    description: "package MD5 verification script"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.md5.centos
+    path: /data/download/pkg_md5_centos.txt
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_centos.txt"
+    md5: "82fa26821bea12c00fc2f76545f05cee"
+    description: "CentOS package MD5 manifest"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.md5.openeuler
+    path: /data/download/pkg_md5_openeuler.txt
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_openeuler.txt"
+    md5: "131a6aedbd4b85645edc6d7671dfbf78"
+    description: "openEuler package MD5 manifest"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.md5.rocky
+    path: /data/download/pkg_md5_rocky.txt
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_rocky.txt"
+    md5: "57da404085115412aeb874cfefd815f6"
+    description: "Rocky package MD5 manifest"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.md5.kylin
+    path: /data/download/pkg_md5_kylin.txt
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_kylin.txt"
+    md5: "a9bd9593a0d16a70be811e77323a96d0"
+    description: "Kylin package MD5 manifest"
+
+  - module: pkg-download
+    type: file
+    name: pkg-download.md5.ubuntu
+    path: /data/download/pkg_md5_ubuntu.txt
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_ubuntu.txt"
+    md5: "c6adc5e86cbb9c64bd972882e499295b"
+    description: "Ubuntu package MD5 manifest"
