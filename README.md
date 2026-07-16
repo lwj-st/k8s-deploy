@@ -61,6 +61,9 @@ bash 00-Download-k8s-packages.sh rocky 9.3 /data/download/packages/rocky/9.3/kub
 # openEuler 24.03 LTS SP4
 bash 00-Download-k8s-packages.sh openeuler 24.03-lts-sp4 /data/download/packages/openeuler/24.03-lts-sp4/kubernetes
 
+# openEuler 22.03 LTS
+bash 00-Download-k8s-packages.sh openeuler 22.03-lts /data/download/packages/openeuler/22.03-lts/kubernetes
+
 # Kylin V10 SP3
 bash 00-Download-k8s-packages.sh kylin v10-sp3 /data/download/packages/kylin/v10-sp3/kubernetes
 ```
@@ -78,6 +81,9 @@ bash 00-Download-k8s-packages-docker.sh rocky 9.3 /data/download/packages/rocky/
 
 # openEuler 24.03 LTS SP4
 bash 00-Download-k8s-packages-docker.sh openeuler 24.03-lts-sp4 /data/download/packages/openeuler/24.03-lts-sp4/kubernetes 1.31.11
+
+# openEuler 22.03 LTS
+bash 00-Download-k8s-packages-docker.sh openeuler 22.03-lts /data/download/packages/openeuler/22.03-lts/kubernetes 1.31.11
 
 # Kylin V10 SP3
 bash 00-Download-k8s-packages-docker.sh kylin v10-sp3 /data/download/packages/kylin/v10-sp3/kubernetes 1.31.11
@@ -330,4 +336,3 @@ sudo -E bash Script/11-Install-containerd.sh
    sudo ctr -n k8s.io images ls
    ```
    若之前做过镜像导入，应仍能看到镜像列表。
-

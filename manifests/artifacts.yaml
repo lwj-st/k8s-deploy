@@ -43,6 +43,10 @@ platforms:
     os_version: "24.03-lts-sp4"
     arch: amd64
     download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4"
+  - os_id: openeuler
+    os_version: "22.03-lts"
+    arch: amd64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:22.03-lts"
   - os_id: kylin
     os_version: "v10-sp1"
     arch: amd64
@@ -448,6 +452,17 @@ artifacts:
 
   - module: nvidia
     type: dir
+    name: nvidia.dir.toolkit.openeuler.22.03-lts
+    path: /data/download/nvidia/openeuler/22.03-lts
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for openeuler 22.03-lts"
+    os_id: openeuler
+    os_version: "22.03-lts"
+    arch: amd64
+
+  - module: nvidia
+    type: dir
     name: nvidia.dir.toolkit.kylin.v10-sp1
     path: /data/download/nvidia/kylin/v10-sp1
     url: ""
@@ -779,6 +794,28 @@ artifacts:
     description: "offline tools packages for openeuler 24.03-lts-sp4"
     os_id: openeuler
     os_version: "24.03-lts-sp4"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler.22.03-lts
+    path: /data/download/packages/openeuler/22.03-lts/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler 22.03-lts"
+    os_id: openeuler
+    os_version: "22.03-lts"
+    arch: amd64
+
+  - module: os
+    type: dir
+    name: os.dir.tools.openeuler.22.03-lts
+    path: /data/download/packages/openeuler/22.03-lts/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for openeuler 22.03-lts"
+    os_id: openeuler
+    os_version: "22.03-lts"
     arch: amd64
 
   - module: os

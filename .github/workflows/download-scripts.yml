@@ -42,6 +42,7 @@ jobs:
           - rocky:10.2
           - openeuler:24.03
           - openeuler:24.03-lts-sp4
+          - openeuler:22.03-lts
           - kylin:v10-sp1
           - kylin:v10-sp2
           - kylin:v10-sp3

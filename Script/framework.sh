@@ -180,6 +180,11 @@ normalize_os_version() {
     return 0
   fi
 
+  if [ "${os_id}" = "openeuler" ] && [[ "${version_name_lower}" =~ ([0-9]+\.[0-9]+).*lts ]]; then
+    printf '%s-lts\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
   printf '%s\n' "${normalized}"
 }
 
