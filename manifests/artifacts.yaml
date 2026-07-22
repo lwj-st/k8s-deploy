@@ -576,6 +576,32 @@ artifacts:
     md5: "dd090a641b95f2f65b119b763eb0e77d"
     description: "hygon dcu device-plugin hami manifest"
 
+  - module: iluvatar
+    type: dir
+    name: iluvatar.dir.device-plugin
+    path: /data/download/iluvatar
+    url: ""
+    md5: "__DIR__"
+    description: "Iluvatar CoreX (天数智芯) device-plugin offline base dir"
+
+  - module: iluvatar
+    type: tar
+    name: iluvatar.image.device-plugin.v4.4.0
+    path: /data/download/iluvatar/ix-device-plugin-v4.4.0.tar
+    url: ""
+    base_url: "registry.iluvatar.com.cn:10443/k8s/ix-device-plugin:4.4.0"
+    md5: "9633142950a785a7549d65afe5e5d91b"
+    description: "Iluvatar CoreX ix-device-plugin image tar (local preset; tag registry.iluvatar.com.cn:10443/k8s/ix-device-plugin:4.4.0)"
+
+  - module: iluvatar
+    type: tar
+    name: iluvatar.image.ix-exporter.latest-x86_64
+    path: /data/download/iluvatar/ix-exporter-latest-x86_64.tar
+    url: ""
+    base_url: "registry.iluvatar.com.cn:10443/k8s/ix-exporter:latest-x86_64"
+    md5: "6fe2d555d64c497c221d931df15a1d28"
+    description: "Iluvatar CoreX ix-exporter image tar (local preset for monitoring)"
+
   - module: os
     type: dir
     name: os.dir.kubernetes.ubuntu.22.04
