@@ -209,9 +209,13 @@ kubeadm join 10.120.155.138:6443 --token abcdef.0123456789abcdef \
 在新节点上执行步骤 2 获取的 `kubeadm join` 命令：
 
 ```bash
+NODE_NAME="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 sudo kubeadm join <API_SERVER>:6443 --token <TOKEN> \
-    --discovery-token-ca-cert-hash sha256:<HASH>
+    --discovery-token-ca-cert-hash sha256:<HASH> \
+    --node-name "${NODE_NAME}"
 ```
+
+`--node-name` 必须保留，确保系统主机名包含大写字母时，Kubernetes 注册的节点名与后续自动打标签脚本使用的名称一致。每台新节点都在本机动态计算自己的节点名，不要把节点名写入多节点共用的 `environment.sh`。
 
 ### 步骤 4：同步config配置
 、、、

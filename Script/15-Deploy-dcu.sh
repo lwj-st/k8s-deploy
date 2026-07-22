@@ -55,15 +55,11 @@ dcu_manifest_by_mode() {
 
 resolve_node_name() {
   if [ -n "${DCU_NODE_NAME}" ]; then
-    printf '%s\n' "${DCU_NODE_NAME}"
+    normalize_k8s_node_name "${DCU_NODE_NAME}"
     return 0
   fi
 
-  local n=""
-  n="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
-  n="${n%%.*}"
-  [ -n "${n}" ] || die "无法推断当前节点名，请设置 DCU_NODE_NAME"
-  printf '%s\n' "${n}"
+  get_local_k8s_node_name
 }
 
 label_current_node_if_needed() {

@@ -227,10 +227,8 @@ ensure_node_label_for_device_plugin() {
 
   [ -n "${accel_value}" ] || return 0
 
-  # 推断当前节点名：node 名一般等于 hostname（或 hostname 去掉域名部分）
   local local_node
-  local_node="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
-  local_node="${local_node%%.*}"
+  local_node="$(get_local_k8s_node_name)"
 
   kubectl get node "${local_node}" >/dev/null 2>&1 || die "无法找到当前节点对象：node=${local_node}（请确认 kube-apiserver 可访问且节点名与 hostname 一致）"
 

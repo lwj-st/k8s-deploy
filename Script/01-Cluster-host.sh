@@ -115,9 +115,11 @@ case "${ALLOW_ONLINE}" in
   *) die "ALLOW_ONLINE 只能是 yes 或 no" ;;
 esac
 
-read -r -p "Ingress 节点名（kubectl node 名，默认: $(hostname | tr '[:upper:]' '[:lower:]')）: " INGRESS_NODE_NAME
+default_node_name="$(get_local_k8s_node_name)"
+read -r -p "Ingress 节点名（kubectl node 名，默认: ${default_node_name}）: " INGRESS_NODE_NAME
 INGRESS_NODE_NAME="$(trim_whitespace "${INGRESS_NODE_NAME}")"
-INGRESS_NODE_NAME="${INGRESS_NODE_NAME:-$(hostname | tr '[:upper:]' '[:lower:]')}"
+INGRESS_NODE_NAME="${INGRESS_NODE_NAME:-${default_node_name}}"
+INGRESS_NODE_NAME="$(normalize_k8s_node_name "${INGRESS_NODE_NAME}")"
 
 read -r -p "Grafana Ingress 域名 GRAFANA_INGRESS_HOST (默认: grafana.sensecorex.com): " GRAFANA_INGRESS_HOST
 GRAFANA_INGRESS_HOST="$(trim_whitespace "${GRAFANA_INGRESS_HOST}")"
