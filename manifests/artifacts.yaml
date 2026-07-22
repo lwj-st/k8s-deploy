@@ -588,7 +588,7 @@ artifacts:
     type: tar
     name: iluvatar.image.device-plugin.v4.4.0
     path: /data/download/iluvatar/ix-device-plugin-v4.4.0.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/iluvatar/ix-device-plugin-v4.4.0.tar"
     base_url: "registry.iluvatar.com.cn:10443/k8s/ix-device-plugin:4.4.0"
     md5: "9633142950a785a7549d65afe5e5d91b"
     description: "Iluvatar CoreX ix-device-plugin image tar (local preset; tag registry.iluvatar.com.cn:10443/k8s/ix-device-plugin:4.4.0)"
@@ -597,7 +597,7 @@ artifacts:
     type: tar
     name: iluvatar.image.ix-exporter.latest-x86_64
     path: /data/download/iluvatar/ix-exporter-latest-x86_64.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/iluvatar/ix-exporter-latest-x86_64.tar"
     base_url: "registry.iluvatar.com.cn:10443/k8s/ix-exporter:latest-x86_64"
     md5: "6fe2d555d64c497c221d931df15a1d28"
     description: "Iluvatar CoreX ix-exporter image tar (local preset for monitoring)"
