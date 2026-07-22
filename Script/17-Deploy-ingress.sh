@@ -29,16 +29,18 @@ import_image_artifacts \
   "ingress.image.controller.v1.12.2" \
   "ingress.image.webhook-certgen.v1.5.3"
 
-# 单节点提前去污点（避免 admission jobs Pending）
-node_name="$(hostname | tr '[:upper:]' '[:lower:]')"
+# 当前控制节点提前去污点（避免 admission jobs Pending）
+node_name="$(get_local_k8s_node_name)"
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/control-plane- --overwrite 2>/dev/null || true
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/master- --overwrite 2>/dev/null || true
 
 log_info "部署 ingress-nginx..."
 log_command "kubectl apply -f \"${ing}\""
 
+INGRESS_NODE_NAME="$(normalize_k8s_node_name "${INGRESS_NODE_NAME}")"
+kubectl get node "${INGRESS_NODE_NAME}" >/dev/null 2>&1 || die "无法找到 Ingress 节点对象：${INGRESS_NODE_NAME}"
 log_info "给 ingress 节点打 label: ${INGRESS_NODE_NAME}"
-kubectl label nodes "${INGRESS_NODE_NAME}" ingress-node=true --overwrite 2>/dev/null || true
+log_command "kubectl label node \"${INGRESS_NODE_NAME}\" ingress-node=true --overwrite"
 
 log_info "等待 ingress-nginx controller 就绪..."
 if kubectl -n ingress-nginx get deployment ingress-nginx-controller >/dev/null 2>&1; then

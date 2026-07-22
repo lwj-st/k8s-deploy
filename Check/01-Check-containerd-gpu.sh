@@ -193,10 +193,11 @@ find_node_name() {
   # 优先使用 K8S_NODE_NAME；其次使用 hostname；最后退化为 nodes 列表第一个
   local hn
   if [ -n "${K8S_NODE_NAME:-}" ]; then
-    printf '%s\n' "${K8S_NODE_NAME}"
+    printf '%s\n' "${K8S_NODE_NAME}" | tr '[:upper:]' '[:lower:]'
     return 0
   fi
-  hn="$(hostname | tr 'A-Z' 'a-z')"
+  hn="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
+  hn="$(printf '%s' "${hn%%.*}" | tr '[:upper:]' '[:lower:]')"
   if kubectl get node "${hn}" >/dev/null 2>&1; then
     printf '%s\n' "${hn}"
     return 0
@@ -423,5 +424,4 @@ main() {
 }
 
 main "$@"
-
 
