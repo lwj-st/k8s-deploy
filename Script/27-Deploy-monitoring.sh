@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 ################################################################################
 ## Filename:    27-Deploy-monitoring.sh
-## Description: 部署 monitoring（自动识别 nvidia/ascend；都无则默认 nvidia）
+## Description: 部署 monitoring（自动识别 nvidia/ascend/iluvatar；都无则默认 nvidia）
 ## Usage:
 ##   bash 27-Deploy-monitoring.sh
 ## Artifacts:
 ##   - monitor.chart.kube-prometheus-stack.v72.7.0
 ##   - monitor.manifest.dcgm-exporter
+##   - iluvatar.image.ix-exporter.latest-x86_64
 ## Images:
 ##   - monitor.image.kube-state-metrics.v2.15.0
 ##   - monitor.image.grafana.v12.0.0
@@ -18,9 +19,14 @@
 ##   - monitor.image.node-exporter.v1.9.1
 ##   - monitor.image.prometheus.v3.4.0
 ##   - monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless
+##   - iluvatar.image.ix-exporter.latest-x86_64
+## Env:
+##   - MONITOR_ACCELERATOR: 可选，强制 nvidia|ascend|iluvatar（覆盖自动检测）
+##   - GRAFANA_INGRESS_HOST: Grafana Ingress 域名，默认 grafana.sensecorex.com
 ## Notes:
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
-##   - 本脚本会读取仓库 config 下的 npu-exporter、grafana-ingress、service-monitor 配置
+##   - Ascend / Iluvatar exporter 清单来自仓库 config（npu-exporter.yaml / ix-exporter.yaml）
+##   - Iluvatar ix-exporter 清单来自 config/ix-exporter.yaml；镜像需本地预置
 ################################################################################
 set -euo pipefail
 
@@ -32,6 +38,7 @@ RELEASE="kube-prom-stack"
 CHART=""
 DCGM_YAML=""
 ASCEND_YAML=""
+ILUVATAR_YAML=""
 INGRESS_TMPL=""
 SM_YAML=""
 RUNTIME_ACCELERATOR=""
@@ -53,12 +60,14 @@ init_env() {
   DCGM_YAML="$(artifact_get_path_by_name "monitor.manifest.dcgm-exporter")"
 
   ASCEND_YAML="${K8S_DEPLOY_ROOT}/config/npu-exporter.yaml"
+  ILUVATAR_YAML="${K8S_DEPLOY_ROOT}/config/ix-exporter.yaml"
   INGRESS_TMPL="${K8S_DEPLOY_ROOT}/config/grafana-ingress.yaml"
   SM_YAML="${K8S_DEPLOY_ROOT}/config/service-monitor.yaml"
 
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
   [ -f "${DCGM_YAML}" ] || die "缺少制品: ${DCGM_YAML}"
   [ -f "${ASCEND_YAML}" ] || log_warn "未找到 ${ASCEND_YAML}，Ascend 分支将不可用"
+  [ -f "${ILUVATAR_YAML}" ] || log_warn "未找到 ${ILUVATAR_YAML}，Iluvatar 分支将不可用"
   [ -f "${INGRESS_TMPL}" ] || die "缺少配置: ${INGRESS_TMPL}"
   [ -f "${SM_YAML}" ] || die "缺少配置: ${SM_YAML}"
 
@@ -70,8 +79,23 @@ init_env() {
 # Description: 按命令识别加速卡类型；都没有时默认 nvidia
 ################################################################################
 detect_accelerator() {
+  if [ -n "${MONITOR_ACCELERATOR:-}" ]; then
+    case "${MONITOR_ACCELERATOR}" in
+      nvidia|ascend|iluvatar)
+        RUNTIME_ACCELERATOR="${MONITOR_ACCELERATOR}"
+        log_info "使用环境变量强制加速卡类型: ${RUNTIME_ACCELERATOR}"
+        return 0
+        ;;
+      *)
+        die "MONITOR_ACCELERATOR 仅支持 nvidia|ascend|iluvatar，当前=${MONITOR_ACCELERATOR}"
+        ;;
+    esac
+  fi
+
   if have nvidia-smi; then
     RUNTIME_ACCELERATOR="nvidia"
+  elif have ixsmi || [ -d /sys/bus/pci/drivers/iluvatar ]; then
+    RUNTIME_ACCELERATOR="iluvatar"
   elif have npu-smi; then
     RUNTIME_ACCELERATOR="ascend"
   else
@@ -94,8 +118,16 @@ import_monitor_images() {
     "monitor.image.prometheus-operator.v0.82.2" \
     "monitor.image.alertmanager.v0.28.1" \
     "monitor.image.node-exporter.v1.9.1" \
-    "monitor.image.prometheus.v3.4.0" \
-    "monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless"
+    "monitor.image.prometheus.v3.4.0"
+
+  case "${RUNTIME_ACCELERATOR}" in
+    nvidia)
+      import_image_artifact "monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless"
+      ;;
+    iluvatar)
+      import_image_artifact "iluvatar.image.ix-exporter.latest-x86_64"
+      ;;
+  esac
 }
 
 ################################################################################
@@ -213,6 +245,11 @@ apply_monitoring_addons() {
       [ -f "${ASCEND_YAML}" ] || die "Ascend 分支需要配置文件: ${ASCEND_YAML}"
       log_info "检测到 ascend，部署 Ascend 相关 YAML: ${ASCEND_YAML}"
       log_command "kubectl apply -n \"${NS}\" -f \"${ASCEND_YAML}\""
+      ;;
+    iluvatar)
+      [ -f "${ILUVATAR_YAML}" ] || die "Iluvatar 分支需要配置文件: ${ILUVATAR_YAML}"
+      log_info "检测到 iluvatar，部署 ix-exporter: ${ILUVATAR_YAML}"
+      log_command "kubectl apply -f \"${ILUVATAR_YAML}\""
       ;;
     *)
       die "未知加速卡类型: ${RUNTIME_ACCELERATOR}"

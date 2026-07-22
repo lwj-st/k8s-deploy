@@ -24,6 +24,7 @@
 - `Script/15-Deploy-nvidia.sh`：部署 NVIDIA plugin（GPU）
 - `Script/15-Deploy-ascend.sh`：部署 Ascend plugin（NPU，仅择一执行）
 - `Script/15-Deploy-dcu.sh`：部署 Hygon DCU device-plugin（mixed/mig/hami）
+- `Script/15-Deploy-iluvatar.sh`：部署 天数智芯（Iluvatar CoreX）ix-device-plugin
 - `Script/20-Deploy-local-path.sh`
 - `Script/21-Deploy-nfs-provisioner.sh`
 - `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
@@ -129,6 +130,7 @@ sudo bash 14-Kubeadm-init.sh
 sudo bash 15-Deploy-nvidia.sh            # 可选：仅 NVIDIA（GPU）
 sudo bash 15-Deploy-ascend.sh            # 可选：仅 Ascend
 sudo bash 15-Deploy-dcu.sh               # 可选：仅 Hygon DCU
+sudo bash 15-Deploy-iluvatar.sh          # 可选：仅天数智芯 Iluvatar CoreX
 sudo bash 16-Deploy-cni.sh
 sudo bash 17-Deploy-ingress.sh
 ```
@@ -209,9 +211,13 @@ kubeadm join 10.120.155.138:6443 --token abcdef.0123456789abcdef \
 在新节点上执行步骤 2 获取的 `kubeadm join` 命令：
 
 ```bash
+NODE_NAME="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 sudo kubeadm join <API_SERVER>:6443 --token <TOKEN> \
-    --discovery-token-ca-cert-hash sha256:<HASH>
+    --discovery-token-ca-cert-hash sha256:<HASH> \
+    --node-name "${NODE_NAME}"
 ```
+
+`--node-name` 必须保留，确保系统主机名包含大写字母时，Kubernetes 注册的节点名与后续自动打标签脚本使用的名称一致。每台新节点都在本机动态计算自己的节点名，不要把节点名写入多节点共用的 `environment.sh`。
 
 ### 步骤 4：同步config配置
 、、、
