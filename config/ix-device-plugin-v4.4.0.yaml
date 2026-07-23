@@ -50,9 +50,9 @@ rules:
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "create", "update", "list", "watch", "patch"]
-  - apiGroups: [ "" ]
-    resources: [ "events" ]
-    verbs: [ "create" ]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -94,21 +94,21 @@ spec:
           securityContext:
             capabilities:
               drop:
-              - ALL
+                - ALL
             privileged: true
           image: "registry.iluvatar.com.cn:10443/k8s/ix-device-plugin:4.4.0"
           imagePullPolicy: Never
           livenessProbe:
             exec:
               command:
-              - ls
-              - /var/lib/kubelet/device-plugins/iluvatar-gpu.sock
+                - ls
+                - /var/lib/kubelet/device-plugins/iluvatar-gpu.sock
             periodSeconds: 5
           startupProbe:
             exec:
               command:
-              - ls
-              - /var/lib/kubelet/device-plugins/iluvatar-gpu.sock
+                - ls
+                - /var/lib/kubelet/device-plugins/iluvatar-gpu.sock
             periodSeconds: 5
           resources:
             {}
@@ -160,7 +160,7 @@ spec:
           name: dev
         - name: ixc
           configMap:
-              name: ix-config
+            name: ix-config
         - name: ix-device-plugin-log
           hostPath:
             path: /var/log/iluvatarcorex
