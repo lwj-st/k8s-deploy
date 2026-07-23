@@ -70,6 +70,43 @@ die() { log_error "$*"; exit 1; }
 
 have() { command -v "$1" >/dev/null 2>&1; }
 
+validate_k8s_node_name() {
+  local node_name="$1"
+  local label=""
+  local -a node_name_labels=()
+
+  [ -n "${node_name}" ] || die "Kubernetes 节点名不能为空"
+  [ "${#node_name}" -le 253 ] || die "Kubernetes 节点名超过 253 个字符: ${node_name}"
+  if [[ "${node_name}" == .* || "${node_name}" == *. || "${node_name}" == *..* ]]; then
+    die "Kubernetes 节点名格式不正确: ${node_name}"
+  fi
+
+  IFS='.' read -r -a node_name_labels <<< "${node_name}"
+  for label in "${node_name_labels[@]}"; do
+    if [ "${#label}" -gt 63 ] || [[ ! "${label}" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$ ]]; then
+      die "Kubernetes 节点名格式不正确: ${node_name}"
+    fi
+  done
+}
+
+# 规范化显式传入的 Kubernetes 节点名，兼容用户输入大写名称。
+normalize_k8s_node_name() {
+  local node_name="$1"
+  node_name="$(printf '%s' "${node_name}" | tr '[:upper:]' '[:lower:]')"
+  validate_k8s_node_name "${node_name}"
+  printf '%s\n' "${node_name}"
+}
+
+# 返回当前机器用于 Kubernetes 注册和查询的节点名。
+# 节点名只在本机动态计算，不能写入多节点共用的 environment.sh。
+get_local_k8s_node_name() {
+  local node_name=""
+  node_name="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
+  node_name="${node_name%%.*}"
+  [ -n "${node_name}" ] || die "无法获取当前机器的 Kubernetes 节点名"
+  normalize_k8s_node_name "${node_name}"
+}
+
 require_root() {
   if [ "${EUID:-$(id -u)}" -ne 0 ]; then
     die "请用 root 执行（sudo bash ${g_scriptName}.sh）"
