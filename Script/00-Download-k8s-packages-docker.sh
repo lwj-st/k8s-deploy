@@ -3,7 +3,7 @@
 ## Filename:    00-Download-k8s-packages-docker.sh
 ## Description: 使用 Docker/Podman 容器下载 Kubernetes 离线安装包
 ## Usage:
-##   bash 00-Download-k8s-packages-docker.sh <os_id> <os_version> [输出目录] [K8S版本]
+##   bash 00-Download-k8s-packages-docker.sh <os_id> <os_version> [输出目录] [K8S版本] [amd64|arm64]
 ## Examples:
 ##   bash 00-Download-k8s-packages-docker.sh ubuntu 22.04 /data/download/packages/ubuntu/22.04/kubernetes 1.31.11
 ##   bash 00-Download-k8s-packages-docker.sh rocky 9.3 /data/download/packages/rocky/9.3/kubernetes 1.31.11
@@ -19,20 +19,22 @@ source "${SCRIPT_DIR}/framework.sh"
 
 OS_TYPE="${1:?请指定 os_id}"
 OS_VERSION="${2:?请指定 os_version}"
-platform_is_supported "${OS_TYPE}" "${OS_VERSION}" || die "不支持的平台: ${OS_TYPE}-${OS_VERSION}"
+REQUESTED_ARCH="${5:-${TARGET_ARCH:-$(uname -m)}}"
+set_arch_vars "${REQUESTED_ARCH}"
+platform_is_supported "${OS_TYPE}" "${OS_VERSION}" "${TARGET_ARCH}" || die "不支持的平台: ${OS_TYPE}-${OS_VERSION}-${TARGET_ARCH}"
 DOWNLOAD_OS_TYPE="${OS_TYPE}"
-OUTPUT_DIR="${3:-$(artifact_get_os_kubernetes_dir "${OS_TYPE}" "${OS_VERSION}")}"
+OUTPUT_DIR="${3:-$(artifact_get_os_kubernetes_dir "${OS_TYPE}" "${OS_VERSION}" "${TARGET_ARCH}")}"
 K8S_VERSION="${4:-1.31.11}"
 K8S_VERSION_SHORT="${K8S_VERSION%.*}"
 
-DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}")"
+DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}" "${TARGET_ARCH}")"
 REPO_CONFIG_DIR="${K8S_DEPLOY_ROOT}/config/package-repos"
 [ -f "${REPO_CONFIG_DIR}/apply.sh" ] || die "未找到软件源配置应用脚本: ${REPO_CONFIG_DIR}/apply.sh"
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "使用 Docker 容器下载 Kubernetes ${K8S_VERSION} 离线安装包"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "目标平台: ${OS_TYPE}-${OS_VERSION}"
+log_info "目标平台: ${OS_TYPE}-${OS_VERSION}-${TARGET_ARCH}"
 log_info "Docker 镜像: ${DOCKER_IMAGE}"
 log_info "输出目录: ${OUTPUT_DIR}"
 log_info "Kubernetes 版本: ${K8S_VERSION}"
@@ -92,6 +94,7 @@ OS_TYPE="${1}"
 OS_VERSION="${2}"
 K8S_VERSION="${3}"
 K8S_VERSION_SHORT="${4}"
+RPM_ARCH="${5}"
 OUTPUT_DIR="/output"
 source "/repo-config/kubernetes/${K8S_VERSION_SHORT}/repositories.env"
 
@@ -249,17 +252,17 @@ log "下载包: ${PKG_NAMES}（版本 ${K8S_YUM_VERSION}）"
 if [ "${PKG_MGR}" = "dnf" ]; then
   if has_dnf_download; then
     log "使用 dnf download 下载..."
-    dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --enablerepo=kubernetes --disablerepo="*" \
+    dnf download --resolve --alldeps --arch="${RPM_ARCH}",noarch --exclude='*.i?86' --disableexcludes=kubernetes --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes ${PKG_NAMES_VERSIONED} 2>&1 || true
+      dnf download --resolve --alldeps --arch="${RPM_ARCH}",noarch --exclude='*.i?86' --disableexcludes=kubernetes ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   elif command -v yumdownloader &>/dev/null; then
     log "dnf download 不可用，回退使用 yumdownloader..."
-    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
+    yumdownloader --resolve --archlist="${RPM_ARCH}",noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist="${RPM_ARCH}",noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
@@ -268,10 +271,10 @@ if [ "${PKG_MGR}" = "dnf" ]; then
 else
   if command -v yumdownloader &>/dev/null; then
     log "使用 yumdownloader 下载..."
-    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
+    yumdownloader --resolve --archlist="${RPM_ARCH}",noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist="${RPM_ARCH}",noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
     }
   else
     log "错误: yumdownloader 不可用（应该在安装工具阶段已安装）"
@@ -309,35 +312,35 @@ log_info "（这可能需要几分钟，请耐心等待...）"
 # 运行容器
 # 注意：podman 不需要 sudo，docker 可能需要（取决于配置）
 if [ "${DOCKER_CMD}" = "podman" ]; then
-  ${DOCKER_CMD} run --rm --platform linux/amd64 \
+  ${DOCKER_CMD} run --rm --platform "${CONTAINER_PLATFORM}" \
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
     -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+    /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" "${RPM_ARCH}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
 else
   # docker 可能需要 sudo，但先尝试不用 sudo
   if ${DOCKER_CMD} ps &>/dev/null; then
-    ${DOCKER_CMD} run --rm --platform linux/amd64 \
+    ${DOCKER_CMD} run --rm --platform "${CONTAINER_PLATFORM}" \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" "${RPM_ARCH}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败"
     }
   else
     log_warn "docker 命令需要 root 权限，尝试使用 sudo..."
-    sudo ${DOCKER_CMD} run --rm --platform linux/amd64 \
+    sudo ${DOCKER_CMD} run --rm --platform "${CONTAINER_PLATFORM}" \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" || {
+      /bin/bash /download.sh "${DOWNLOAD_OS_TYPE}" "${OS_VERSION}" "${K8S_VERSION}" "${K8S_VERSION_SHORT}" "${RPM_ARCH}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可能需要将当前用户添加到 docker 组：sudo usermod -aG docker $USER）"
     }

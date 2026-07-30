@@ -16,7 +16,7 @@
 ## Env:
 ##   - 无
 ## Notes:
-##   - 仅支持 Ubuntu amd64；download 必须在可访问同版本软件源的 Ubuntu 机器执行
+##   - 仅支持 Ubuntu amd64/arm64；download 必须在同版本同架构、可访问软件源的 Ubuntu 机器执行
 ##   - 默认采用“将依赖降级到报错要求的精确版本”方案
 ##   - download 只下载，不安装到联网机器；install 使用严格离线模式
 ################################################################################
@@ -48,9 +48,13 @@ EOF
   exit 2
 }
 
-require_ubuntu_amd64() {
-  [ "$(dpkg --print-architecture)" = "amd64" ] || \
-    die "仅支持 amd64，当前架构: $(dpkg --print-architecture)"
+require_ubuntu_supported_arch() {
+  local arch
+  arch="$(dpkg --print-architecture)"
+  case "${arch}" in
+    amd64|arm64) : ;;
+    *) die "仅支持 amd64/arm64，当前架构: ${arch}" ;;
+  esac
   # shellcheck disable=SC1091
   source /etc/os-release
   [ "${ID:-}" = "ubuntu" ] || die "仅支持 Ubuntu，当前系统: ${ID:-unknown}"
@@ -117,7 +121,7 @@ download_packages() {
 
   [ -f "${manifest}" ] || die "清单不存在: ${manifest}"
   mkdir -p "${output_dir}"
-  require_ubuntu_amd64
+  require_ubuntu_supported_arch
   manifest_os_version="$(sed -n 's/^# OS_VERSION=//p' "${manifest}" | head -n 1)"
   current_os_version="${VERSION_ID:-}"
   if [ -z "${manifest_os_version}" ] || [ "${manifest_os_version}" != "${current_os_version}" ]; then
@@ -148,7 +152,7 @@ install_packages() {
   local -a debs=()
 
   [ -d "${package_dir}" ] || die "下载目录不存在: ${package_dir}"
-  require_ubuntu_amd64
+  require_ubuntu_supported_arch
   shopt -s nullglob
   debs=("${package_dir}"/*.deb)
   shopt -u nullglob
@@ -174,7 +178,7 @@ mode="$1"
 case "${mode}" in
   detect)
     [ "$#" -eq 2 ] || usage
-    require_ubuntu_amd64
+    require_ubuntu_supported_arch
     detect_packages "$2"
     ;;
   download)

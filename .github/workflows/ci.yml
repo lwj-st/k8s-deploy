@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shell-and-manifest:
+    name: shell and manifest (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            expected_uname: x86_64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            expected_uname: aarch64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show runner arch
+        run: |
+          uname -m
+          test "$(uname -m)" = "${{ matrix.expected_uname }}"
+
+      - name: Validate YAML
+        run: ruby -e 'require "yaml"; YAML.load_file("manifests/artifacts.yaml")'
+
+      - name: Script standards
+        run: bash tests/check_script_standards.sh
+
+      - name: Download path helper checks
+        run: bash tests/check_download_dir_usage.sh
+
+      - name: Bash syntax
+        run: bash -n Script/*.sh Check/*.sh tests/*.sh
+
+      - name: Architecture helper checks
+        run: |
+          source Script/framework.sh
+          set_arch_vars "${TARGET_ARCH}"
+
+          case "${TARGET_ARCH}" in
+            amd64)
+              test "${CONTAINER_PLATFORM}" = "linux/amd64"
+              test "${RPM_ARCH}" = "x86_64"
+              test "${DEB_ARCH}" = "amd64"
+              test "$(artifact_get_os_kubernetes_dir ubuntu 22.04)" = "/data/download/packages/ubuntu/22.04/kubernetes"
+              test "$(artifact_get_path_by_name base.helm.linux-amd64.tgz)" = "/data/download/base/helm-v3.18.3-linux-amd64.tar.gz"
+              test "$(artifact_get_path_by_name minio.image.amd64.20250524)" = "/data/download/minio/minio_20250524_amd64.tar"
+              ;;
+            arm64)
+              test "${CONTAINER_PLATFORM}" = "linux/arm64/v8"
+              test "${RPM_ARCH}" = "aarch64"
+              test "${DEB_ARCH}" = "arm64"
+              test "$(artifact_get_os_kubernetes_dir ubuntu 22.04)" = "/data/download/arm64/packages/ubuntu/22.04/kubernetes"
+              test "$(artifact_get_path_by_name base.helm.linux-arm64.tgz)" = "/data/download/arm64/base/helm-v3.18.3-linux-arm64.tar.gz"
+              test "$(artifact_get_path_by_name minio.image.arm64.20250524)" = "/data/download/arm64/minio/minio_20250524_arm64.tar"
+              ;;
+            *)
+              echo "unsupported TARGET_ARCH=${TARGET_ARCH}" >&2
+              exit 1
+              ;;
+          esac
+
+          platform_is_supported ubuntu 22.04 "${TARGET_ARCH}"
+          test "$(platform_get_download_image ubuntu 22.04 "${TARGET_ARCH}")" = "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:22.04"
+        env:
+          TARGET_ARCH: ${{ matrix.arch }}

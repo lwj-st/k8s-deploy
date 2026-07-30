@@ -16,8 +16,12 @@ K8S_DEPLOY_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_DIR="/var/lib/k8s-deploy"
 BACKUPS_FILE="${STATE_DIR}/backups.tsv"
 STATE_FILE="${STATE_DIR}/state.env"
-# 供 source framework.sh 的脚本安全引用；init_framework/detect_os 会覆盖实际值。
-OS_ID=""
+# 供 source framework.sh 的脚本安全引用；init_framework/detect_os/detect_arch 会覆盖实际值。
+OS_ID="${OS_ID:-}"
+TARGET_ARCH="${TARGET_ARCH:-}"
+CONTAINER_PLATFORM="${CONTAINER_PLATFORM:-}"
+RPM_ARCH="${RPM_ARCH:-}"
+DEB_ARCH="${DEB_ARCH:-}"
 
 mkdir -p "${STATE_DIR}" >/dev/null 2>&1 || true
 
@@ -167,6 +171,40 @@ detect_os() {
   export OS_ID OS_ID_RAW OS_VERSION_ID OS_VERSION_NAME OS_VERSION_DETECTED
 }
 
+normalize_arch() {
+  local arch="$1"
+  arch="$(printf '%s' "${arch}" | tr '[:upper:]' '[:lower:]')"
+  case "${arch}" in
+    x86_64|amd64) printf 'amd64\n' ;;
+    aarch64|arm64) printf 'arm64\n' ;;
+    *) die "不支持的 CPU 架构: ${arch}（仅支持 amd64/arm64）" ;;
+  esac
+}
+
+set_arch_vars() {
+  TARGET_ARCH="$(normalize_arch "${1}")"
+  case "${TARGET_ARCH}" in
+    amd64)
+      CONTAINER_PLATFORM="linux/amd64"
+      RPM_ARCH="x86_64"
+      DEB_ARCH="amd64"
+      ;;
+    arm64)
+      CONTAINER_PLATFORM="linux/arm64/v8"
+      RPM_ARCH="aarch64"
+      DEB_ARCH="arm64"
+      ;;
+    *)
+      die "不支持的 TARGET_ARCH=${TARGET_ARCH}"
+      ;;
+  esac
+  export TARGET_ARCH CONTAINER_PLATFORM RPM_ARCH DEB_ARCH
+}
+
+detect_arch() {
+  set_arch_vars "$(uname -m)"
+}
+
 # 将 /etc/os-release 中的版本统一为清单使用的平台版本标识。
 normalize_os_version() {
   local os_id="$1" version_id="$2" version_name="$3"
@@ -231,7 +269,7 @@ download_file() {
 
 # YAML manifest 解析：只支持本仓库生成的简单结构（list-of-maps）
 # 重要：分隔符使用 ASCII Unit Separator(\x1f)，避免 bash read 在 IFS 为“空白字符(tab/space)”时吞掉空字段（例如 url 为空）。
-# 输出：module<US>type<US>name<US>path<US>url<US>md5<US>description<US>os_id
+# 输出：module<US>type<US>name<US>path<US>url<US>md5<US>description<US>os_id<US>os_version<US>arch
 parse_artifacts_yaml() {
   local yaml_file="$1"
   [ -f "$yaml_file" ] || die "制品清单不存在: $yaml_file"
@@ -242,15 +280,15 @@ parse_artifacts_yaml() {
   function emit(){
     if (in_item) {
       # use ASCII Unit Separator between fields
-      printf "%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\n", module, type, name, path, url, md5, desc, os_id
+      printf "%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s\n", module, type, name, path, url, md5, desc, os_id, os_version, arch
     }
   }
-  BEGIN{in_item=0; module=type=name=path=url=md5=desc=os_id=""}
+  BEGIN{in_item=0; module=type=name=path=url=md5=desc=os_id=os_version=arch=""}
   /^[[:space:]]*-[[:space:]]+module:/{
     emit()
     in_item=1
     module=stripq($0); sub(/^[[:space:]]*-[[:space:]]+module:[[:space:]]*/, "", module)
-    type=name=path=url=md5=desc=os_id=""
+    type=name=path=url=md5=desc=os_id=os_version=arch=""
     next
   }
   in_item && /^[[:space:]]+type:/{
@@ -273,6 +311,12 @@ parse_artifacts_yaml() {
   }
   in_item && /^[[:space:]]+os_id:/{
     os_id=$0; sub(/^[[:space:]]+os_id:[[:space:]]*/, "", os_id); os_id=stripq(os_id); next
+  }
+  in_item && /^[[:space:]]+os_version:/{
+    os_version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", os_version); os_version=stripq(os_version); next
+  }
+  in_item && /^[[:space:]]+arch:/{
+    arch=$0; sub(/^[[:space:]]+arch:[[:space:]]*/, "", arch); arch=stripq(arch); next
   }
   END{ emit() }
   ' "$yaml_file"
@@ -297,8 +341,11 @@ artifact_get_path_by_name() {
 
   local found=""
   local cnt=0
-  while IFS=$'\x1f' read -r _m _t n p _url _md5 _d _oid; do
+  while IFS=$'\x1f' read -r _m _t n p _url _md5 _d _oid _over arch; do
     [ "${n}" = "${name}" ] || continue
+    if [ -n "${arch}" ] && [ -n "${TARGET_ARCH:-}" ] && [ "${arch}" != "${TARGET_ARCH}" ]; then
+      continue
+    fi
     found="${p}"
     cnt=$((cnt+1))
   done < <(parse_artifacts_yaml "${manifest}")
@@ -328,42 +375,71 @@ platform_get_supported_versions() {
       id=$0; sub(/^[[:space:]]*-[[:space:]]+os_id:[[:space:]]*/, "", id); id=stripq(id); next
     }
     id == wanted && /^[[:space:]]+os_version:/ {
-      version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", version); print stripq(version)
+      version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", version); version=stripq(version)
+      if (!seen[version]++) print version
     }
   ' "${manifest}"
 }
 
 platform_is_supported() {
-  local os_id="$1" os_version="$2"
-  platform_get_supported_versions "${os_id}" | grep -Fxq "${os_version}"
+  local os_id="$1" os_version="$2" arch="${3:-${TARGET_ARCH:-}}"
+  [ -n "${arch}" ] || arch="$(normalize_arch "$(uname -m)")"
+  arch="$(normalize_arch "${arch}")"
+  platform_get_supported_arches "${os_id}" "${os_version}" | grep -Fxq "${arch}"
 }
 
-platform_get_download_image() {
+platform_get_supported_arches() {
   local os_id="$1" os_version="$2"
   local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
-  local image=""
+  [ -n "${os_id}" ] || die "platform_get_supported_arches: os_id 不能为空"
+  [ -n "${os_version}" ] || die "platform_get_supported_arches: os_version 不能为空"
 
-  image="$(awk -v wanted_id="${os_id}" -v wanted_version="${os_version}" '
+  awk -v wanted_id="${os_id}" -v wanted_version="${os_version}" '
     function trim(s){ gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
     function stripq(s){ s=trim(s); gsub(/^["\047]|["\047]$/, "", s); return s }
-    function emit(){ if (id == wanted_id && version == wanted_version) { print image; emitted=1 } }
+    function emit(){ if (id == wanted_id && version == wanted_version && arch != "" && !seen[arch]++) print arch }
     /^platforms:/ { in_platforms=1; next }
     /^artifacts:/ { if (in_platforms) emit(); exit }
     !in_platforms { next }
     /^[[:space:]]*-[[:space:]]+os_id:/ {
-      emit(); id=$0; sub(/^[[:space:]]*-[[:space:]]+os_id:[[:space:]]*/, "", id); id=stripq(id); version=image=""; next
+      emit(); id=$0; sub(/^[[:space:]]*-[[:space:]]+os_id:[[:space:]]*/, "", id); id=stripq(id); version=arch=""; next
     }
     /^[[:space:]]+os_version:/ { version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", version); version=stripq(version); next }
+    /^[[:space:]]+arch:/ { arch=$0; sub(/^[[:space:]]+arch:[[:space:]]*/, "", arch); arch=stripq(arch); next }
+    END { if (in_platforms) emit() }
+  ' "${manifest}"
+}
+
+platform_get_download_image() {
+  local os_id="$1" os_version="$2" arch="${3:-${TARGET_ARCH:-}}"
+  local manifest="${K8S_DEPLOY_ROOT}/manifests/artifacts.yaml"
+  local image=""
+  [ -n "${arch}" ] || arch="$(normalize_arch "$(uname -m)")"
+  arch="$(normalize_arch "${arch}")"
+
+  image="$(awk -v wanted_id="${os_id}" -v wanted_version="${os_version}" -v wanted_arch="${arch}" '
+    function trim(s){ gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    function stripq(s){ s=trim(s); gsub(/^["\047]|["\047]$/, "", s); return s }
+    function emit(){ if (id == wanted_id && version == wanted_version && arch == wanted_arch) { print image; emitted=1 } }
+    /^platforms:/ { in_platforms=1; next }
+    /^artifacts:/ { if (in_platforms) emit(); exit }
+    !in_platforms { next }
+    /^[[:space:]]*-[[:space:]]+os_id:/ {
+      emit(); id=$0; sub(/^[[:space:]]*-[[:space:]]+os_id:[[:space:]]*/, "", id); id=stripq(id); version=arch=image=""; next
+    }
+    /^[[:space:]]+os_version:/ { version=$0; sub(/^[[:space:]]+os_version:[[:space:]]*/, "", version); version=stripq(version); next }
+    /^[[:space:]]+arch:/ { arch=$0; sub(/^[[:space:]]+arch:[[:space:]]*/, "", arch); arch=stripq(arch); next }
     /^[[:space:]]+download_image:/ { image=$0; sub(/^[[:space:]]+download_image:[[:space:]]*/, "", image); image=stripq(image); next }
     END { if (in_platforms && !emitted) emit() }
   ' "${manifest}")"
-  [ -n "${image}" ] || die "不支持的平台: ${os_id}-${os_version}"
+  [ -n "${image}" ] || die "不支持的平台: ${os_id}-${os_version}-${arch}"
   printf '%s\n' "${image}"
 }
 
 require_target_platform() {
   [ -n "${TARGET_OS_VERSION:-}" ] || die "未配置 TARGET_OS_VERSION，请先执行 01-Cluster-host.sh"
-  platform_is_supported "${OS_ID}" "${TARGET_OS_VERSION}" || die "不支持的平台: ${OS_ID}-${TARGET_OS_VERSION}；支持版本: $(platform_get_supported_versions "${OS_ID}" | paste -sd ',')"
+  [ -n "${TARGET_ARCH:-}" ] || detect_arch
+  platform_is_supported "${OS_ID}" "${TARGET_OS_VERSION}" "${TARGET_ARCH}" || die "不支持的平台: ${OS_ID}-${TARGET_OS_VERSION}-${TARGET_ARCH}；支持版本: $(platform_get_supported_versions "${OS_ID}" | paste -sd ',')；该版本支持架构: $(platform_get_supported_arches "${OS_ID}" "${TARGET_OS_VERSION}" | paste -sd ',')"
 }
 
 ################################################################################
@@ -410,11 +486,13 @@ artifact_get_path() {
 #   $1 os_id  - ubuntu/centos/rocky/kylin/openeuler...
 ################################################################################
 artifact_get_os_kubernetes_dir() {
-  local os_id="$1" os_version="$2"
+  local os_id="$1" os_version="$2" arch="${3:-${TARGET_ARCH:-}}"
   if [ -z "${os_id}" ] || [ -z "${os_version}" ]; then
     die "artifact_get_os_kubernetes_dir: os_id/os_version 不能为空"
   fi
-  artifact_get_path_by_name "os.dir.kubernetes.${os_id}.${os_version}"
+  [ -n "${arch}" ] || arch="$(normalize_arch "$(uname -m)")"
+  arch="$(normalize_arch "${arch}")"
+  artifact_get_path_by_name "os.dir.kubernetes.${os_id}.${os_version}.${arch}"
 }
 
 ################################################################################
@@ -422,11 +500,13 @@ artifact_get_os_kubernetes_dir() {
 # Description: 从清单读取当前 OS 的常用工具离线包目录
 ################################################################################
 artifact_get_os_tools_dir() {
-  local os_id="$1" os_version="$2"
+  local os_id="$1" os_version="$2" arch="${3:-${TARGET_ARCH:-}}"
   if [ -z "${os_id}" ] || [ -z "${os_version}" ]; then
     die "artifact_get_os_tools_dir: os_id/os_version 不能为空"
   fi
-  artifact_get_path_by_name "os.dir.tools.${os_id}.${os_version}"
+  [ -n "${arch}" ] || arch="$(normalize_arch "$(uname -m)")"
+  arch="$(normalize_arch "${arch}")"
+  artifact_get_path_by_name "os.dir.tools.${os_id}.${os_version}.${arch}"
 }
 
 ################################################################################
@@ -434,11 +514,13 @@ artifact_get_os_tools_dir() {
 # Description: 从清单读取当前 OS 的 NVIDIA Container Toolkit 离线包目录
 ################################################################################
 artifact_get_nvidia_toolkit_dir() {
-  local os_id="$1" os_version="$2"
+  local os_id="$1" os_version="$2" arch="${3:-${TARGET_ARCH:-}}"
   if [ -z "${os_id}" ] || [ -z "${os_version}" ]; then
     die "artifact_get_nvidia_toolkit_dir: os_id/os_version 不能为空"
   fi
-  artifact_get_path_by_name "nvidia.dir.toolkit.${os_id}.${os_version}"
+  [ -n "${arch}" ] || arch="$(normalize_arch "$(uname -m)")"
+  arch="$(normalize_arch "${arch}")"
+  artifact_get_path_by_name "nvidia.dir.toolkit.${os_id}.${os_version}.${arch}"
 }
 
 init_framework() {
@@ -451,6 +533,11 @@ init_framework() {
   source "${SCRIPT_DIR}/environment.sh"
 
   detect_os
+  if [ -n "${TARGET_ARCH:-}" ]; then
+    set_arch_vars "${TARGET_ARCH}"
+  else
+    detect_arch
+  fi
   require_target_platform
-  log_info "OS: ${OS_ID} ${OS_VERSION_DETECTED}（目标离线包版本: ${TARGET_OS_VERSION}）"
+  log_info "OS: ${OS_ID} ${OS_VERSION_DETECTED}（目标离线包版本: ${TARGET_OS_VERSION}；架构: ${TARGET_ARCH}）"
 }

@@ -5,12 +5,13 @@
 ## Usage:
 ##   bash 11-Install-containerd.sh
 ## Artifacts:
-##   - containerd.tarball.1.7.4.linux-amd64
+##   - containerd.tarball.1.7.4.linux-<TARGET_ARCH>
 ##   - containerd.systemd.unit
-##   - containerd.runc.binary.amd64
-##   - containerd.cni-plugins.tgz.linux-amd64.v1.7.1
+##   - containerd.runc.binary.<TARGET_ARCH>
+##   - containerd.cni-plugins.tgz.linux-<TARGET_ARCH>.v1.7.1
 ##   - containerd.config.template.toml
 ## Env:
+##   - TARGET_ARCH: amd64/arm64，由 01-Cluster-host.sh 生成；未设置时按当前机器架构识别
 ##   - CONTAINERD_ROOT: 可选，覆盖 containerd 数据目录
 ## Notes:
 ##   - 幂等：发现已安装则 stop -> 备份 -> 重装
@@ -35,10 +36,10 @@ cfg_tpl=""
 # Description: 初始化制品路径变量
 ################################################################################
 init_vars() {
-  containerd_tar="$(artifact_get_path_by_name "containerd.tarball.1.7.4.linux-amd64")"
+  containerd_tar="$(artifact_get_path_by_name "containerd.tarball.1.7.4.linux-${TARGET_ARCH}")"
   containerd_svc="$(artifact_get_path_by_name "containerd.systemd.unit")"
-  runc_bin="$(artifact_get_path_by_name "containerd.runc.binary.amd64")"
-  cni_tgz="$(artifact_get_path_by_name "containerd.cni-plugins.tgz.linux-amd64.v1.7.1")"
+  runc_bin="$(artifact_get_path_by_name "containerd.runc.binary.${TARGET_ARCH}")"
+  cni_tgz="$(artifact_get_path_by_name "containerd.cni-plugins.tgz.linux-${TARGET_ARCH}.v1.7.1")"
   cfg_tpl="$(artifact_get_path_by_name "containerd.config.template.toml")"
 }
 
@@ -93,7 +94,8 @@ install_config() {
   log_command "cp -f \"${cfg_tpl}\" /etc/containerd/config.toml"
   log_command "sed -i -E 's@^imports = \\[\"/etc/containerd/config\\.toml\"\\]@imports = []@' /etc/containerd/config.toml || true"
   log_command "sed -i -E 's@runtime_type = \"io\\.containerd\\.runtime\\.v1\\.linux\"@runtime_type = \"io.containerd.runc.v2\"@g' /etc/containerd/config.toml || true"
-  log_command "sed -i -E 's@platforms = \\[\"linux/arm64/v8\"\\]@platforms = [\"linux/amd64\"]@' /etc/containerd/config.toml || true"
+  log_command "sed -i -E 's@platforms = \\[[^]]*\\]@platforms = [\"${CONTAINER_PLATFORM}\"]@' /etc/containerd/config.toml || true"
+  log_command "sed -i -E 's@platform = \"[^\"]+\"@platform = \"${CONTAINER_PLATFORM}\"@' /etc/containerd/config.toml || true"
 
   # 可选：自定义 containerd 数据根目录（镜像与元数据存储）
   if [ -n "${CONTAINERD_ROOT:-}" ]; then

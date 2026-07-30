@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 30-Deploy-rsyslog.sh
 ## Artifacts:
-##   - os.dir.tools.<os_id>.<os_version>
+##   - os.dir.tools.<os_id>.<os_version>.<TARGET_ARCH>
 ##
 ##   bash 30-Deploy-rsyslog.sh client  #把当前机器配置成日志发送节点。 需要每个节点都执行一次。
 ##   bash 30-Deploy-rsyslog.sh server  #把当前机器配置成日志服务器。

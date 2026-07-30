@@ -39,10 +39,14 @@ assert_path() {
   fi
 }
 
-assert_path 'artifact_get_os_kubernetes_dir ubuntu 22.04' '/data/download/packages/ubuntu/22.04/kubernetes'
-assert_path 'artifact_get_os_tools_dir rocky 9.3' '/data/download/packages/rocky/9.3/tools'
-assert_path 'artifact_get_nvidia_toolkit_dir kylin v10-sp3' '/data/download/nvidia/kylin/v10-sp3'
-assert_path 'platform_get_download_image openeuler 24.03-lts-sp4' 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4'
+assert_path 'artifact_get_os_kubernetes_dir ubuntu 22.04 amd64' '/data/download/packages/ubuntu/22.04/kubernetes'
+assert_path 'artifact_get_os_tools_dir rocky 9.3 amd64' '/data/download/packages/rocky/9.3/tools'
+assert_path 'artifact_get_nvidia_toolkit_dir kylin v10-sp3 amd64' '/data/download/nvidia/kylin/v10-sp3'
+assert_path 'artifact_get_os_kubernetes_dir ubuntu 22.04 arm64' '/data/download/arm64/packages/ubuntu/22.04/kubernetes'
+assert_path 'artifact_get_os_tools_dir rocky 9.3 arm64' '/data/download/arm64/packages/rocky/9.3/tools'
+assert_path 'artifact_get_nvidia_toolkit_dir kylin v10-sp3 arm64' '/data/download/arm64/nvidia/kylin/v10-sp3'
+assert_path 'platform_get_download_image openeuler 24.03-lts-sp4 amd64' 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4'
+assert_path 'platform_get_download_image openeuler 24.03-lts-sp4 arm64' 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4'
 
 supported_versions="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; platform_get_supported_versions ubuntu")"
 expected_versions=$'22.04\n24.04\n26.04'
@@ -54,19 +58,27 @@ fi
 for os_id in ubuntu centos rocky openeuler kylin; do
   while IFS= read -r os_version; do
     [ -n "${os_version}" ] || continue
-    assert_path "artifact_get_os_kubernetes_dir ${os_id} ${os_version}" \
+    assert_path "artifact_get_os_kubernetes_dir ${os_id} ${os_version} amd64" \
       "/data/download/packages/${os_id}/${os_version}/kubernetes"
-    assert_path "artifact_get_os_tools_dir ${os_id} ${os_version}" \
+    assert_path "artifact_get_os_tools_dir ${os_id} ${os_version} amd64" \
       "/data/download/packages/${os_id}/${os_version}/tools"
-    assert_path "artifact_get_nvidia_toolkit_dir ${os_id} ${os_version}" \
+    assert_path "artifact_get_nvidia_toolkit_dir ${os_id} ${os_version} amd64" \
       "/data/download/nvidia/${os_id}/${os_version}"
-    image="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; platform_get_download_image '${os_id}' '${os_version}'")"
-    case "${image}" in
-      swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/*) ;;
-      *)
-        echo "平台下载镜像未使用 ddn-k8s 中转: ${os_id}-${os_version}: ${image}" >&2
-        exit 1
-        ;;
-    esac
+    assert_path "artifact_get_os_kubernetes_dir ${os_id} ${os_version} arm64" \
+      "/data/download/arm64/packages/${os_id}/${os_version}/kubernetes"
+    assert_path "artifact_get_os_tools_dir ${os_id} ${os_version} arm64" \
+      "/data/download/arm64/packages/${os_id}/${os_version}/tools"
+    assert_path "artifact_get_nvidia_toolkit_dir ${os_id} ${os_version} arm64" \
+      "/data/download/arm64/nvidia/${os_id}/${os_version}"
+    for arch in amd64 arm64; do
+      image="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; platform_get_download_image '${os_id}' '${os_version}' '${arch}'")"
+      case "${image}" in
+        swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/*) ;;
+        *)
+          echo "平台下载镜像未使用 ddn-k8s 中转: ${os_id}-${os_version}-${arch}: ${image}" >&2
+          exit 1
+          ;;
+      esac
+    done
   done < <(bash -c "source '${ROOT_DIR}/Script/framework.sh'; platform_get_supported_versions '${os_id}'")
 done

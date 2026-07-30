@@ -1,7 +1,7 @@
 yaml_content: "k8s-deploy 制品清单（已配置 url + md5；本地预置制品 md5=__LOCAL_ONLY__；dir md5=__DIR__）"
 
 # OS 离线包支持矩阵。version 是用户在 01-Cluster-host.sh 中选择的目标版本，
-# download_image 是 00 下载脚本使用的 amd64 容器镜像。
+# arch 是目标 CPU 架构；download_image 是 00 下载脚本使用的容器镜像。
 platforms:
   - os_id: ubuntu
     os_version: "22.04"
@@ -59,6 +59,62 @@ platforms:
     os_version: "v10-sp3"
     arch: amd64
     download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp3"
+  - os_id: ubuntu
+    os_version: "22.04"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:22.04"
+  - os_id: ubuntu
+    os_version: "24.04"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:24.04"
+  - os_id: ubuntu
+    os_version: "26.04"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:26.04"
+  - os_id: centos
+    os_version: "7.9.2009"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:7.9.2009"
+  - os_id: centos
+    os_version: "8.4.2105"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:8.4.2105"
+  - os_id: rocky
+    os_version: "9.2"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.2"
+  - os_id: rocky
+    os_version: "9.3"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.3"
+  - os_id: rocky
+    os_version: "10.2"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:10.2"
+  - os_id: openeuler
+    os_version: "24.03"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03"
+  - os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4"
+  - os_id: openeuler
+    os_version: "22.03-lts"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:22.03-lts"
+  - os_id: kylin
+    os_version: "v10-sp1"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp1"
+  - os_id: kylin
+    os_version: "v10-sp2"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp2"
+  - os_id: kylin
+    os_version: "v10-sp3"
+    arch: arm64
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp3"
 
 artifacts:
   - module: base
@@ -77,6 +133,7 @@ artifacts:
     base_url: "https://get.helm.sh/helm-v3.18.3-linux-amd64.tar.gz"
     md5: "28ecc6ee582231ddc604b8a3623c48ea"
     description: "Helm tarball"
+    arch: amd64
 
   - module: base
     type: file
@@ -86,6 +143,7 @@ artifacts:
     base_url: "https://github.com/helmfile/helmfile/releases/download/v1.1.2/helmfile_1.1.2_linux_amd64.tar.gz"
     md5: "450f7a51d35a7181f5c039ab3cbd9be3"
     description: "Helmfile tarball"
+    arch: amd64
 
   - module: containerd
     type: file
@@ -95,6 +153,7 @@ artifacts:
     base_url: "https://github.com/containerd/containerd/releases/download/v1.7.4/containerd-1.7.4-linux-amd64.tar.gz"
     md5: "9b6be86b7531a6f9809eb337f3177748"
     description: "containerd tarball"
+    arch: amd64
 
   - module: containerd
     type: file
@@ -112,6 +171,7 @@ artifacts:
     base_url: "https://github.com/opencontainers/runc/releases/download/v1.3.0/runc.amd64"
     md5: "b95479b0dfac6485299b2588991228d8"
     description: "runc binary"
+    arch: amd64
 
   - module: containerd
     type: file
@@ -121,6 +181,57 @@ artifacts:
     base_url: "https://github.com/containernetworking/plugins/releases/download/v1.7.1/cni-plugins-linux-amd64-v1.7.1.tgz"
     md5: "84c43dfb3ba5fe0be1771228ddbbea26"
     description: "CNI plugins tgz"
+    arch: amd64
+
+  - module: base
+    type: file
+    name: base.helm.linux-arm64.tgz
+    path: /data/download/arm64/base/helm-v3.18.3-linux-arm64.tar.gz
+    url: ""
+    base_url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "Helm arm64 tarball; fill url/base_url/md5 before use"
+    arch: arm64
+
+  - module: base
+    type: file
+    name: base.helmfile.linux-arm64.tgz
+    path: /data/download/arm64/base/helmfile_1.1.2_linux_arm64.tar.gz
+    url: ""
+    base_url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "Helmfile arm64 tarball; fill url/base_url/md5 before use"
+    arch: arm64
+
+  - module: containerd
+    type: file
+    name: containerd.tarball.1.7.4.linux-arm64
+    path: /data/download/arm64/containerd/containerd-1.7.4-linux-arm64.tar.gz
+    url: ""
+    base_url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "containerd arm64 tarball; fill url/base_url/md5 before use"
+    arch: arm64
+
+  - module: containerd
+    type: file
+    name: containerd.runc.binary.arm64
+    path: /data/download/arm64/containerd/runc.arm64
+    url: ""
+    base_url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "runc arm64 binary; fill url/base_url/md5 before use"
+    arch: arm64
+
+  - module: containerd
+    type: file
+    name: containerd.cni-plugins.tgz.linux-arm64.v1.7.1
+    path: /data/download/arm64/containerd/cni-plugins-linux-arm64-v1.7.1.tgz
+    url: ""
+    base_url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "CNI plugins arm64 tarball; fill url/base_url/md5 before use"
+    arch: arm64
 
   - module: containerd
     type: file
@@ -342,7 +453,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.ubuntu.22.04
+    name: nvidia.dir.toolkit.ubuntu.22.04.amd64
     path: /data/download/nvidia/ubuntu/22.04
     url: ""
     md5: "__DIR__"
@@ -353,7 +464,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.ubuntu.24.04
+    name: nvidia.dir.toolkit.ubuntu.24.04.amd64
     path: /data/download/nvidia/ubuntu/24.04
     url: ""
     md5: "__DIR__"
@@ -364,7 +475,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.ubuntu.26.04
+    name: nvidia.dir.toolkit.ubuntu.26.04.amd64
     path: /data/download/nvidia/ubuntu/26.04
     url: ""
     md5: "__DIR__"
@@ -375,7 +486,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.centos.7.9.2009
+    name: nvidia.dir.toolkit.centos.7.9.2009.amd64
     path: /data/download/nvidia/centos/7.9.2009
     url: ""
     md5: "__DIR__"
@@ -386,7 +497,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.centos.8.4.2105
+    name: nvidia.dir.toolkit.centos.8.4.2105.amd64
     path: /data/download/nvidia/centos/8.4.2105
     url: ""
     md5: "__DIR__"
@@ -397,7 +508,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.rocky.9.2
+    name: nvidia.dir.toolkit.rocky.9.2.amd64
     path: /data/download/nvidia/rocky/9.2
     url: ""
     md5: "__DIR__"
@@ -408,7 +519,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.rocky.9.3
+    name: nvidia.dir.toolkit.rocky.9.3.amd64
     path: /data/download/nvidia/rocky/9.3
     url: ""
     md5: "__DIR__"
@@ -419,7 +530,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.rocky.10.2
+    name: nvidia.dir.toolkit.rocky.10.2.amd64
     path: /data/download/nvidia/rocky/10.2
     url: ""
     md5: "__DIR__"
@@ -430,7 +541,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.openeuler.24.03
+    name: nvidia.dir.toolkit.openeuler.24.03.amd64
     path: /data/download/nvidia/openeuler/24.03
     url: ""
     md5: "__DIR__"
@@ -441,7 +552,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.openeuler.24.03-lts-sp4
+    name: nvidia.dir.toolkit.openeuler.24.03-lts-sp4.amd64
     path: /data/download/nvidia/openeuler/24.03-lts-sp4
     url: ""
     md5: "__DIR__"
@@ -452,7 +563,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.openeuler.22.03-lts
+    name: nvidia.dir.toolkit.openeuler.22.03-lts.amd64
     path: /data/download/nvidia/openeuler/22.03-lts
     url: ""
     md5: "__DIR__"
@@ -463,7 +574,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.kylin.v10-sp1
+    name: nvidia.dir.toolkit.kylin.v10-sp1.amd64
     path: /data/download/nvidia/kylin/v10-sp1
     url: ""
     md5: "__DIR__"
@@ -474,7 +585,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.kylin.v10-sp2
+    name: nvidia.dir.toolkit.kylin.v10-sp2.amd64
     path: /data/download/nvidia/kylin/v10-sp2
     url: ""
     md5: "__DIR__"
@@ -485,7 +596,7 @@ artifacts:
 
   - module: nvidia
     type: dir
-    name: nvidia.dir.toolkit.kylin.v10-sp3
+    name: nvidia.dir.toolkit.kylin.v10-sp3.amd64
     path: /data/download/nvidia/kylin/v10-sp3
     url: ""
     md5: "__DIR__"
@@ -604,7 +715,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.ubuntu.22.04
+    name: os.dir.kubernetes.ubuntu.22.04.amd64
     path: /data/download/packages/ubuntu/22.04/kubernetes
     url: ""
     md5: "__DIR__"
@@ -615,7 +726,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.ubuntu.22.04
+    name: os.dir.tools.ubuntu.22.04.amd64
     path: /data/download/packages/ubuntu/22.04/tools
     url: ""
     md5: "__DIR__"
@@ -626,7 +737,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.ubuntu.24.04
+    name: os.dir.kubernetes.ubuntu.24.04.amd64
     path: /data/download/packages/ubuntu/24.04/kubernetes
     url: ""
     md5: "__DIR__"
@@ -637,7 +748,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.ubuntu.24.04
+    name: os.dir.tools.ubuntu.24.04.amd64
     path: /data/download/packages/ubuntu/24.04/tools
     url: ""
     md5: "__DIR__"
@@ -648,7 +759,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.ubuntu.26.04
+    name: os.dir.kubernetes.ubuntu.26.04.amd64
     path: /data/download/packages/ubuntu/26.04/kubernetes
     url: ""
     md5: "__DIR__"
@@ -659,7 +770,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.ubuntu.26.04
+    name: os.dir.tools.ubuntu.26.04.amd64
     path: /data/download/packages/ubuntu/26.04/tools
     url: ""
     md5: "__DIR__"
@@ -670,7 +781,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.centos.7.9.2009
+    name: os.dir.kubernetes.centos.7.9.2009.amd64
     path: /data/download/packages/centos/7.9.2009/kubernetes
     url: ""
     md5: "__DIR__"
@@ -681,7 +792,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.centos.7.9.2009
+    name: os.dir.tools.centos.7.9.2009.amd64
     path: /data/download/packages/centos/7.9.2009/tools
     url: ""
     md5: "__DIR__"
@@ -692,7 +803,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.centos.8.4.2105
+    name: os.dir.kubernetes.centos.8.4.2105.amd64
     path: /data/download/packages/centos/8.4.2105/kubernetes
     url: ""
     md5: "__DIR__"
@@ -703,7 +814,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.centos.8.4.2105
+    name: os.dir.tools.centos.8.4.2105.amd64
     path: /data/download/packages/centos/8.4.2105/tools
     url: ""
     md5: "__DIR__"
@@ -714,7 +825,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.rocky.9.2
+    name: os.dir.kubernetes.rocky.9.2.amd64
     path: /data/download/packages/rocky/9.2/kubernetes
     url: ""
     md5: "__DIR__"
@@ -725,7 +836,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.rocky.9.2
+    name: os.dir.tools.rocky.9.2.amd64
     path: /data/download/packages/rocky/9.2/tools
     url: ""
     md5: "__DIR__"
@@ -736,7 +847,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.rocky.9.3
+    name: os.dir.kubernetes.rocky.9.3.amd64
     path: /data/download/packages/rocky/9.3/kubernetes
     url: ""
     md5: "__DIR__"
@@ -747,7 +858,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.rocky.9.3
+    name: os.dir.tools.rocky.9.3.amd64
     path: /data/download/packages/rocky/9.3/tools
     url: ""
     md5: "__DIR__"
@@ -758,7 +869,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.rocky.10.2
+    name: os.dir.kubernetes.rocky.10.2.amd64
     path: /data/download/packages/rocky/10.2/kubernetes
     url: ""
     md5: "__DIR__"
@@ -769,7 +880,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.rocky.10.2
+    name: os.dir.tools.rocky.10.2.amd64
     path: /data/download/packages/rocky/10.2/tools
     url: ""
     md5: "__DIR__"
@@ -780,7 +891,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.openeuler.24.03
+    name: os.dir.kubernetes.openeuler.24.03.amd64
     path: /data/download/packages/openeuler/24.03/kubernetes
     url: ""
     md5: "__DIR__"
@@ -791,7 +902,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.openeuler.24.03
+    name: os.dir.tools.openeuler.24.03.amd64
     path: /data/download/packages/openeuler/24.03/tools
     url: ""
     md5: "__DIR__"
@@ -802,7 +913,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.openeuler.24.03-lts-sp4
+    name: os.dir.kubernetes.openeuler.24.03-lts-sp4.amd64
     path: /data/download/packages/openeuler/24.03-lts-sp4/kubernetes
     url: ""
     md5: "__DIR__"
@@ -813,7 +924,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.openeuler.24.03-lts-sp4
+    name: os.dir.tools.openeuler.24.03-lts-sp4.amd64
     path: /data/download/packages/openeuler/24.03-lts-sp4/tools
     url: ""
     md5: "__DIR__"
@@ -824,7 +935,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.openeuler.22.03-lts
+    name: os.dir.kubernetes.openeuler.22.03-lts.amd64
     path: /data/download/packages/openeuler/22.03-lts/kubernetes
     url: ""
     md5: "__DIR__"
@@ -835,7 +946,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.openeuler.22.03-lts
+    name: os.dir.tools.openeuler.22.03-lts.amd64
     path: /data/download/packages/openeuler/22.03-lts/tools
     url: ""
     md5: "__DIR__"
@@ -846,7 +957,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.kylin.v10-sp1
+    name: os.dir.kubernetes.kylin.v10-sp1.amd64
     path: /data/download/packages/kylin/v10-sp1/kubernetes
     url: ""
     md5: "__DIR__"
@@ -857,7 +968,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.kylin.v10-sp1
+    name: os.dir.tools.kylin.v10-sp1.amd64
     path: /data/download/packages/kylin/v10-sp1/tools
     url: ""
     md5: "__DIR__"
@@ -868,7 +979,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.kylin.v10-sp2
+    name: os.dir.kubernetes.kylin.v10-sp2.amd64
     path: /data/download/packages/kylin/v10-sp2/kubernetes
     url: ""
     md5: "__DIR__"
@@ -879,7 +990,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.kylin.v10-sp2
+    name: os.dir.tools.kylin.v10-sp2.amd64
     path: /data/download/packages/kylin/v10-sp2/tools
     url: ""
     md5: "__DIR__"
@@ -890,7 +1001,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.kubernetes.kylin.v10-sp3
+    name: os.dir.kubernetes.kylin.v10-sp3.amd64
     path: /data/download/packages/kylin/v10-sp3/kubernetes
     url: ""
     md5: "__DIR__"
@@ -901,7 +1012,7 @@ artifacts:
 
   - module: os
     type: dir
-    name: os.dir.tools.kylin.v10-sp3
+    name: os.dir.tools.kylin.v10-sp3.amd64
     path: /data/download/packages/kylin/v10-sp3/tools
     url: ""
     md5: "__DIR__"
@@ -918,6 +1029,7 @@ artifacts:
     base_url: "docker.io/minio/minio:RELEASE.2025-05-24T17-08-30Z"
     md5: "65e9448aca12e18236817062dee59740"
     description: "minio container image tar"
+    arch: amd64
 
   - module: minio
     type: file
@@ -960,6 +1072,17 @@ artifacts:
     description: "minio service manifest"
 
   # --- juicefs-csi-driver ---
+
+  - module: minio
+    type: tar
+    name: minio.image.arm64.20250524
+    path: /data/download/arm64/minio/minio_20250524_arm64.tar
+    url: ""
+    base_url: ""
+    md5: "__LOCAL_ONLY__"
+    description: "minio arm64 container image tar; fill url/base_url/md5 before use"
+    arch: arm64
+
   - module: juicefs-csi
     type: tar
     name: juicefs.image.csi-dashboard.v0.28.1
@@ -1328,3 +1451,506 @@ artifacts:
     url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/pkg_md5_ubuntu.txt"
     md5: "c6adc5e86cbb9c64bd972882e499295b"
     description: "Ubuntu package MD5 manifest"
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.ubuntu.22.04.arm64
+    path: /data/download/arm64/nvidia/ubuntu/22.04
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for ubuntu 22.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "22.04"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.ubuntu.24.04.arm64
+    path: /data/download/arm64/nvidia/ubuntu/24.04
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for ubuntu 24.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "24.04"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.ubuntu.26.04.arm64
+    path: /data/download/arm64/nvidia/ubuntu/26.04
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for ubuntu 26.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "26.04"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.centos.7.9.2009.arm64
+    path: /data/download/arm64/nvidia/centos/7.9.2009
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for centos 7.9.2009 arm64; fill packages before use"
+    os_id: centos
+    os_version: "7.9.2009"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.centos.8.4.2105.arm64
+    path: /data/download/arm64/nvidia/centos/8.4.2105
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for centos 8.4.2105 arm64; fill packages before use"
+    os_id: centos
+    os_version: "8.4.2105"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.rocky.9.2.arm64
+    path: /data/download/arm64/nvidia/rocky/9.2
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for rocky 9.2 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "9.2"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.rocky.9.3.arm64
+    path: /data/download/arm64/nvidia/rocky/9.3
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for rocky 9.3 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "9.3"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.rocky.10.2.arm64
+    path: /data/download/arm64/nvidia/rocky/10.2
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for rocky 10.2 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "10.2"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.openeuler.24.03.arm64
+    path: /data/download/arm64/nvidia/openeuler/24.03
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for openeuler 24.03 arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "24.03"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.openeuler.24.03-lts-sp4.arm64
+    path: /data/download/arm64/nvidia/openeuler/24.03-lts-sp4
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for openeuler 24.03-lts-sp4 arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.openeuler.22.03-lts.arm64
+    path: /data/download/arm64/nvidia/openeuler/22.03-lts
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for openeuler 22.03-lts arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "22.03-lts"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin.v10-sp1.arm64
+    path: /data/download/arm64/nvidia/kylin/v10-sp1
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin v10-sp1 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp1"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin.v10-sp2.arm64
+    path: /data/download/arm64/nvidia/kylin/v10-sp2
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin v10-sp2 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp2"
+    arch: arm64
+
+
+  - module: nvidia
+    type: dir
+    name: nvidia.dir.toolkit.kylin.v10-sp3.arm64
+    path: /data/download/arm64/nvidia/kylin/v10-sp3
+    url: ""
+    md5: "__DIR__"
+    description: "nvidia toolkit offline packages for kylin v10-sp3 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp3"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.ubuntu.22.04.arm64
+    path: /data/download/arm64/packages/ubuntu/22.04/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for ubuntu 22.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "22.04"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.ubuntu.22.04.arm64
+    path: /data/download/arm64/packages/ubuntu/22.04/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for ubuntu 22.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "22.04"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.ubuntu.24.04.arm64
+    path: /data/download/arm64/packages/ubuntu/24.04/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for ubuntu 24.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "24.04"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.ubuntu.24.04.arm64
+    path: /data/download/arm64/packages/ubuntu/24.04/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for ubuntu 24.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "24.04"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.ubuntu.26.04.arm64
+    path: /data/download/arm64/packages/ubuntu/26.04/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for ubuntu 26.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "26.04"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.ubuntu.26.04.arm64
+    path: /data/download/arm64/packages/ubuntu/26.04/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for ubuntu 26.04 arm64; fill packages before use"
+    os_id: ubuntu
+    os_version: "26.04"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.centos.7.9.2009.arm64
+    path: /data/download/arm64/packages/centos/7.9.2009/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for centos 7.9.2009 arm64; fill packages before use"
+    os_id: centos
+    os_version: "7.9.2009"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.centos.7.9.2009.arm64
+    path: /data/download/arm64/packages/centos/7.9.2009/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for centos 7.9.2009 arm64; fill packages before use"
+    os_id: centos
+    os_version: "7.9.2009"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.centos.8.4.2105.arm64
+    path: /data/download/arm64/packages/centos/8.4.2105/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for centos 8.4.2105 arm64; fill packages before use"
+    os_id: centos
+    os_version: "8.4.2105"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.centos.8.4.2105.arm64
+    path: /data/download/arm64/packages/centos/8.4.2105/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for centos 8.4.2105 arm64; fill packages before use"
+    os_id: centos
+    os_version: "8.4.2105"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.9.2.arm64
+    path: /data/download/arm64/packages/rocky/9.2/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 9.2 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "9.2"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky.9.2.arm64
+    path: /data/download/arm64/packages/rocky/9.2/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky 9.2 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "9.2"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.9.3.arm64
+    path: /data/download/arm64/packages/rocky/9.3/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 9.3 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "9.3"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky.9.3.arm64
+    path: /data/download/arm64/packages/rocky/9.3/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky 9.3 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "9.3"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.rocky.10.2.arm64
+    path: /data/download/arm64/packages/rocky/10.2/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for rocky 10.2 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "10.2"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.rocky.10.2.arm64
+    path: /data/download/arm64/packages/rocky/10.2/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for rocky 10.2 arm64; fill packages before use"
+    os_id: rocky
+    os_version: "10.2"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler.24.03.arm64
+    path: /data/download/arm64/packages/openeuler/24.03/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler 24.03 arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "24.03"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.openeuler.24.03.arm64
+    path: /data/download/arm64/packages/openeuler/24.03/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for openeuler 24.03 arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "24.03"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler.24.03-lts-sp4.arm64
+    path: /data/download/arm64/packages/openeuler/24.03-lts-sp4/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler 24.03-lts-sp4 arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.openeuler.24.03-lts-sp4.arm64
+    path: /data/download/arm64/packages/openeuler/24.03-lts-sp4/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for openeuler 24.03-lts-sp4 arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "24.03-lts-sp4"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.openeuler.22.03-lts.arm64
+    path: /data/download/arm64/packages/openeuler/22.03-lts/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for openeuler 22.03-lts arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "22.03-lts"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.openeuler.22.03-lts.arm64
+    path: /data/download/arm64/packages/openeuler/22.03-lts/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for openeuler 22.03-lts arm64; fill packages before use"
+    os_id: openeuler
+    os_version: "22.03-lts"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin.v10-sp1.arm64
+    path: /data/download/arm64/packages/kylin/v10-sp1/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin v10-sp1 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp1"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin.v10-sp1.arm64
+    path: /data/download/arm64/packages/kylin/v10-sp1/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin v10-sp1 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp1"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin.v10-sp2.arm64
+    path: /data/download/arm64/packages/kylin/v10-sp2/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin v10-sp2 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp2"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin.v10-sp2.arm64
+    path: /data/download/arm64/packages/kylin/v10-sp2/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin v10-sp2 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp2"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.kubernetes.kylin.v10-sp3.arm64
+    path: /data/download/arm64/packages/kylin/v10-sp3/kubernetes
+    url: ""
+    md5: "__DIR__"
+    description: "offline Kubernetes packages for kylin v10-sp3 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp3"
+    arch: arm64
+
+
+  - module: os
+    type: dir
+    name: os.dir.tools.kylin.v10-sp3.arm64
+    path: /data/download/arm64/packages/kylin/v10-sp3/tools
+    url: ""
+    md5: "__DIR__"
+    description: "offline tools packages for kylin v10-sp3 arm64; fill packages before use"
+    os_id: kylin
+    os_version: "v10-sp3"
+    arch: arm64

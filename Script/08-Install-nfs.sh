@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 08-Install-nfs.sh
 ## Artifacts:
-##   - os.dir.tools.<os_id>.<os_version>
+##   - os.dir.tools.<os_id>.<os_version>.<TARGET_ARCH>
 ## Env:
 ##   - NFS_SERVER/NFS_PATH: 为空时跳过
 ##   - ALLOW_ONLINE: yes 时允许使用系统源补齐依赖，默认 no

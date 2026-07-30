@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 13-Install-k8s-packages.sh
 ## Artifacts:
-##   - os.dir.kubernetes.<os_id>.<os_version>
+##   - os.dir.kubernetes.<os_id>.<os_version>.<TARGET_ARCH>
 ## Env:
 ##   - ALLOW_ONLINE: yes 时允许部分在线兜底
 ################################################################################

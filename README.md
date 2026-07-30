@@ -98,7 +98,7 @@ bash 00-Download-k8s-packages-docker.sh kylin v10-sp3 /data/download/packages/ky
 - 默认下载版本为 `v1.31.11`，第四个参数可省略；文档中显式写出是为了避免歧义
 - 下载的包会自动包含所有依赖（如 cri-tools、kubernetes-cni 等）
 - 包必须按 `发行版 + 精确版本` 使用对应目录，例如 `/data/download/packages/rocky/9.3/kubernetes`；不匹配时脚本会退出，不会回退到其他版本或发行版。
-- 支持平台、绝对路径和下载容器镜像均以 `manifests/artifacts.yaml` 的 `platforms` 为准；当前仅支持 amd64。
+- 支持平台、架构、绝对路径和下载容器镜像均以 `manifests/artifacts.yaml` 的 `platforms` 为准；当前支持 amd64/arm64，ARM 制品 URL/MD5 需按清单占位补齐后使用。
 - Debian 不作为受支持目标系统。
 
 按清单下载缺失制品（离线环境可跳过下载，仅作为"补齐工具"）：

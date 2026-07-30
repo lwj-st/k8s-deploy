@@ -11,7 +11,7 @@
 ##   - minio.manifest.svc
 ##   - minio.manifest.deploy
 ## Images:
-##   - minio.image.amd64.20250524
+##   - minio.image.<TARGET_ARCH>.20250524
 ## Notes:
 ##   - minio-deploy.yaml 按文档删除第 91–92 行后 apply（每次从制品原文件拷贝到临时文件处理，可重复执行）
 ##   - 制品路径来自 manifests/artifacts.yaml，下载走 02-Download.sh
@@ -40,7 +40,7 @@ init_env() {
   have kubectl || die "缺少 kubectl"
   have ctr || die "缺少 ctr（请先安装 containerd）"
 
-  MINIO_TAR="$(artifact_get_path_by_name "minio.image.amd64.20250524")"
+  MINIO_TAR="$(artifact_get_path_by_name "minio.image.${TARGET_ARCH}.20250524")"
   F_SECRET="$(artifact_get_path_by_name "minio.manifest.secret")"
   F_SA="$(artifact_get_path_by_name "minio.manifest.service-account")"
   F_PVC="$(artifact_get_path_by_name "minio.manifest.pvc")"

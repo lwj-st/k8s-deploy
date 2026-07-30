@@ -23,8 +23,12 @@ download_from_manifest() {
   local skipped=0
   local no_url=0
 
-  while IFS=$'\x1f' read -r module type name path url md5 desc _os_id; do
+  while IFS=$'\x1f' read -r module type name path url md5 desc _os_id _os_version arch; do
     [ -n "${module}" ] || continue
+
+    if [ -n "${arch}" ] && [ "${arch}" != "${TARGET_ARCH}" ]; then
+      continue
+    fi
 
     # os 模块不下载（只做目录校验/占位）
     if [ "${module}" = "os" ]; then

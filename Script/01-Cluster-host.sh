@@ -66,7 +66,32 @@ select_target_os_version() {
   done
 }
 
+select_target_arch() {
+  local selected=""
+  local prompt_default="${TARGET_ARCH:-}"
+  local supported_arches=""
+
+  [ -n "${prompt_default}" ] || detect_arch
+  prompt_default="${TARGET_ARCH}"
+  supported_arches="$(platform_get_supported_arches "${OS_ID}" "${TARGET_OS_VERSION}" | paste -sd ',')"
+  [ -n "${supported_arches}" ] || die "当前平台 ${OS_ID}-${TARGET_OS_VERSION} 未配置支持架构"
+
+  while true; do
+    read -r -p "目标 CPU 架构 TARGET_ARCH（${supported_arches}，默认: ${prompt_default}）: " selected
+    selected="$(trim_whitespace "${selected}")"
+    selected="${selected:-${prompt_default}}"
+    selected="$(normalize_arch "${selected}")"
+
+    if platform_is_supported "${OS_ID}" "${TARGET_OS_VERSION}" "${selected}"; then
+      set_arch_vars "${selected}"
+      return 0
+    fi
+    log_warn "不支持的 ${OS_ID}-${TARGET_OS_VERSION} TARGET_ARCH=${selected}；可选值: ${supported_arches}"
+  done
+}
+
 select_target_os_version
+select_target_arch
 
 read -r -p "K8S_VERSION (默认: 1.31.11): " K8S_VERSION
 K8S_VERSION="$(trim_whitespace "${K8S_VERSION}")"
@@ -187,6 +212,7 @@ write_env_var() {
 {
   write_env_var K8S_VERSION "${K8S_VERSION}"
   write_env_var TARGET_OS_VERSION "${TARGET_OS_VERSION}"
+  write_env_var TARGET_ARCH "${TARGET_ARCH}"
   write_env_var POD_CIDR "${POD_CIDR}"
   write_env_var SERVICE_CIDR "${SERVICE_CIDR}"
   write_env_var API_ADVERTISE_ADDRESS "${API_ADVERTISE_ADDRESS}"

@@ -5,8 +5,10 @@
 ## Usage:
 ##   bash 09-Install-tools.sh
 ## Artifacts:
-##   - base.helm.linux-amd64.tgz
-##   - base.helmfile.linux-amd64.tgz
+##   - base.helm.linux-<TARGET_ARCH>.tgz
+##   - base.helmfile.linux-<TARGET_ARCH>.tgz
+## Env:
+##   - TARGET_ARCH: amd64/arm64，由 01-Cluster-host.sh 生成；未设置时按当前机器架构识别
 ## Notes:
 ##   - 仅使用离线 tar 包安装，不做在线下载
 ##   - 重复执行会先备份已有二进制，再覆盖安装
@@ -24,8 +26,9 @@ init_env() {
   init_framework
   require_root
 
-  HELM_TGZ="$(artifact_get_path_by_name "base.helm.linux-amd64.tgz")"
-  HELMFILE_TGZ="$(artifact_get_path_by_name "base.helmfile.linux-amd64.tgz")"
+  HELM_PLATFORM="linux-${TARGET_ARCH}"
+  HELM_TGZ="$(artifact_get_path_by_name "base.helm.${HELM_PLATFORM}.tgz")"
+  HELMFILE_TGZ="$(artifact_get_path_by_name "base.helmfile.${HELM_PLATFORM}.tgz")"
 
   [ -f "${HELM_TGZ}" ] || die "缺少制品: ${HELM_TGZ}"
   [ -f "${HELMFILE_TGZ}" ] || die "缺少制品: ${HELMFILE_TGZ}"
@@ -51,8 +54,8 @@ backup_existing_tools() {
 install_helm() {
   local tmp_dir="$1"
   log_command "tar -C \"${tmp_dir}\" -xzf \"${HELM_TGZ}\""
-  if [ -f "${tmp_dir}/linux-amd64/helm" ]; then
-    log_command "install -m 0755 \"${tmp_dir}/linux-amd64/helm\" /usr/local/bin/helm"
+  if [ -f "${tmp_dir}/${HELM_PLATFORM}/helm" ]; then
+    log_command "install -m 0755 \"${tmp_dir}/${HELM_PLATFORM}/helm\" /usr/local/bin/helm"
   else
     die "未找到 helm 二进制于解压目录"
   fi

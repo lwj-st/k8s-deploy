@@ -5,7 +5,7 @@
 ## Usage:
 ##   bash 15-Deploy-nvidia.sh
 ## Artifacts:
-##   - nvidia.dir.toolkit.<os_id>.<os_version>
+##   - nvidia.dir.toolkit.<os_id>.<os_version>.<TARGET_ARCH>
 ##   - nvidia.manifest.device-plugin.v0.17.2
 ## Images:
 ##   - nvidia.image.device-plugin.v0.17.2

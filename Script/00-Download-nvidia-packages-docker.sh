@@ -3,7 +3,7 @@
 ## Filename:    00-Download-nvidia-packages-docker.sh
 ## Description: 使用 Docker/Podman 容器下载 NVIDIA container toolkit 离线安装包
 ## Usage:
-##   bash 00-Download-nvidia-packages-docker.sh <os_id> <os_version> [输出目录]
+##   bash 00-Download-nvidia-packages-docker.sh <os_id> <os_version> [输出目录] [amd64|arm64]
 ## Examples:
 ##   bash 00-Download-nvidia-packages-docker.sh ubuntu 22.04 /data/download/nvidia/ubuntu/22.04
 ##   bash 00-Download-nvidia-packages-docker.sh rocky 9.3 /data/download/nvidia/rocky/9.3
@@ -20,17 +20,19 @@ source "${SCRIPT_DIR}/framework.sh"
 
 OS_TYPE="${1:?请指定 os_id}"
 OS_VERSION="${2:?请指定 os_version}"
-platform_is_supported "${OS_TYPE}" "${OS_VERSION}" || die "不支持的平台: ${OS_TYPE}-${OS_VERSION}"
-OUTPUT_DIR="${3:-$(artifact_get_nvidia_toolkit_dir "${OS_TYPE}" "${OS_VERSION}")}"
+REQUESTED_ARCH="${4:-${TARGET_ARCH:-$(uname -m)}}"
+set_arch_vars "${REQUESTED_ARCH}"
+platform_is_supported "${OS_TYPE}" "${OS_VERSION}" "${TARGET_ARCH}" || die "不支持的平台: ${OS_TYPE}-${OS_VERSION}-${TARGET_ARCH}"
+OUTPUT_DIR="${3:-$(artifact_get_nvidia_toolkit_dir "${OS_TYPE}" "${OS_VERSION}" "${TARGET_ARCH}")}"
 
-DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}")"
+DOCKER_IMAGE="$(platform_get_download_image "${OS_TYPE}" "${OS_VERSION}" "${TARGET_ARCH}")"
 REPO_CONFIG_DIR="${K8S_DEPLOY_ROOT}/config/package-repos"
 [ -f "${REPO_CONFIG_DIR}/apply.sh" ] || die "未找到软件源配置应用脚本: ${REPO_CONFIG_DIR}/apply.sh"
 
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "使用 Docker 容器下载 NVIDIA container toolkit 离线安装包"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "目标平台: ${OS_TYPE}-${OS_VERSION}"
+log_info "目标平台: ${OS_TYPE}-${OS_VERSION}-${TARGET_ARCH}"
 log_info "Docker 镜像: ${DOCKER_IMAGE}"
 log_info "输出目录: ${OUTPUT_DIR}"
 log_info ""
@@ -55,6 +57,7 @@ set -euo pipefail
 
 OS_TYPE="${1}"
 OS_VERSION="${2}"
+RPM_ARCH="${3}"
 OUTPUT_DIR="/output"
 source /repo-config/nvidia/stable/repositories.env
 
@@ -167,9 +170,9 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
       return 0
     fi
     if command -v yumdownloader &>/dev/null; then
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      yumdownloader --resolve --archlist="${RPM_ARCH}",noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     else
-      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      dnf download --resolve --alldeps --arch="${RPM_ARCH}",noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
     fi
   }
 
@@ -229,12 +232,12 @@ log_info "启动容器并下载 NVIDIA container toolkit 包..."
 log_info "（这可能需要几分钟，请耐心等待...）"
 
 run_container() {
-  ${DOCKER_CMD} run --rm --platform linux/amd64 \
+  ${DOCKER_CMD} run --rm --platform "${CONTAINER_PLATFORM}" \
     -v "${OUTPUT_DIR}:/output" \
     -v "${TMP_SCRIPT}:/download.sh:ro" \
     -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
     "${DOCKER_IMAGE}" \
-    /bin/bash /download.sh "${OS_TYPE}" "${OS_VERSION}" || {
+    /bin/bash /download.sh "${OS_TYPE}" "${OS_VERSION}" "${RPM_ARCH}" || {
     rm -f "${TMP_SCRIPT}"
     die "容器执行失败"
   }
@@ -247,12 +250,12 @@ else
     run_container
   else
     log_warn "docker 可能需要 root，尝试 sudo..."
-    sudo ${DOCKER_CMD} run --rm --platform linux/amd64 \
+    sudo ${DOCKER_CMD} run --rm --platform "${CONTAINER_PLATFORM}" \
       -v "${OUTPUT_DIR}:/output" \
       -v "${TMP_SCRIPT}:/download.sh:ro" \
       -v "${REPO_CONFIG_DIR}:/repo-config:ro" \
       "${DOCKER_IMAGE}" \
-      /bin/bash /download.sh "${OS_TYPE}" "${OS_VERSION}" || {
+      /bin/bash /download.sh "${OS_TYPE}" "${OS_VERSION}" "${RPM_ARCH}" || {
       rm -f "${TMP_SCRIPT}"
       die "容器执行失败（可尝试: sudo usermod -aG docker $USER）"
     }

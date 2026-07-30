@@ -3,7 +3,7 @@
 ## Filename:    00-Download-tools-packages.sh
 ## Description: 在当前宿主机下载常用工具离线包（deb/rpm）
 ## Usage:
-##   bash 00-Download-tools-packages.sh <os_id> <os_version> [输出目录]
+##   bash 00-Download-tools-packages.sh <os_id> <os_version> [输出目录] [amd64|arm64]
 ## Examples:
 ##   bash 00-Download-tools-packages.sh ubuntu 22.04 /data/download/packages/ubuntu/22.04/tools
 ##   bash 00-Download-tools-packages.sh rocky 9.3 /data/download/packages/rocky/9.3/tools
@@ -24,11 +24,13 @@ detect_os
 OS_TYPE="${1:-${OS_ID}}"
 OS_TYPE_LC="$(echo "${OS_TYPE}" | tr '[:upper:]' '[:lower:]')"
 OS_VERSION="${2:-${OS_VERSION_DETECTED}}"
-platform_is_supported "${OS_TYPE_LC}" "${OS_VERSION}" || die "不支持的平台: ${OS_TYPE_LC}-${OS_VERSION}"
+REQUESTED_ARCH="${4:-${TARGET_ARCH:-$(uname -m)}}"
+set_arch_vars "${REQUESTED_ARCH}"
+platform_is_supported "${OS_TYPE_LC}" "${OS_VERSION}" "${TARGET_ARCH}" || die "不支持的平台: ${OS_TYPE_LC}-${OS_VERSION}-${TARGET_ARCH}"
 OUTPUT_DIR="${3:-}"
 
 if [ -z "${OUTPUT_DIR}" ]; then
-  OUTPUT_DIR="$(artifact_get_os_tools_dir "${OS_TYPE_LC}" "${OS_VERSION}")"
+  OUTPUT_DIR="$(artifact_get_os_tools_dir "${OS_TYPE_LC}" "${OS_VERSION}" "${TARGET_ARCH}")"
 fi
 
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -38,7 +40,7 @@ fi
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 log_info "下载常用工具离线安装包（本机 yum/dnf/apt，无 Docker）"
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-log_info "目标平台: ${OS_TYPE_LC}-${OS_VERSION}"
+log_info "目标平台: ${OS_TYPE_LC}-${OS_VERSION}-${TARGET_ARCH}"
 log_info "输出目录: ${OUTPUT_DIR}"
 log_info ""
 
@@ -146,7 +148,7 @@ download_pkgs_rpm() {
     yumdownloader --resolve --destdir="${destdir}" ${pkgs} 2>&1 || true
   else
     # shellcheck disable=SC2086
-    dnf download --resolve --alldeps --arch=x86_64 --destdir="${destdir}" ${pkgs} 2>&1 || true
+    dnf download --resolve --alldeps --arch="${RPM_ARCH}" --destdir="${destdir}" ${pkgs} 2>&1 || true
   fi
 }
 
