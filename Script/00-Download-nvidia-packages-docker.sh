@@ -81,7 +81,8 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
 
   log "配置 NVIDIA libnvidia-container 通用 APT 源..."
   mkdir -p /usr/share/keyrings
-  curl -fsSL "${NVIDIA_APT_KEY_URL}" | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  rm -f /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+  curl -fsSL "${NVIDIA_APT_KEY_URL}" | gpg --batch --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
   curl -fsSL "${NVIDIA_APT_LIST_URL}" \
     | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' \
     > /etc/apt/sources.list.d/nvidia-container-toolkit.list

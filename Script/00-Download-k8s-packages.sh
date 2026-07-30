@@ -54,7 +54,9 @@ download_ubuntu_debs() {
   
   # 添加 Kubernetes GPG key
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb/Release.key" | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  rm -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb/Release.key" | \
+    gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
   
   # 添加 Kubernetes 仓库
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v${K8S_VERSION_SHORT}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list

@@ -119,7 +119,8 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   : "${K8S_DEB_REPO:?未配置 Kubernetes APT 源}"
   log "配置 Kubernetes apt 源（v${K8S_VERSION_SHORT}）..."
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "${K8S_DEB_KEY_URL}" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
+  rm -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+  curl -fsSL "${K8S_DEB_KEY_URL}" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] ${K8S_DEB_REPO}/ /" > /etc/apt/sources.list.d/kubernetes.list
   apt-get update -qq || true
 
