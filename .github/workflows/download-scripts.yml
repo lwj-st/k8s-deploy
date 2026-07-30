@@ -1,4 +1,4 @@
-# 按「脚本 × OS」拆分 job，便于在 Actions 里按名称过滤日志
+# 按「脚本 × OS × 架构」拆分 job，便于在 Actions 里按名称过滤日志
 # 脚本：k8s / tools / nvidia（均为 *-packages-docker.sh）
 name: Test download scripts
 
@@ -25,12 +25,13 @@ on:
 
 jobs:
   download:
-    name: "${{ matrix.script }} / ${{ matrix.platform }}"
-    runs-on: ubuntu-latest
+    name: "${{ matrix.script }} / ${{ matrix.platform }} / ${{ matrix.arch }}"
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         script: [k8s, tools, nvidia]
+        arch: [amd64, arm64]
         platform:
           - ubuntu:22.04
           - ubuntu:24.04
@@ -46,6 +47,21 @@ jobs:
           - kylin:v10-sp1
           - kylin:v10-sp2
           - kylin:v10-sp3
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            deb_arch: amd64
+            rpm_arch: x86_64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            deb_arch: arm64
+            rpm_arch: aarch64
+        exclude:
+          # CentOS 7/8 官方镜像没有可靠 arm64 变体，ARM 下载测试从仍维护多架构镜像的发行版覆盖。
+          - arch: arm64
+            platform: centos:7.9.2009
+          - arch: arm64
+            platform: centos:8.4.2105
     env:
       K8S_VERSION: "1.31.11"
     steps:
@@ -62,21 +78,22 @@ jobs:
         run: |
           set -euo pipefail
           platform="${{ matrix.platform }}"
+          arch="${{ matrix.arch }}"
           os_id="${platform%%:*}"
           os_version="${platform#*:}"
-          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${os_id}-${os_version}"
+          OUT="${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${os_id}-${os_version}-${arch}"
           rm -rf "$OUT"
           mkdir -p "$OUT"
 
           case "${{ matrix.script }}" in
             k8s)
-              bash Script/00-Download-k8s-packages-docker.sh "$os_id" "$os_version" "$OUT" "$K8S_VERSION"
+              bash Script/00-Download-k8s-packages-docker.sh "$os_id" "$os_version" "$OUT" "$K8S_VERSION" "$arch"
               ;;
             tools)
-              bash Script/00-Download-tools-packages-docker.sh "$os_id" "$os_version" "$OUT"
+              bash Script/00-Download-tools-packages-docker.sh "$os_id" "$os_version" "$OUT" "$arch"
               ;;
             nvidia)
-              bash Script/00-Download-nvidia-packages-docker.sh "$os_id" "$os_version" "$OUT"
+              bash Script/00-Download-nvidia-packages-docker.sh "$os_id" "$os_version" "$OUT" "$arch"
               ;;
             *)
               echo "unknown matrix.script"
@@ -106,12 +123,12 @@ jobs:
           if [ "$os_id" = "ubuntu" ]; then
             while IFS= read -r deb; do
               arch=$(dpkg-deb -f "$deb" Architecture)
-              case "$arch" in amd64|all) ;; *) echo "ERROR: 非 amd64 deb: $deb ($arch)"; exit 1;; esac
+              case "$arch" in "${{ matrix.deb_arch }}"|all) ;; *) echo "ERROR: 非 ${{ matrix.deb_arch }} deb: $deb ($arch)"; exit 1;; esac
             done < <(find "$OUT" -name '*.deb' -type f)
           else
             while IFS= read -r rpm; do
               arch=$(rpm -qp --qf '%{ARCH}' "$rpm")
-              case "$arch" in x86_64|noarch) ;; *) echo "ERROR: 非 x86_64 rpm: $rpm ($arch)"; exit 1;; esac
+              case "$arch" in "${{ matrix.rpm_arch }}"|noarch) ;; *) echo "ERROR: 非 ${{ matrix.rpm_arch }} rpm: $rpm ($arch)"; exit 1;; esac
             done < <(find "$OUT" -name '*.rpm' -type f)
           fi
 
@@ -124,4 +141,4 @@ jobs:
         if: always()
         run: |
           platform="${{ matrix.platform }}"
-          sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${platform%%:*}-${platform#*:}"
+          sudo rm -rf "${RUNNER_TEMP}/k8s-deploy-dl-${{ matrix.script }}-${platform%%:*}-${platform#*:}-${{ matrix.arch }}"
