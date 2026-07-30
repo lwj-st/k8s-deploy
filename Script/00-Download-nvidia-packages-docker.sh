@@ -227,7 +227,7 @@ SCRIPT_EOF
 chmod +x "${TMP_SCRIPT}"
 
 log_info "拉取 Docker 镜像: ${DOCKER_IMAGE}"
-${DOCKER_CMD} pull "${DOCKER_IMAGE}" || die "拉取镜像失败: ${DOCKER_IMAGE}"
+${DOCKER_CMD} pull --platform "${CONTAINER_PLATFORM}" "${DOCKER_IMAGE}" || die "拉取镜像失败: ${DOCKER_IMAGE}"
 
 log_info "启动容器并下载 NVIDIA container toolkit 包..."
 log_info "（这可能需要几分钟，请耐心等待...）"
