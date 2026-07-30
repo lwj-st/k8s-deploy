@@ -46,7 +46,7 @@ assert_path 'artifact_get_os_kubernetes_dir ubuntu 22.04 arm64' '/data/download/
 assert_path 'artifact_get_os_tools_dir rocky 9.3 arm64' '/data/download/arm64/packages/rocky/9.3/tools'
 assert_path 'artifact_get_nvidia_toolkit_dir kylin v10-sp3 arm64' '/data/download/arm64/nvidia/kylin/v10-sp3'
 assert_path 'platform_get_download_image openeuler 24.03-lts-sp4 amd64' 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4'
-assert_path 'platform_get_download_image openeuler 24.03-lts-sp4 arm64' 'docker.io/openeuler/openeuler:24.03-lts-sp4'
+assert_path 'platform_get_download_image openeuler 24.03-lts-sp4 arm64' 'swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4-linuxarm64'
 
 supported_versions="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; platform_get_supported_versions ubuntu")"
 expected_versions=$'22.04\n24.04\n26.04'
@@ -81,9 +81,9 @@ for os_id in ubuntu centos rocky openeuler kylin; do
 
     image="$(bash -c "source '${ROOT_DIR}/Script/framework.sh'; platform_get_download_image '${os_id}' '${os_version}' arm64")"
     case "${image}" in
-      docker.io/*) ;;
+      swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/*:*-linuxarm64) ;;
       *)
-        echo "arm64 平台下载镜像应直接使用多架构上游镜像: ${os_id}-${os_version}: ${image}" >&2
+        echo "arm64 平台下载镜像应使用 ddn-k8s 的 linuxarm64 tag: ${os_id}-${os_version}: ${image}" >&2
         exit 1
         ;;
     esac

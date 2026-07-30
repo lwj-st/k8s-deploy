@@ -62,59 +62,59 @@ platforms:
   - os_id: ubuntu
     os_version: "22.04"
     arch: arm64
-    download_image: "docker.io/library/ubuntu:22.04"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:22.04-linuxarm64"
   - os_id: ubuntu
     os_version: "24.04"
     arch: arm64
-    download_image: "docker.io/library/ubuntu:24.04"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:24.04-linuxarm64"
   - os_id: ubuntu
     os_version: "26.04"
     arch: arm64
-    download_image: "docker.io/library/ubuntu:26.04"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:26.04-linuxarm64"
   - os_id: centos
     os_version: "7.9.2009"
     arch: arm64
-    download_image: "docker.io/centos:7.9.2009"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:7.9.2009-linuxarm64"
   - os_id: centos
     os_version: "8.4.2105"
     arch: arm64
-    download_image: "docker.io/centos:8.4.2105"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/centos:8.4.2105-linuxarm64"
   - os_id: rocky
     os_version: "9.2"
     arch: arm64
-    download_image: "docker.io/rockylinux/rockylinux:9.2"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.2-linuxarm64"
   - os_id: rocky
     os_version: "9.3"
     arch: arm64
-    download_image: "docker.io/rockylinux/rockylinux:9.3"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:9.3-linuxarm64"
   - os_id: rocky
     os_version: "10.2"
     arch: arm64
-    download_image: "docker.io/rockylinux/rockylinux:10.2"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/rockylinux/rockylinux:10.2-linuxarm64"
   - os_id: openeuler
     os_version: "24.03"
     arch: arm64
-    download_image: "docker.io/openeuler/openeuler:24.03"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-linuxarm64"
   - os_id: openeuler
     os_version: "24.03-lts-sp4"
     arch: arm64
-    download_image: "docker.io/openeuler/openeuler:24.03-lts-sp4"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:24.03-lts-sp4-linuxarm64"
   - os_id: openeuler
     os_version: "22.03-lts"
     arch: arm64
-    download_image: "docker.io/openeuler/openeuler:22.03-lts"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openeuler/openeuler:22.03-lts-linuxarm64"
   - os_id: kylin
     os_version: "v10-sp1"
     arch: arm64
-    download_image: "docker.io/macrosan/kylin:v10-sp1"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp1-linuxarm64"
   - os_id: kylin
     os_version: "v10-sp2"
     arch: arm64
-    download_image: "docker.io/macrosan/kylin:v10-sp2"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp2-linuxarm64"
   - os_id: kylin
     os_version: "v10-sp3"
     arch: arm64
-    download_image: "docker.io/macrosan/kylin:v10-sp3"
+    download_image: "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/macrosan/kylin:v10-sp3-linuxarm64"
 
 artifacts:
   - module: base
