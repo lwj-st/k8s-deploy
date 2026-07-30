@@ -72,3 +72,27 @@ jobs:
           test "$(platform_get_download_image ubuntu 22.04 "${TARGET_ARCH}")" = "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/ubuntu:22.04"
         env:
           TARGET_ARCH: ${{ matrix.arch }}
+
+      - name: ARM Kubernetes package download smoke test
+        if: matrix.arch == 'arm64'
+        run: |
+          out="/tmp/k8s-pkgs-arm64"
+          sudo rm -rf "${out}"
+          sudo K8S_VERSION=1.31.11 bash Script/00-Download-k8s-packages.sh ubuntu 24.04 "${out}" arm64
+
+          test -s "${out}"/kubelet_*.deb
+          test -s "${out}"/kubeadm_*.deb
+          test -s "${out}"/kubectl_*.deb
+
+          bad_arch=0
+          for deb in "${out}"/*.deb; do
+            arch="$(dpkg-deb -f "${deb}" Architecture)"
+            case "${arch}" in
+              arm64|all) ;;
+              *)
+                echo "unexpected deb architecture: ${deb}: ${arch}" >&2
+                bad_arch=1
+                ;;
+            esac
+          done
+          test "${bad_arch}" = "0"
