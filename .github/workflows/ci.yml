@@ -40,6 +40,9 @@ jobs:
       - name: Bash syntax
         run: bash -n Script/*.sh Check/*.sh tests/*.sh
 
+      - name: Test download scripts support ARM
+        run: bash tests/test_download_scripts_arm_support.sh
+
       - name: Architecture helper checks
         run: |
           source Script/framework.sh
