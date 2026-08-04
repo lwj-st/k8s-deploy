@@ -185,8 +185,6 @@ else
 fi
 print_block "IPv4" "${ipv4_list}"
 print_block "IPv6" "${ipv6_list}"
-ipv4_summary="$(printf '%s\n' "${ipv4_list}" | awk '{print $0}' ORS=', ' | sed 's/, $//' 2>/dev/null || true)"
-ipv6_summary="$(printf '%s\n' "${ipv6_list}" | awk '{print $0}' ORS=', ' | sed 's/, $//' 2>/dev/null || true)"
 
 print_section "CPU"
 if have lscpu; then
@@ -230,8 +228,6 @@ print_kv "每核心线程数" "${cpu_thread_per_core}"
 print_kv "当前频率" "${cpu_cur_mhz}"
 print_kv "最高频率" "${cpu_max_mhz:+${cpu_max_mhz} MHz}"
 print_kv "最低频率" "${cpu_min_mhz:+${cpu_min_mhz} MHz}"
-cpu_summary="$(printf '%s, 逻辑核=%s, 物理CPU=%s, 每CPU核心=%s, 每核心线程=%s' "$(value_or_unknown "${cpu_model}")" "$(value_or_unknown "${cpu_total}")" "$(value_or_unknown "${cpu_socket}")" "$(value_or_unknown "${cpu_core_per_socket}")" "$(value_or_unknown "${cpu_thread_per_core}")")"
-cpu_freq_summary="$(printf '当前=%s, 最高=%s, 最低=%s' "$(value_or_unknown "${cpu_cur_mhz}")" "$(value_or_unknown "${cpu_max_mhz:+${cpu_max_mhz} MHz}")" "$(value_or_unknown "${cpu_min_mhz:+${cpu_min_mhz} MHz}")")"
 
 print_section "内存"
 mem_total=""
@@ -332,6 +328,7 @@ if have npu-smi; then
   accelerator_summary="${accelerator_summary:+${accelerator_summary}; }Ascend NPU: 已检测到"
   accelerator_driver_summary="${accelerator_driver_summary:+${accelerator_driver_summary}; }Ascend=npu-smi 可用，版本见明细"
   if [ -r /usr/local/Ascend/ascend-toolkit/latest/version.info ]; then
+    # shellcheck disable=SC2016 # awk 程序需要原样传入，未使用 shell 变量展开。
     ascend_cann_version="$(run_out awk -F= '/Version=|version=/{print $2; exit}' /usr/local/Ascend/ascend-toolkit/latest/version.info | trim)"
     accelerator_runtime_summary="${accelerator_runtime_summary:+${accelerator_runtime_summary}; }CANN=${ascend_cann_version:-version.info 可读}"
   else
