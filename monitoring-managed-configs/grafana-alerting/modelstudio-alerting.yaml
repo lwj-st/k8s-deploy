@@ -1,0 +1,127 @@
+folderUid: modelstudio-alerting
+folderTitle: ModelStudio
+ruleGroup: ModelStudio 默认告警
+intervalSeconds: 60
+datasourceUid: prometheus
+rules:
+  - uid: ms-core-replicas-unavailable
+    title: 核心服务副本不可用
+    expr: |
+      kube_deployment_spec_replicas{namespace=~"modelstudio.*"} > kube_deployment_status_replicas_available{namespace=~"modelstudio.*"}
+    for: 2m
+    severity: critical
+    summary: 核心服务副本不可用
+    description: 指定 Deployment 可用副本小于期望副本。
+    noDataState: OK
+    execErrState: Error
+    isPaused: false
+
+  - uid: ms-monitoring-target-down
+    title: 监控目标不可抓取
+    expr: |
+      up == 0
+    for: 2m
+    severity: warning
+    summary: 监控目标不可抓取
+    description: 纳管 target 的 up=0。
+    noDataState: OK
+    execErrState: Error
+    isPaused: false
+
+  - uid: ms-api-5xx-high
+    title: API 5xx 错误率过高
+    expr: |
+      100 *
+      sum by (namespace, service, route) (
+        rate(http_requests_total{namespace=~"modelstudio.*", status=~"5.."}[5m])
+      )
+      /
+      sum by (namespace, service, route) (
+        rate(http_requests_total{namespace=~"modelstudio.*"}[5m])
+      ) > 5
+    for: 2m
+    severity: critical
+    summary: API 5xx 错误率过高
+    description: 单服务或路由 5xx 占比大于 5%。需要业务侧暴露 http_requests_total 指标后启用。
+    noDataState: OK
+    execErrState: Error
+    isPaused: true
+
+  - uid: ms-api-p99-timeout
+    title: API P99 响应超时
+    expr: |
+      histogram_quantile(
+        0.99,
+        sum by (namespace, service, route, le) (
+          rate(http_request_duration_seconds_bucket{namespace=~"modelstudio.*"}[5m])
+        )
+      ) > 2
+    for: 5m
+    severity: warning
+    summary: API P99 响应超时
+    description: P99 大于对应 API SLA 目标的 2 倍。当前为占位阈值，需要补充每个 API 的 SLA 指标或阈值后启用。
+    noDataState: OK
+    execErrState: Error
+    isPaused: true
+
+  - uid: ms-cluster-cpu-high
+    title: 集群 CPU 使用过高
+    expr: |
+      100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 85
+    for: 5m
+    severity: critical
+    summary: 集群 CPU 使用过高
+    description: 集群 CPU 使用率大于 85%。
+    noDataState: OK
+    execErrState: Error
+    isPaused: false
+
+  - uid: ms-cluster-memory-high
+    title: 集群内存使用过高
+    expr: |
+      100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) > 85
+    for: 5m
+    severity: critical
+    summary: 集群内存使用过高
+    description: 集群内存使用率大于 85%。
+    noDataState: OK
+    execErrState: Error
+    isPaused: false
+
+  - uid: ms-modelengine-worker-offline
+    title: ModelEngine Worker 离线
+    expr: |
+      sum(kube_pod_status_ready{namespace="modelstudio-worker", pod=~"gpustack-worker-.*", condition="true"}) < 1
+    for: 2m
+    severity: critical
+    summary: ModelEngine Worker 离线
+    description: Worker 状态非可用。实际监控 modelstudio-worker 命名空间下 gpustack-worker Pod 的 Ready 状态。
+    noDataState: Alerting
+    execErrState: Error
+    isPaused: false
+
+  - uid: ms-model-replicas-low
+    title: 模型实例数不足
+    expr: |
+      modelengine_model_replicas_expected
+      >
+      modelengine_model_replicas_running
+    for: 2m
+    severity: critical
+    summary: 模型实例数不足
+    description: 期望实例数大于运行实例数。需要业务侧暴露 modelengine_model_replicas_expected 和 modelengine_model_replicas_running 指标后启用。
+    noDataState: OK
+    execErrState: Error
+    isPaused: true
+
+  - uid: ms-inference-queue-backlog
+    title: 推理队列积压
+    expr: |
+      modelengine_inference_queue_waiting_requests > 50
+    for: 5m
+    severity: warning
+    summary: 推理队列积压
+    description: 等待请求数大于 50。需要业务侧暴露 modelengine_inference_queue_waiting_requests 指标后启用。
+    noDataState: OK
+    execErrState: Error
+    isPaused: true

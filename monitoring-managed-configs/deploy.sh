@@ -5,11 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 MONITORING_NAMESPACE="${MONITORING_NAMESPACE:-monitoring}"
 APPLY_DASHBOARDS="${APPLY_DASHBOARDS:-1}"
-APPLY_RULES="${APPLY_RULES:-1}"
+APPLY_RULES="${APPLY_RULES:-0}"
+APPLY_GRAFANA_ALERTING="${APPLY_GRAFANA_ALERTING:-1}"
 DRY_RUN="${DRY_RUN:-0}"
 
 DASHBOARDS_DIR="${SCRIPT_DIR}/grafana-dashboards"
 RULES_DIR="${SCRIPT_DIR}/prometheus-rules"
+GRAFANA_ALERTING_CONFIG="${GRAFANA_ALERTING_CONFIG:-${SCRIPT_DIR}/grafana-alerting/modelstudio-alerting.yaml}"
+GRAFANA_ALERTING_APPLIER="${SCRIPT_DIR}/scripts/apply_grafana_alerting.py"
 
 log_info() {
   printf '[INFO] %s\n' "$*"
@@ -89,6 +92,27 @@ apply_rules() {
   kubectl_apply "${RULES_DIR}"
 }
 
+apply_grafana_alerting() {
+  if [ "${APPLY_GRAFANA_ALERTING}" != "1" ]; then
+    log_info "Skip Grafana alerting because APPLY_GRAFANA_ALERTING=${APPLY_GRAFANA_ALERTING}"
+    return 0
+  fi
+
+  [ -f "${GRAFANA_ALERTING_CONFIG}" ] || {
+    log_warn "Grafana alerting config not found: ${GRAFANA_ALERTING_CONFIG}"
+    return 0
+  }
+  [ -f "${GRAFANA_ALERTING_APPLIER}" ] || die "Grafana alerting applier not found: ${GRAFANA_ALERTING_APPLIER}"
+  have python3 || die "python3 is required to apply Grafana alerting"
+
+  log_info "Apply Grafana alerting: ${GRAFANA_ALERTING_CONFIG}"
+  if [ "${DRY_RUN}" = "1" ]; then
+    python3 "${GRAFANA_ALERTING_APPLIER}" --config "${GRAFANA_ALERTING_CONFIG}" --namespace "${MONITORING_NAMESPACE}" --dry-run
+  else
+    python3 "${GRAFANA_ALERTING_APPLIER}" --config "${GRAFANA_ALERTING_CONFIG}" --namespace "${MONITORING_NAMESPACE}"
+  fi
+}
+
 main() {
   have kubectl || die "kubectl is required"
 
@@ -98,6 +122,7 @@ main() {
   check_namespace
   apply_dashboards
   apply_rules
+  apply_grafana_alerting
 
   log_info "Monitoring managed configs applied."
 }
