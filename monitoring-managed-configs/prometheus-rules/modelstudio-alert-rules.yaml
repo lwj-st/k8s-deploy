@@ -12,13 +12,13 @@ spec:
       rules:
         - alert: CoreServiceReplicasUnavailable
           expr: |
-            kube_deployment_spec_replicas{namespace=~"modelstudio.*"} > kube_deployment_status_replicas_available{namespace=~"modelstudio.*"}
+            kube_deployment_spec_replicas{namespace=~"platform|jialing|yangzi-middleware|modelstudio"} > kube_deployment_status_replicas_available{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
           for: 2m
           labels:
             severity: critical
           annotations:
             summary: "核心服务副本不可用"
-            description: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} 可用副本小于期望副本。"
+            description: "platform、jialing、yangzi-middleware、modelstudio 命名空间下 Deployment {{ $labels.namespace }}/{{ $labels.deployment }} 可用副本小于期望副本。"
 
         - alert: MonitoringTargetDown
           expr: up == 0
