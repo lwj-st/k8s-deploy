@@ -1108,7 +1108,7 @@ artifacts:
     name: monitor.manifest.dcgm-exporter
     path: /data/download/monitor/dcgm-exporter.yaml
     url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/dcgm-exporter.yaml"
-    md5: "d8389fb0b7852ca6dfebc0ce55a4a94d"
+    md5: "7972c34ee008c92fe30d85b8fb13d147"
     description: "dcgm-exporter manifest"
 
   - module: monitor
