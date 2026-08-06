@@ -49,30 +49,30 @@ spec:
             summary: "集群内存使用过高"
             description: "集群内存使用率已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
 
-        - alert: GPUStackWorkerOffline
+        - alert: ModelEngineWorkerOffline
           expr: |
             sum(kube_pod_status_ready{namespace="modelstudio-worker",pod=~"gpustack-worker-.*",condition="true"}) < 1
           for: 2m
           labels:
             severity: critical
           annotations:
-            summary: "GPUStack Worker 离线"
-            description: "modelstudio-worker 命名空间下没有 Ready 的 gpustack-worker Pod。"
+            summary: "ModelEngine Worker 离线"
+            description: "modelstudio-worker 命名空间下没有 Ready 的 ModelEngine Worker Pod。"
 
-        - alert: GPUStackWorkerNotReady
+        - alert: ModelEngineWorkerNotReady
           expr: |
             sum(kube_pod_status_ready{namespace="modelstudio-worker",pod=~"gpustack-worker-.*",condition="false"}) > 0
           for: 2m
           labels:
             severity: critical
           annotations:
-            summary: "GPUStack Worker 不可用"
-            description: "modelstudio-worker 命名空间下存在 NotReady 的 gpustack-worker Pod。"
+            summary: "ModelEngine Worker 不可用"
+            description: "modelstudio-worker 命名空间下存在 NotReady 的 ModelEngine Worker Pod。"
 
     # API 5xx、API P99、模型实例数不足、推理队列积压需要业务侧暴露明确指标后再启用。
     # 推荐后续补充的指标示例：
     # - http_requests_total{namespace, service, route, status}
     # - http_request_duration_seconds_bucket{namespace, service, route, le}
-    # - gpustack_model_replicas_expected{model}
-    # - gpustack_model_replicas_running{model}
-    # - gpustack_inference_queue_waiting_requests{model}
+    # - modelengine_model_replicas_expected{model}
+    # - modelengine_model_replicas_running{model}
+    # - modelengine_inference_queue_waiting_requests{model}
