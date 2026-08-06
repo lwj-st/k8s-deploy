@@ -31,13 +31,13 @@ spec:
 
         - alert: ClusterCpuUsageHigh
           expr: |
-            100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 85
+            100 * sum(rate(container_cpu_usage_seconds_total{container!="",pod!=""}[5m])) / sum(machine_cpu_cores) > 85
           for: 5m
           labels:
             severity: critical
           annotations:
             summary: "集群 CPU 使用过高"
-            description: "集群 CPU 使用率已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
+            description: "集群容器 CPU 使用量占机器总 CPU 核数比例已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
 
         - alert: ClusterMemoryUsageHigh
           expr: |

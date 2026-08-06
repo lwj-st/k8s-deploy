@@ -116,6 +116,12 @@ def start_port_forward(namespace, resource, local_port, remote_port):
 def ensure_folder(client, uid, title):
     existing = client.request("GET", f"/api/folders/{uid}", allow_404=True)
     if existing:
+        if existing.get("title") != title:
+            client.request(
+                "PUT",
+                f"/api/folders/{uid}",
+                {"title": title, "version": existing.get("version", 1)},
+            )
         return
     client.request("POST", "/api/folders", {"uid": uid, "title": title})
 
@@ -155,11 +161,11 @@ def reduce_model():
     }
 
 
-def threshold_model():
+def threshold_model(threshold):
     return {
         "conditions": [
             {
-                "evaluator": {"params": [0], "type": "gt"},
+                "evaluator": {"params": [threshold], "type": "gt"},
                 "operator": {"type": "and"},
                 "query": {"params": ["C"]},
                 "reducer": {"params": [], "type": "last"},
@@ -177,6 +183,7 @@ def threshold_model():
 
 def build_rule(config, rule):
     datasource_uid = rule.get("datasourceUid") or config.get("datasourceUid", "prometheus")
+    threshold = float(rule.get("threshold", 0))
     return {
         "uid": rule["uid"],
         "orgID": int(config.get("orgId", 1)),
@@ -204,7 +211,7 @@ def build_rule(config, rule):
                 "queryType": "",
                 "relativeTimeRange": {"from": 0, "to": 0},
                 "datasourceUid": "__expr__",
-                "model": threshold_model(),
+                "model": threshold_model(threshold),
             },
         ],
         "noDataState": rule.get("noDataState", "OK"),

@@ -1,15 +1,18 @@
 folderUid: modelstudio-alerting
-folderTitle: ModelStudio
-ruleGroup: ModelStudio 默认告警
+folderTitle: 平台告警
+ruleGroup: 平台默认告警
 intervalSeconds: 60
 datasourceUid: prometheus
 rules:
   - uid: ms-core-replicas-unavailable
     title: 核心服务副本不可用
     expr: |
-      kube_deployment_spec_replicas{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
-      >
-      kube_deployment_status_replicas_available{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
+      count(
+        kube_deployment_spec_replicas{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
+        >
+        kube_deployment_status_replicas_available{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
+      ) or vector(0)
+    threshold: 0
     for: 2m
     severity: critical
     summary: 核心服务副本不可用
@@ -21,7 +24,8 @@ rules:
   - uid: ms-monitoring-target-down
     title: 监控目标不可抓取
     expr: |
-      up == 0
+      count(up == 0)
+    threshold: 0
     for: 2m
     severity: warning
     summary: 监控目标不可抓取
@@ -40,7 +44,8 @@ rules:
       /
       sum by (namespace, service, route) (
         rate(http_requests_total{namespace=~"modelstudio.*"}[5m])
-      ) > 5
+      )
+    threshold: 5
     for: 2m
     severity: critical
     summary: API 5xx 错误率过高
@@ -57,7 +62,8 @@ rules:
         sum by (namespace, service, route, le) (
           rate(http_request_duration_seconds_bucket{namespace=~"modelstudio.*"}[5m])
         )
-      ) > 2
+      )
+    threshold: 2
     for: 5m
     severity: warning
     summary: API P99 响应超时
@@ -69,11 +75,15 @@ rules:
   - uid: ms-cluster-cpu-high
     title: 集群 CPU 使用过高
     expr: |
-      100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 85
+      100 *
+      sum(rate(container_cpu_usage_seconds_total{container!="", pod!=""}[5m]))
+      /
+      sum(machine_cpu_cores)
+    threshold: 85
     for: 5m
     severity: critical
     summary: 集群 CPU 使用过高
-    description: 集群 CPU 使用率大于 85%。
+    description: 集群容器 CPU 使用量占机器总 CPU 核数比例大于 85%。
     noDataState: OK
     execErrState: Error
     isPaused: false
@@ -81,7 +91,8 @@ rules:
   - uid: ms-cluster-memory-high
     title: 集群内存使用过高
     expr: |
-      100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes)) > 85
+      100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))
+    threshold: 85
     for: 5m
     severity: critical
     summary: 集群内存使用过高
@@ -93,7 +104,11 @@ rules:
   - uid: ms-modelengine-worker-offline
     title: ModelEngine Worker 离线
     expr: |
-      sum(kube_pod_status_ready{namespace="modelstudio-worker", pod=~"gpustack-worker-.*", condition="true"}) < 1
+      1 - clamp_max(
+        sum(kube_pod_status_ready{namespace="modelstudio-worker", pod=~"gpustack-worker-.*", condition="true"}),
+        1
+      )
+    threshold: 0
     for: 2m
     severity: critical
     summary: ModelEngine Worker 离线
@@ -106,8 +121,9 @@ rules:
     title: 模型实例数不足
     expr: |
       modelengine_model_replicas_expected
-      >
+      -
       modelengine_model_replicas_running
+    threshold: 0
     for: 2m
     severity: critical
     summary: 模型实例数不足
@@ -119,7 +135,8 @@ rules:
   - uid: ms-inference-queue-backlog
     title: 推理队列积压
     expr: |
-      modelengine_inference_queue_waiting_requests > 50
+      modelengine_inference_queue_waiting_requests
+    threshold: 50
     for: 5m
     severity: warning
     summary: 推理队列积压
