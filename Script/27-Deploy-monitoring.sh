@@ -57,11 +57,19 @@ init_env() {
   export KUBECONFIG=/etc/kubernetes/admin.conf
 
   have helm || die "缺少 helm（请先执行 09-Install-tools.sh）"
+
+  CHART="$(artifact_get_path_by_name "monitor.chart.kube-prometheus-stack.v72.7.0")"
+  [ -n "${CHART}" ] || die "monitor.chart.kube-prometheus-stack.v72.7.0 的 path 为空，请检查 manifests/artifacts.yaml"
+  [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
+
+  if [ "${MONITOR_HELM_ONLY:-0}" = "1" ]; then
+    return 0
+  fi
+
   have kubectl || die "缺少 kubectl"
   have ctr || die "缺少 ctr（请先安装 containerd）"
   have openssl || die "缺少 openssl"
 
-  CHART="$(artifact_get_path_by_name "monitor.chart.kube-prometheus-stack.v72.7.0")"
   DCGM_YAML="$(artifact_get_path_by_name "monitor.manifest.dcgm-exporter")"
 
   ASCEND_YAML="${K8S_DEPLOY_ROOT}/config/npu-exporter.yaml"
@@ -69,7 +77,6 @@ init_env() {
   INGRESS_TMPL="${K8S_DEPLOY_ROOT}/config/grafana-ingress.yaml"
   SM_YAML="${K8S_DEPLOY_ROOT}/config/service-monitor.yaml"
 
-  [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
   [ -f "${DCGM_YAML}" ] || die "缺少制品: ${DCGM_YAML}"
   [ -f "${ASCEND_YAML}" ] || log_warn "未找到 ${ASCEND_YAML}，Ascend 分支将不可用"
   [ -f "${ILUVATAR_YAML}" ] || log_warn "未找到 ${ILUVATAR_YAML}，Iluvatar 分支将不可用"
@@ -150,6 +157,9 @@ helm_install_or_upgrade() {
   local grafana_theme="${GRAFANA_DEFAULT_THEME:-light}"
   local grafana_timezone="${GRAFANA_DEFAULT_TIMEZONE:-Asia/Shanghai}"
   local grafana_week_start="${GRAFANA_DEFAULT_WEEK_START:-monday}"
+
+  [ -n "${CHART}" ] || die "CHART 为空，无法执行 Helm 安装/升级"
+  [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
 
   log_info "Helm 安装/升级 ${RELEASE}（命名空间 ${NS}，Grafana 默认语言=${grafana_language}，默认主题=${grafana_theme}，默认时区=${grafana_timezone}，默认每周起始日=${grafana_week_start}）..."
   log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace --set \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\""
