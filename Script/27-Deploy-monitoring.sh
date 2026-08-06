@@ -157,7 +157,7 @@ helm_install_or_upgrade() {
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
 
   log_info "Helm 安装/升级 ${RELEASE}（命名空间 ${NS}，Grafana 默认语言=${grafana_language}，默认主题=${grafana_theme}，默认时区=${grafana_timezone}，默认每周起始日=${grafana_week_start}）..."
-  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace --set \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\""
+  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace --set \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\" --set \"grafana.defaultDashboardsTimezone=${grafana_timezone}\""
 }
 
 ################################################################################
