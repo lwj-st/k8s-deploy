@@ -23,6 +23,11 @@
 ## Env:
 ##   - MONITOR_ACCELERATOR: 可选，强制 nvidia|ascend|iluvatar（覆盖自动检测）
 ##   - GRAFANA_INGRESS_HOST: Grafana Ingress 域名，默认 grafana.sensecorex.com
+##   - GRAFANA_DEFAULT_LANGUAGE: Grafana 默认语言，默认 zh-Hans（中文简体）
+##   - GRAFANA_DEFAULT_THEME: Grafana 默认主题，默认 light（浅色）
+##   - GRAFANA_DEFAULT_TIMEZONE: Grafana 默认时区，默认 Asia/Shanghai
+##   - GRAFANA_DEFAULT_WEEK_START: Grafana 默认每周起始日，默认 monday（周一）
+##   - MONITOR_HELM_ONLY: 设为 1 时仅执行 Helm 安装/升级，用于验证 Grafana 配置
 ## Notes:
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
 ##   - Ascend / Iluvatar exporter 清单来自仓库 config（npu-exporter.yaml / ix-exporter.yaml）
@@ -141,8 +146,13 @@ ensure_namespace() {
 # Function: helm_install_or_upgrade
 ################################################################################
 helm_install_or_upgrade() {
-  log_info "Helm 安装/升级 ${RELEASE}（命名空间 ${NS}）..."
-  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace"
+  local grafana_language="${GRAFANA_DEFAULT_LANGUAGE:-zh-Hans}"
+  local grafana_theme="${GRAFANA_DEFAULT_THEME:-light}"
+  local grafana_timezone="${GRAFANA_DEFAULT_TIMEZONE:-Asia/Shanghai}"
+  local grafana_week_start="${GRAFANA_DEFAULT_WEEK_START:-monday}"
+
+  log_info "Helm 安装/升级 ${RELEASE}（命名空间 ${NS}，Grafana 默认语言=${grafana_language}，默认主题=${grafana_theme}，默认时区=${grafana_timezone}，默认每周起始日=${grafana_week_start}）..."
+  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace --set \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\""
 }
 
 ################################################################################
