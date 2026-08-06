@@ -182,6 +182,89 @@ helm_install_or_upgrade() {
 }
 
 ################################################################################
+# Function: pick_free_local_port
+################################################################################
+pick_free_local_port() {
+  local port
+  for port in $(seq 39000 39100); do
+    if ! (echo >"/dev/tcp/127.0.0.1/${port}") >/dev/null 2>&1; then
+      printf '%s\n' "${port}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+################################################################################
+# Function: configure_grafana_org_preferences
+# Description: 服务端默认时区不会覆盖已有组织偏好；这里同步设置默认组织偏好
+################################################################################
+configure_grafana_org_preferences() {
+  local grafana_theme="${GRAFANA_DEFAULT_THEME:-light}"
+  local grafana_timezone="${GRAFANA_DEFAULT_TIMEZONE:-Asia/Shanghai}"
+  local grafana_week_start="${GRAFANA_DEFAULT_WEEK_START:-monday}"
+
+  if ! have curl; then
+    log_warn "缺少 curl，跳过 Grafana 组织默认偏好设置（timezone=${grafana_timezone}）"
+    return 0
+  fi
+
+  local pwd
+  pwd="$(kubectl -n "${NS}" get secret "${RELEASE}-grafana" -o jsonpath="{.data.admin-password}" 2>/dev/null | base64 -d || true)"
+  if [ -z "${pwd}" ]; then
+    log_warn "暂未获取到 Grafana admin 密码，跳过组织默认偏好设置"
+    return 0
+  fi
+
+  log_command "kubectl -n \"${NS}\" rollout status \"deployment/${RELEASE}-grafana\" --timeout=180s"
+
+  local local_port pf_pid pf_log
+  local_port="$(pick_free_local_port)" || die "未找到可用本地端口，无法设置 Grafana 组织默认偏好"
+  pf_log="$(mktemp -t grafana-port-forward.XXXXXX.log)"
+
+  kubectl -n "${NS}" port-forward --address 127.0.0.1 "svc/${RELEASE}-grafana" "${local_port}:80" >"${pf_log}" 2>&1 &
+  pf_pid=$!
+
+  local ready="no"
+  local i
+  for i in $(seq 1 30); do
+    if curl -fsS "http://127.0.0.1:${local_port}/api/health" >/dev/null 2>&1; then
+      ready="yes"
+      break
+    fi
+    if ! kill -0 "${pf_pid}" >/dev/null 2>&1; then
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "${ready}" != "yes" ]; then
+    log_warn "Grafana port-forward 未就绪，跳过组织默认偏好设置"
+    kill "${pf_pid}" >/dev/null 2>&1 || true
+    wait "${pf_pid}" >/dev/null 2>&1 || true
+    rm -f "${pf_log}"
+    return 0
+  fi
+
+  local payload
+  payload="$(printf '{"timezone":"%s","weekStart":"%s","theme":"%s"}' "${grafana_timezone}" "${grafana_week_start}" "${grafana_theme}")"
+
+  if curl -fsS -u "admin:${pwd}" \
+    -H "Content-Type: application/json" \
+    -X PATCH \
+    --data "${payload}" \
+    "http://127.0.0.1:${local_port}/api/org/preferences" >/dev/null; then
+    log_info "已设置 Grafana 组织默认偏好（timezone=${grafana_timezone}, weekStart=${grafana_week_start}, theme=${grafana_theme}）"
+  else
+    log_warn "设置 Grafana 组织默认偏好失败，请登录 Grafana 后检查 Administration -> General -> Default preferences"
+  fi
+
+  kill "${pf_pid}" >/dev/null 2>&1 || true
+  wait "${pf_pid}" >/dev/null 2>&1 || true
+  rm -f "${pf_log}"
+}
+
+################################################################################
 # Function: create_self_signed_tls_if_needed
 # Description:
 #   - 若 monitoring/sensecore-tls 已存在则跳过
@@ -356,6 +439,7 @@ main() {
   import_monitor_images
   ensure_namespace
   helm_install_or_upgrade
+  configure_grafana_org_preferences
   create_self_signed_tls_if_needed
   apply_monitoring_addons
   show_grafana_password
