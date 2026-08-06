@@ -30,6 +30,7 @@
 ##   - GRAFANA_DEFAULT_THEME: Grafana 默认主题，默认 light（浅色）
 ##   - GRAFANA_DEFAULT_TIMEZONE: Grafana 默认时区，默认 Asia/Shanghai
 ##   - GRAFANA_DEFAULT_WEEK_START: Grafana 默认每周起始日，默认 monday（周一）
+##   - GRAFANA_PROMETHEUS_DATASOURCE_UID: Grafana Prometheus 数据源 uid，默认 prometheus
 ## Notes:
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
 ##   - Ascend / Iluvatar / 昆仑芯 exporter 清单来自仓库 config
@@ -52,6 +53,9 @@ VXPU_DASHBOARD_JSON=""
 INGRESS_TMPL=""
 SM_YAML=""
 HELM_VALUES=""
+NVIDIA_DASHBOARD_JSON=""
+ASCEND_DASHBOARD_JSON=""
+ILUVATAR_DASHBOARD_JSON=""
 RUNTIME_ACCELERATOR=""
 
 ################################################################################
@@ -79,11 +83,17 @@ init_env() {
   INGRESS_TMPL="${K8S_DEPLOY_ROOT}/config/grafana-ingress.yaml"
   SM_YAML="${K8S_DEPLOY_ROOT}/config/service-monitor.yaml"
   HELM_VALUES="${K8S_DEPLOY_ROOT}/config/kube-prometheus-stack-values.yaml"
+  NVIDIA_DASHBOARD_JSON="${K8S_DEPLOY_ROOT}/config/dcgm-exporter-dashboard.json"
+  ASCEND_DASHBOARD_JSON="${K8S_DEPLOY_ROOT}/config/npu-exporter-dashboard.json"
+  ILUVATAR_DASHBOARD_JSON="${K8S_DEPLOY_ROOT}/config/ix-exporter-dashboard.json"
 
   [ -f "${ASCEND_YAML}" ] || log_warn "未找到 ${ASCEND_YAML}，Ascend 分支将不可用"
   [ -f "${ILUVATAR_YAML}" ] || log_warn "未找到 ${ILUVATAR_YAML}，Iluvatar 分支将不可用"
   [ -f "${VXPU_YAML}" ] || log_warn "未找到 ${VXPU_YAML}，昆仑芯分支将不可用"
   [ -f "${VXPU_DASHBOARD_JSON}" ] || log_warn "未找到 ${VXPU_DASHBOARD_JSON}，昆仑芯 Grafana 仪表盘将不可用"
+  [ -f "${NVIDIA_DASHBOARD_JSON}" ] || log_warn "未找到 ${NVIDIA_DASHBOARD_JSON}，nvidia Grafana 面板将跳过"
+  [ -f "${ASCEND_DASHBOARD_JSON}" ] || log_warn "未找到 ${ASCEND_DASHBOARD_JSON}，ascend Grafana 面板将跳过"
+  [ -f "${ILUVATAR_DASHBOARD_JSON}" ] || log_warn "未找到 ${ILUVATAR_DASHBOARD_JSON}，iluvatar Grafana 面板将跳过"
   [ -f "${INGRESS_TMPL}" ] || die "缺少配置: ${INGRESS_TMPL}"
   [ -f "${SM_YAML}" ] || die "缺少配置: ${SM_YAML}"
   [ -f "${HELM_VALUES}" ] || die "缺少配置: ${HELM_VALUES}"
@@ -356,12 +366,15 @@ apply_grafana_dashboard_json() {
   local dashboard_file="$1"
   local configmap_name="$2"
   local datasource_uid="${GRAFANA_PROMETHEUS_DATASOURCE_UID:-prometheus}"
+
+  if [ ! -f "${dashboard_file}" ]; then
+    log_warn "未找到 Grafana 面板 JSON，跳过: ${dashboard_file}"
+    return 0
+  fi
+
   local data_key tmp_json
-
-  [ -f "${dashboard_file}" ] || die "缺少 Grafana 仪表盘: ${dashboard_file}"
-
   data_key="$(basename "${dashboard_file}")"
-  tmp_json="$(mktemp -t "${configmap_name}.XXXXXX")"
+  tmp_json="$(mktemp -t "${configmap_name}.XXXXXX.json")"
 
   sed "s/\\\${DS_PROMETHEUS}/${datasource_uid}/g" "${dashboard_file}" > "${tmp_json}"
 
@@ -383,6 +396,7 @@ apply_monitoring_addons() {
       log_info "检测到 nvidia，部署 dcgm-exporter"
       log_command "kubectl apply -n \"${NS}\" -f \"${DCGM_YAML}\""
       log_command "kubectl apply -f \"${SM_YAML}\""
+      apply_grafana_dashboard_json "${NVIDIA_DASHBOARD_JSON}" "grafana-dashboard-dcgm-exporter"
       ;;
     vxpu)
       [ -f "${VXPU_YAML}" ] || die "昆仑芯分支需要配置文件: ${VXPU_YAML}"
@@ -395,11 +409,13 @@ apply_monitoring_addons() {
       [ -f "${ASCEND_YAML}" ] || die "Ascend 分支需要配置文件: ${ASCEND_YAML}"
       log_info "检测到 ascend，部署 Ascend 相关 YAML: ${ASCEND_YAML}"
       log_command "kubectl apply -n \"${NS}\" -f \"${ASCEND_YAML}\""
+      apply_grafana_dashboard_json "${ASCEND_DASHBOARD_JSON}" "grafana-dashboard-npu-exporter"
       ;;
     iluvatar)
       [ -f "${ILUVATAR_YAML}" ] || die "Iluvatar 分支需要配置文件: ${ILUVATAR_YAML}"
       log_info "检测到 iluvatar，部署 ix-exporter: ${ILUVATAR_YAML}"
       log_command "kubectl apply -f \"${ILUVATAR_YAML}\""
+      apply_grafana_dashboard_json "${ILUVATAR_DASHBOARD_JSON}" "grafana-dashboard-ix-exporter"
       ;;
     *)
       die "未知加速卡类型: ${RUNTIME_ACCELERATOR}"
