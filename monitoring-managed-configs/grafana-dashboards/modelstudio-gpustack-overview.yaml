@@ -92,7 +92,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "GPUStack Worker Ready 数量",
+          "title": "ModelEngine Worker Ready 数量",
           "type": "stat"
         },
         {
@@ -156,7 +156,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "GPUStack Worker NotReady 数量",
+          "title": "ModelEngine Worker NotReady 数量",
           "type": "stat"
         },
         {
@@ -385,7 +385,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "GPUStack Worker Pod Ready 明细",
+          "title": "ModelEngine Worker Pod Ready 明细",
           "type": "table"
         }
       ],
@@ -393,7 +393,7 @@ data:
       "schemaVersion": 41,
       "tags": [
         "modelstudio",
-        "gpustack",
+        "modelengine",
         "managed-by-git"
       ],
       "templating": {
@@ -423,7 +423,7 @@ data:
       },
       "timepicker": {},
       "timezone": "browser",
-      "title": "ModelStudio / GPUStack 概览",
+      "title": "ModelStudio / ModelEngine 概览",
       "uid": "modelstudio-gpustack-overview",
       "version": 1,
       "weekStart": ""
