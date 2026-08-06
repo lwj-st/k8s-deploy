@@ -35,7 +35,7 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - image: "registry.cn-hangzhou.aliyuncs.com/liwenjian123/test:dcgm-exporter-4.5.2-4.8.1-distroless"
+      - image: "nvcr.io/nvidia/k8s/dcgm-exporter:4.5.2-4.8.1-distroless"
         env:
         - name: "DCGM_EXPORTER_LISTEN"
           value: ":9400"
@@ -64,12 +64,12 @@ spec:
           readOnly: true
           mountPath: "/var/lib/kubelet/pod-resources"
         resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
           limits:
             cpu: 500m
             memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
       volumes:
       - name: "pod-gpu-resources"
         hostPath:
