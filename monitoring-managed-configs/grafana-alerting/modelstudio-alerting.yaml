@@ -7,11 +7,13 @@ rules:
   - uid: ms-core-replicas-unavailable
     title: 核心服务副本不可用
     expr: |
-      kube_deployment_spec_replicas{namespace=~"modelstudio.*"} > kube_deployment_status_replicas_available{namespace=~"modelstudio.*"}
+      kube_deployment_spec_replicas{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
+      >
+      kube_deployment_status_replicas_available{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
     for: 2m
     severity: critical
     summary: 核心服务副本不可用
-    description: 指定 Deployment 可用副本小于期望副本。
+    description: platform、jialing、yangzi-middleware、modelstudio 命名空间下任一 Deployment 可用副本小于期望副本。
     noDataState: OK
     execErrState: Error
     isPaused: false
