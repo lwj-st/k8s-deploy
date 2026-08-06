@@ -27,7 +27,6 @@
 ##   - GRAFANA_DEFAULT_THEME: Grafana 默认主题，默认 light（浅色）
 ##   - GRAFANA_DEFAULT_TIMEZONE: Grafana 默认时区，默认 Asia/Shanghai
 ##   - GRAFANA_DEFAULT_WEEK_START: Grafana 默认每周起始日，默认 monday（周一）
-##   - MONITOR_HELM_ONLY: 设为 1 时仅执行 Helm 安装/升级，用于验证 Grafana 配置
 ## Notes:
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
 ##   - Ascend / Iluvatar exporter 清单来自仓库 config（npu-exporter.yaml / ix-exporter.yaml）
@@ -61,10 +60,6 @@ init_env() {
   CHART="$(artifact_get_path_by_name "monitor.chart.kube-prometheus-stack.v72.7.0")"
   [ -n "${CHART}" ] || die "monitor.chart.kube-prometheus-stack.v72.7.0 的 path 为空，请检查 manifests/artifacts.yaml"
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
-
-  if [ "${MONITOR_HELM_ONLY:-0}" = "1" ]; then
-    return 0
-  fi
 
   have kubectl || die "缺少 kubectl"
   have ctr || die "缺少 ctr（请先安装 containerd）"
