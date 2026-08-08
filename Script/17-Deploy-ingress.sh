@@ -37,6 +37,7 @@ kubectl taint nodes "${node_name}" node-role.kubernetes.io/master- --overwrite 2
 log_info "部署 ingress-nginx..."
 log_command "kubectl apply -f \"${ing}\""
 
+[ -n "${INGRESS_NODE_NAME:-}" ] || die "未配置 INGRESS_NODE_NAME，请先执行 01-Cluster-host.sh 生成 environment.sh"
 INGRESS_NODE_NAME="$(normalize_k8s_node_name "${INGRESS_NODE_NAME}")"
 kubectl get node "${INGRESS_NODE_NAME}" >/dev/null 2>&1 || die "无法找到 Ingress 节点对象：${INGRESS_NODE_NAME}"
 log_info "给 ingress 节点打 label: ${INGRESS_NODE_NAME}"

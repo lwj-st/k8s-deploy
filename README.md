@@ -186,6 +186,16 @@ sudo bash 12-Load-images.sh
 sudo bash 13-Install-k8s-packages.sh
 ```
 
+**注意事项**：
+- `13-Install-k8s-packages.sh` 会按 `environment.sh` 中的 `TARGET_OS_VERSION` 查找离线安装包。新节点系统版本必须与该值一致；如果不一致，需要先把新节点本地 `environment.sh` 中的 `TARGET_OS_VERSION` 改成本机系统版本，并确保对应离线包目录已经准备好，再执行 `13-Install-k8s-packages.sh`。
+- 如果新节点网卡名与主节点不一致，需要调整 Calico 的 `CALICO_IP_AUTODETECTION_METHOD`。集群尚未部署 CNI 时，在主节点执行 `16-Deploy-cni.sh` 前设置；集群已部署 CNI 时，在主节点执行：
+
+```bash
+kubectl -n kube-system set env daemonset/calico-node IP_AUTODETECTION_METHOD='interface=^(bond0|ens.*)$'
+```
+
+请按实际网卡名修改 `interface` 规则，例如 `bond0`、`ens.*`、`eth.*`。可参考 issue：https://github.com/lwj-st/k8s-deploy/issues/1
+
 ### 步骤 2：获取 kubeadm join 命令
 
 在主节点上执行以下命令获取 join 命令：
@@ -220,11 +230,9 @@ sudo kubeadm join <API_SERVER>:6443 --token <TOKEN> \
 `--node-name` 必须保留，确保系统主机名包含大写字母时，Kubernetes 注册的节点名与后续自动打标签脚本使用的名称一致。每台新节点都在本机动态计算自己的节点名，不要把节点名写入多节点共用的 `environment.sh`。
 
 ### 步骤 4：同步config配置
-、、、
-从主节点拷贝 /etc/kubernetes/admin.conf 到新节点上 /etc/kubernetes/admin.conf
-从主节点拷贝 ～/.kube/config 到新节点上 ~/.kube/config
-、、、
 
+- 从主节点拷贝 `/etc/kubernetes/admin.conf` 到新节点的 `/etc/kubernetes/admin.conf`
+- 从主节点拷贝 `~/.kube/config` 到新节点的 `~/.kube/config`
 
 ### 步骤 5：GPU 节点额外配置（仅 GPU 节点需要）
 
