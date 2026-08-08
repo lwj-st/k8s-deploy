@@ -55,6 +55,8 @@ fi
 
 have kubeadm || die "缺少 kubeadm（请先执行 13-Install-k8s-packages.sh）"
 have kubelet || die "缺少 kubelet（请先执行 13-Install-k8s-packages.sh）"
+node_name="$(get_local_k8s_node_name)"
+log_info "当前 Kubernetes 节点名: ${node_name}"
 
 log_info "导入 kubeadm init 所需 Kubernetes 镜像..."
 import_image_artifacts \
@@ -78,6 +80,7 @@ localAPIEndpoint:
   advertiseAddress: ${API_ADVERTISE_ADDRESS}
   bindPort: 6443
 nodeRegistration:
+  name: ${node_name}
   criSocket: unix:///run/containerd/containerd.sock
 ---
 apiVersion: kubeadm.k8s.io/v1beta4
@@ -98,8 +101,7 @@ fi
 
 export KUBECONFIG=/etc/kubernetes/admin.conf
 
-# 单节点：去污点（兼容 control-plane/master）
-node_name="$(hostname | tr '[:upper:]' '[:lower:]')"
+# 当前控制节点去污点（兼容 control-plane/master）
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/control-plane- --overwrite 2>/dev/null || true
 kubectl taint nodes "${node_name}" node-role.kubernetes.io/master- --overwrite 2>/dev/null || true
 

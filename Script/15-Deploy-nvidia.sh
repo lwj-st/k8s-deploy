@@ -198,12 +198,9 @@ deploy_nvidia_device_plugin() {
   # 该 YAML 自带 nodeSelector: nvidia.com/gpu.present=true
   # 为避免 DS desired=0（节点没标签），在检测到 GPU 的节点上自动打 label
   if have nvidia-smi || [ -e /dev/nvidiactl ] || [ -e /dev/nvidia0 ]; then
-    node_name="$(hostname | tr '[:upper:]' '[:lower:]')"
-    if kubectl get node "${node_name}" >/dev/null 2>&1; then
-      log_command "kubectl label node \"${node_name}\" nvidia.com/gpu.present=true --overwrite"
-    else
-      log_warn "未能用 hostname 匹配到 node（${node_name}），跳过自动打 GPU label；你可手动执行：kubectl label node <nodeName> nvidia.com/gpu.present=true --overwrite"
-    fi
+    node_name="$(get_local_k8s_node_name)"
+    kubectl get node "${node_name}" >/dev/null 2>&1 || die "无法找到当前节点对象：${node_name}"
+    log_command "kubectl label node \"${node_name}\" nvidia.com/gpu.present=true --overwrite"
   else
     log_warn "未检测到 GPU 设备（nvidia-smi 或 /dev/nvidia*），仅部署 device plugin，不自动打 label"
   fi
