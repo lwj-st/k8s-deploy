@@ -119,28 +119,36 @@ rules:
 
   - uid: ms-model-replicas-low
     title: 模型实例数不足
+    datasourceUid: gpustack-prometheus
     expr: |
-      modelengine_model_replicas_expected
+      sum by (cluster_name, model_name) (
+        gpustack:model_desired_instances
+      )
       -
-      modelengine_model_replicas_running
+      sum by (cluster_name, model_name) (
+        gpustack:model_running_instances
+      )
     threshold: 0
     for: 2m
     severity: critical
     summary: 模型实例数不足
-    description: 期望实例数大于运行实例数。需要业务侧暴露 modelengine_model_replicas_expected 和 modelengine_model_replicas_running 指标后启用。
+    description: ModelEngine 模型期望实例数大于运行实例数。
     noDataState: OK
     execErrState: Error
-    isPaused: true
+    isPaused: false
 
   - uid: ms-inference-queue-backlog
     title: 推理队列积压
+    datasourceUid: gpustack-prometheus
     expr: |
-      modelengine_inference_queue_waiting_requests
+      sum by (cluster_name, model_name) (
+        gpustack:num_requests_waiting
+      )
     threshold: 50
     for: 5m
     severity: warning
     summary: 推理队列积压
-    description: 等待请求数大于 50。需要业务侧暴露 modelengine_inference_queue_waiting_requests 指标后启用。
+    description: ModelEngine 模型等待推理请求数大于 50。
     noDataState: OK
     execErrState: Error
-    isPaused: true
+    isPaused: false

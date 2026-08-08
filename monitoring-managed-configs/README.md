@@ -2,6 +2,18 @@
 
 This directory stores project-managed Grafana dashboards, Prometheus alert rules, and Grafana-managed alerting defaults.
 
+ModelEngine GPUStack dashboards and datasource configs are stored separately under:
+
+```bash
+monitoring-managed-configs/modelengine-grafana
+```
+
+Apply ModelEngine datasource and dashboards:
+
+```bash
+bash monitoring-managed-configs/modelengine-grafana/apply.sh apply
+```
+
 Apply dashboards:
 
 ```bash

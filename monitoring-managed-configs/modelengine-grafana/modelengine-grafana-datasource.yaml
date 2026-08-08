@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  modelengine-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: ModelEngine-Prometheus
+        type: prometheus
+        uid: gpustack-prometheus
+        url: http://modelengine-prometheus.modelstudio.svc:9090
+        access: proxy
+        isDefault: false
+        editable: true
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2026-08-07T16:03:40Z"
+  labels:
+    app: modelengine-monitoring
+    grafana_datasource: "1"
+  name: modelengine-grafana-datasource
+  namespace: monitoring
+  resourceVersion: "118382263"
+  uid: c8caf3dd-d580-49f9-b9dc-fa1fae4cb592
