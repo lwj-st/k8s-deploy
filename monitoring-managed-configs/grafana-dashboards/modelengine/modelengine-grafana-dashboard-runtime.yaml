@@ -115,11 +115,8 @@ kind: ConfigMap
 metadata:
   annotations:
     grafana_folder: ModelEngine
-  creationTimestamp: "2026-08-07T16:03:40Z"
   labels:
     app: modelengine-monitoring
     grafana_dashboard: "1"
   name: modelengine-grafana-dashboard-runtime
   namespace: monitoring
-  resourceVersion: "118382266"
-  uid: 2f21ef6c-6a63-4252-ac92-ce20bb88dbef
