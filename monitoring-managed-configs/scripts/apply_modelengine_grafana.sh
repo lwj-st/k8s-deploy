@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 ################################################################################
-## Filename:    apply.sh
+## Filename:    apply_modelengine_grafana.sh
 ## Description: 将 ModelEngine（GPUStack）Grafana 数据源与看板导入 kube-prom-stack Grafana
 ## Usage:
-##   bash apply.sh apply|regenerate|restart|all|check
+##   bash scripts/apply_modelengine_grafana.sh apply|regenerate|restart|all|check
 ## Artifacts:
-##   - （无）本脚本只 apply 同目录 YAML / 从集群源 ConfigMap 再生清单
+##   - （无）本脚本只 apply 固定目录 YAML / 从集群源 ConfigMap 再生清单
 ## Images:
 ##   - （无）不部署镜像，仅创建/更新 ConfigMap
 ## Env:
@@ -23,10 +23,10 @@
 ## 前序依赖（硬依赖：不满足则脚本失败退出）:
 ##   1. kubectl、python3 可用，且当前上下文能访问目标集群
 ##   2. 命名空间 ${NS_MONITORING} 已存在
-##   3. apply：同目录已有
-##        modelengine-grafana-datasource.yaml
-##        modelengine-grafana-dashboard-runtime.yaml
-##        modelengine-grafana-dashboard-worker.yaml
+##   3. apply：仓库目录已有
+##        grafana-datasources/modelengine/modelengine-grafana-datasource.yaml
+##        grafana-dashboards/modelengine/modelengine-grafana-dashboard-runtime.yaml
+##        grafana-dashboards/modelengine/modelengine-grafana-dashboard-worker.yaml
 ##   4. regenerate：源 ConfigMap ${NS_SOURCE}/modelengine-grafana-dashboards 存在，
 ##      且含键 gpustack-runtime-dashboard.json、gpustack-worker.json
 ##   5. restart：Deployment ${GRAFANA_DEPLOY} 存在于 ${NS_MONITORING}
@@ -41,6 +41,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 NS_MONITORING="${NS_MONITORING:-monitoring}"
 NS_SOURCE="${NS_SOURCE:-modelstudio}"
@@ -49,9 +50,9 @@ PROM_URL="${PROM_URL:-http://${PROM_SVC}.${NS_SOURCE}.svc:9090}"
 GRAFANA_DEPLOY="${GRAFANA_DEPLOY:-kube-prom-stack-grafana}"
 SKIP_SOFT_CHECKS="${SKIP_SOFT_CHECKS:-0}"
 
-DATASOURCE_YAML="${SCRIPT_DIR}/modelengine-grafana-datasource.yaml"
-RUNTIME_YAML="${SCRIPT_DIR}/modelengine-grafana-dashboard-runtime.yaml"
-WORKER_YAML="${SCRIPT_DIR}/modelengine-grafana-dashboard-worker.yaml"
+DATASOURCE_YAML="${BASE_DIR}/grafana-datasources/modelengine/modelengine-grafana-datasource.yaml"
+RUNTIME_YAML="${BASE_DIR}/grafana-dashboards/modelengine/modelengine-grafana-dashboard-runtime.yaml"
+WORKER_YAML="${BASE_DIR}/grafana-dashboards/modelengine/modelengine-grafana-dashboard-worker.yaml"
 
 log() { printf '[INFO] %s\n' "$*"; }
 warn() { printf '[WARN] %s\n' "$*" >&2; }
@@ -64,7 +65,7 @@ usage() {
 Usage: bash $(basename "$0") apply|regenerate|restart|all|check
 
   check       检查硬/软前序依赖（默认不改集群）
-  apply       kubectl apply 同目录 YAML（默认动作）
+  apply       kubectl apply ModelEngine datasource/dashboard YAML（默认动作）
   regenerate  从 ${NS_SOURCE}/modelengine-grafana-dashboards 重新生成 YAML
   restart     滚动重启 ${GRAFANA_DEPLOY}（首次挂数据源建议执行）
   all         regenerate + apply + restart
@@ -188,9 +189,9 @@ check_deps() {
         warn "  [missing] 命名空间 ${NS_SOURCE}"
       fi
       if [[ -f "${DATASOURCE_YAML}" && -f "${RUNTIME_YAML}" && -f "${WORKER_YAML}" ]]; then
-        log "  [ok] 同目录 apply 清单文件齐全"
+        log "  [ok] ModelEngine apply 清单文件齐全"
       else
-        warn "  [missing] 同目录 yaml 不齐（apply 会失败；可先 regenerate）"
+        warn "  [missing] ModelEngine yaml 不齐（apply 会失败；可先 regenerate）"
       fi
       if kubectl get deploy "${GRAFANA_DEPLOY}" -n "${NS_MONITORING}" >/dev/null 2>&1; then
         log "  [ok] Grafana Deployment ${GRAFANA_DEPLOY}"
@@ -211,11 +212,15 @@ check_deps() {
 }
 
 regenerate() {
-  log "从 ${NS_SOURCE}/modelengine-grafana-dashboards 重新生成清单 -> ${SCRIPT_DIR}"
-  python3 - "${SCRIPT_DIR}" "${NS_SOURCE}" "${NS_MONITORING}" "${PROM_URL}" <<'PY'
+  log "从 ${NS_SOURCE}/modelengine-grafana-dashboards 重新生成清单 -> ${BASE_DIR}"
+  python3 - "${BASE_DIR}" "${NS_SOURCE}" "${NS_MONITORING}" "${PROM_URL}" <<'PY'
 import json, pathlib, subprocess, sys
 
-outdir = pathlib.Path(sys.argv[1])
+base_dir = pathlib.Path(sys.argv[1])
+datasource_dir = base_dir / "grafana-datasources" / "modelengine"
+dashboard_dir = base_dir / "grafana-dashboards" / "modelengine"
+datasource_dir.mkdir(parents=True, exist_ok=True)
+dashboard_dir.mkdir(parents=True, exist_ok=True)
 ns_source = sys.argv[2]
 ns_monitoring = sys.argv[3]
 prom_url = sys.argv[4]
@@ -302,6 +307,7 @@ for src_key, (cm_name, out_key) in key_map.items():
 
 for d in docs:
     name = d["metadata"]["name"]
+    outdir = datasource_dir if name == "modelengine-grafana-datasource" else dashboard_dir
     tmp = outdir / f"{name}.json"
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=2) + "\n")
     yml = subprocess.check_output(

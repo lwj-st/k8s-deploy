@@ -253,6 +253,7 @@ def upsert_rule(client, rule_body):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
+    parser.add_argument("--grafana-url", default=os.getenv("GRAFANA_URL"))
     parser.add_argument("--namespace", default=os.getenv("MONITORING_NAMESPACE", "monitoring"))
     parser.add_argument("--grafana-secret", default=os.getenv("GRAFANA_SECRET", "kube-prom-stack-grafana"))
     parser.add_argument("--grafana-resource", default=os.getenv("GRAFANA_RESOURCE", "deploy/kube-prom-stack-grafana"))
@@ -268,6 +269,14 @@ def main():
 
     username = os.getenv("GRAFANA_USER") or secret_value(args.namespace, args.grafana_secret, "admin-user")
     password = os.getenv("GRAFANA_PASSWORD") or secret_value(args.namespace, args.grafana_secret, "admin-password")
+
+    if args.grafana_url:
+        client = GrafanaClient(args.grafana_url, username, password)
+        wait_for_grafana(client)
+        ensure_folder(client, config["folderUid"], config.get("folderTitle", config["folderUid"]))
+        for rule in rules:
+            upsert_rule(client, build_rule(config, rule))
+        return
 
     proc = start_port_forward(args.namespace, args.grafana_resource, args.local_port, 3000)
     try:
