@@ -21,13 +21,13 @@ spec:
             description: "platform、jialing、yangzi-middleware、modelstudio 命名空间下 Deployment {{ $labels.namespace }}/{{ $labels.deployment }} 可用副本小于期望副本。"
 
         - alert: MonitoringTargetDown
-          expr: up == 0
+          expr: up{job!~"kube-proxy|kube-controller-manager|kube-scheduler|kube-etcd"} == 0
           for: 2m
           labels:
             severity: warning
           annotations:
             summary: "监控目标不可抓取"
-            description: "Prometheus target {{ $labels.job }}/{{ $labels.instance }} 当前 up=0。"
+            description: "Prometheus target {{ $labels.job }}/{{ $labels.instance }} 当前 up=0。已排除 kube-proxy、kube-controller-manager、kube-scheduler、kube-etcd。"
 
         - alert: ClusterCpuUsageHigh
           expr: |

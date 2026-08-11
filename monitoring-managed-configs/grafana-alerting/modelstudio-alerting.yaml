@@ -24,12 +24,12 @@ rules:
   - uid: ms-monitoring-target-down
     title: 监控目标不可抓取
     expr: |
-      count(up == 0)
+      count(up{job!~"kube-proxy|kube-controller-manager|kube-scheduler|kube-etcd"} == 0)
     threshold: 0
     for: 2m
     severity: warning
     summary: 监控目标不可抓取
-    description: 纳管 target 的 up=0。
+    description: 纳管 target 的 up=0。已排除 kube-proxy、kube-controller-manager、kube-scheduler、kube-etcd。
     noDataState: OK
     execErrState: Error
     isPaused: false
