@@ -1,11 +1,11 @@
 folderUid: modelstudio-alerting
-folderTitle: 平台告警
-ruleGroup: 平台默认告警
+folderTitle: 万象平台告警
+ruleGroup: 万象平台默认告警
 intervalSeconds: 60
 datasourceUid: prometheus
 rules:
   - uid: ms-core-replicas-unavailable
-    title: 核心服务副本不可用
+    title: 万象平台 - 核心服务副本不可用
     expr: |
       count(
         kube_deployment_spec_replicas{namespace=~"platform|jialing|yangzi-middleware|modelstudio"}
@@ -15,65 +15,80 @@ rules:
     threshold: 0
     for: 2m
     severity: critical
-    summary: 核心服务副本不可用
-    description: platform、jialing、yangzi-middleware、modelstudio 命名空间下任一 Deployment 可用副本小于期望副本。
+    summary: 万象平台核心服务副本不可用
+    description: 万象平台 platform、jialing、yangzi-middleware、modelstudio 命名空间下任一 Deployment 可用副本小于期望副本。
     noDataState: OK
     execErrState: Error
     isPaused: false
 
   - uid: ms-monitoring-target-down
-    title: 监控目标不可抓取
+    title: 万象平台 - 监控目标不可抓取
     expr: |
       count(up{job!~"kube-proxy|kube-controller-manager|kube-scheduler|kube-etcd"} == 0)
     threshold: 0
     for: 2m
     severity: warning
-    summary: 监控目标不可抓取
-    description: 纳管 target 的 up=0。已排除 kube-proxy、kube-controller-manager、kube-scheduler、kube-etcd。
+    summary: 万象平台监控目标不可抓取
+    description: 万象平台纳管 target 的 up=0。已排除 kube-proxy、kube-controller-manager、kube-scheduler、kube-etcd。
     noDataState: OK
     execErrState: Error
     isPaused: false
 
   - uid: ms-api-5xx-high
-    title: API 5xx 错误率过高
+    title: 万象平台 - API 5xx 错误率过高
     expr: |
-      100 *
-      sum by (namespace, service, route) (
-        rate(http_requests_total{namespace=~"modelstudio.*", status=~"5.."}[5m])
+      (
+        100 *
+        sum by (exported_service, route) (
+          rate(kong_http_requests_total{job="kong-service-kong-metrics", endpoint="status", code=~"5.."}[5m])
+        )
+        /
+        clamp_min(
+          sum by (exported_service, route) (
+            rate(kong_http_requests_total{job="kong-service-kong-metrics", endpoint="status"}[5m])
+          ),
+          0.001
+        )
       )
-      /
-      sum by (namespace, service, route) (
-        rate(http_requests_total{namespace=~"modelstudio.*"}[5m])
-      )
+      and
+      sum by (exported_service, route) (
+        increase(kong_http_requests_total{job="kong-service-kong-metrics", endpoint="status"}[2m])
+      ) >= 20
     threshold: 5
     for: 2m
     severity: critical
-    summary: API 5xx 错误率过高
-    description: 单服务或路由 5xx 占比大于 5%。需要业务侧暴露 http_requests_total 指标后启用。
+    summary: 万象平台 API 5xx 错误率过高
+    description: 万象平台 Kong 单服务/路由 5xx 占比大于 5%，且 2 分钟内请求量不少于 20。
     noDataState: OK
     execErrState: Error
-    isPaused: true
+    isPaused: false
 
   - uid: ms-api-p99-timeout
-    title: API P99 响应超时
+    title: 万象平台 - API P99 响应超时
     expr: |
-      histogram_quantile(
-        0.99,
-        sum by (namespace, service, route, le) (
-          rate(http_request_duration_seconds_bucket{namespace=~"modelstudio.*"}[5m])
+      (
+        histogram_quantile(
+          0.99,
+          sum by (le, exported_service, route) (
+            rate(kong_request_latency_ms_bucket{job="kong-service-kong-metrics", endpoint="status"}[5m])
+          )
         )
       )
-    threshold: 2
+      and
+      sum by (exported_service, route) (
+        increase(kong_http_requests_total{job="kong-service-kong-metrics", endpoint="status"}[5m])
+      ) >= 20
+    threshold: 2000
     for: 5m
     severity: warning
-    summary: API P99 响应超时
-    description: P99 大于对应 API SLA 目标的 2 倍。当前为占位阈值，需要补充每个 API 的 SLA 指标或阈值后启用。
+    summary: 万象平台 API P99 响应超时
+    description: 万象平台 Kong 单服务/路由请求 P99 大于 2000ms，且 5 分钟内请求量不少于 20。当前为统一阈值；如需按 API SLA 的 2 倍告警，需要后续拆分规则或引入 SLA 指标。
     noDataState: OK
     execErrState: Error
-    isPaused: true
+    isPaused: false
 
   - uid: ms-cluster-cpu-high
-    title: 集群 CPU 使用过高
+    title: 万象平台 - 集群 CPU 使用过高
     expr: |
       100 *
       sum(rate(container_cpu_usage_seconds_total{container!="", pod!=""}[5m]))
@@ -82,43 +97,43 @@ rules:
     threshold: 85
     for: 5m
     severity: critical
-    summary: 集群 CPU 使用过高
-    description: 集群容器 CPU 使用量占机器总 CPU 核数比例大于 85%。
+    summary: 万象平台集群 CPU 使用过高
+    description: 万象平台集群容器 CPU 使用量占机器总 CPU 核数比例大于 85%。
     noDataState: OK
     execErrState: Error
     isPaused: false
 
   - uid: ms-cluster-memory-high
-    title: 集群内存使用过高
+    title: 万象平台 - 集群内存使用过高
     expr: |
       100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))
     threshold: 85
     for: 5m
     severity: critical
-    summary: 集群内存使用过高
-    description: 集群内存使用率大于 85%。
+    summary: 万象平台集群内存使用过高
+    description: 万象平台集群内存使用率大于 85%。
     noDataState: OK
     execErrState: Error
     isPaused: false
 
   - uid: ms-modelengine-worker-offline
-    title: ModelEngine Worker 离线
+    title: 万象平台 - ModelEngine Worker 离线
     expr: |
       1 - clamp_max(
         sum(kube_pod_status_ready{namespace="modelstudio-worker", pod=~"gpustack-worker-.*", condition="true"}),
         1
       )
     threshold: 0
-    for: 2m
+    for: 10m
     severity: critical
-    summary: ModelEngine Worker 离线
-    description: Worker 状态非可用。实际监控 modelstudio-worker 命名空间下 gpustack-worker Pod 的 Ready 状态。
+    summary: 万象平台 ModelEngine Worker 离线
+    description: 万象平台 Worker 状态非可用。实际监控 modelstudio-worker 命名空间下 gpustack-worker Pod 的 Ready 状态。
     noDataState: Alerting
     execErrState: Error
     isPaused: false
 
   - uid: ms-model-replicas-low
-    title: 模型实例数不足
+    title: 万象平台 - 模型实例数不足
     datasourceUid: gpustack-prometheus
     expr: |
       sum by (cluster_name, model_name) (
@@ -129,16 +144,16 @@ rules:
         gpustack:model_running_instances
       )
     threshold: 0
-    for: 2m
+    for: 10m
     severity: critical
-    summary: 模型实例数不足
-    description: ModelEngine 模型期望实例数大于运行实例数。
+    summary: 万象平台模型实例数不足
+    description: 万象平台 ModelEngine 模型期望实例数大于运行实例数。
     noDataState: OK
     execErrState: Error
     isPaused: false
 
   - uid: ms-inference-queue-backlog
-    title: 推理队列积压
+    title: 万象平台 - 推理队列积压
     datasourceUid: gpustack-prometheus
     expr: |
       sum by (cluster_name, model_name) (
@@ -147,8 +162,8 @@ rules:
     threshold: 50
     for: 5m
     severity: warning
-    summary: 推理队列积压
-    description: ModelEngine 模型等待推理请求数大于 50。
+    summary: 万象平台推理队列积压
+    description: 万象平台 ModelEngine 模型等待推理请求数大于 50。
     noDataState: OK
     execErrState: Error
     isPaused: false

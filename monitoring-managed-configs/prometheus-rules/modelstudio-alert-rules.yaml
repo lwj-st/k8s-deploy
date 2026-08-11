@@ -17,8 +17,8 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "核心服务副本不可用"
-            description: "platform、jialing、yangzi-middleware、modelstudio 命名空间下 Deployment {{ $labels.namespace }}/{{ $labels.deployment }} 可用副本小于期望副本。"
+            summary: "万象平台核心服务副本不可用"
+            description: "万象平台 platform、jialing、yangzi-middleware、modelstudio 命名空间下 Deployment {{ $labels.namespace }}/{{ $labels.deployment }} 可用副本小于期望副本。"
 
         - alert: MonitoringTargetDown
           expr: up{job!~"kube-proxy|kube-controller-manager|kube-scheduler|kube-etcd"} == 0
@@ -26,8 +26,55 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "监控目标不可抓取"
-            description: "Prometheus target {{ $labels.job }}/{{ $labels.instance }} 当前 up=0。已排除 kube-proxy、kube-controller-manager、kube-scheduler、kube-etcd。"
+            summary: "万象平台监控目标不可抓取"
+            description: "万象平台 Prometheus target {{ $labels.job }}/{{ $labels.instance }} 当前 up=0。已排除 kube-proxy、kube-controller-manager、kube-scheduler、kube-etcd。"
+
+        - alert: Api5xxErrorRateHigh
+          expr: |
+            (
+              100 *
+              sum by (exported_service, route) (
+                rate(kong_http_requests_total{job="kong-service-kong-metrics",endpoint="status",code=~"5.."}[5m])
+              )
+              /
+              clamp_min(
+                sum by (exported_service, route) (
+                  rate(kong_http_requests_total{job="kong-service-kong-metrics",endpoint="status"}[5m])
+                ),
+                0.001
+              )
+            ) > 5
+            and
+            sum by (exported_service, route) (
+              increase(kong_http_requests_total{job="kong-service-kong-metrics",endpoint="status"}[2m])
+            ) >= 20
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "万象平台 API 5xx 错误率过高"
+            description: "万象平台 Kong 服务 {{ $labels.exported_service }} 路由 {{ $labels.route }} 的 5xx 占比已连续 2 分钟大于 5%，且 2 分钟内请求量不少于 20，当前值 {{ $value | printf \"%.2f\" }}%。"
+
+        - alert: ApiP99LatencyHigh
+          expr: |
+            (
+              histogram_quantile(
+                0.99,
+                sum by (le, exported_service, route) (
+                  rate(kong_request_latency_ms_bucket{job="kong-service-kong-metrics",endpoint="status"}[5m])
+                )
+              )
+            ) > 2000
+            and
+            sum by (exported_service, route) (
+              increase(kong_http_requests_total{job="kong-service-kong-metrics",endpoint="status"}[5m])
+            ) >= 20
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "万象平台 API P99 响应超时"
+            description: "万象平台 Kong 服务 {{ $labels.exported_service }} 路由 {{ $labels.route }} 的 P99 已连续 5 分钟大于 2000ms，且 5 分钟内请求量不少于 20，当前值 {{ $value | printf \"%.2f\" }}ms。"
 
         - alert: ClusterCpuUsageHigh
           expr: |
@@ -36,8 +83,8 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "集群 CPU 使用过高"
-            description: "集群容器 CPU 使用量占机器总 CPU 核数比例已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
+            summary: "万象平台集群 CPU 使用过高"
+            description: "万象平台集群容器 CPU 使用量占机器总 CPU 核数比例已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
 
         - alert: ClusterMemoryUsageHigh
           expr: |
@@ -46,33 +93,30 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: "集群内存使用过高"
-            description: "集群内存使用率已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
+            summary: "万象平台集群内存使用过高"
+            description: "万象平台集群内存使用率已连续 5 分钟大于 85%，当前值 {{ $value | printf \"%.2f\" }}%。"
 
         - alert: ModelEngineWorkerOffline
           expr: |
             sum(kube_pod_status_ready{namespace="modelstudio-worker",pod=~"gpustack-worker-.*",condition="true"}) < 1
-          for: 2m
+          for: 10m
           labels:
             severity: critical
           annotations:
-            summary: "ModelEngine Worker 离线"
-            description: "modelstudio-worker 命名空间下没有 Ready 的 ModelEngine Worker Pod。"
+            summary: "万象平台 ModelEngine Worker 离线"
+            description: "万象平台 modelstudio-worker 命名空间下没有 Ready 的 ModelEngine Worker Pod。"
 
         - alert: ModelEngineWorkerNotReady
           expr: |
             sum(kube_pod_status_ready{namespace="modelstudio-worker",pod=~"gpustack-worker-.*",condition="false"}) > 0
-          for: 2m
+          for: 10m
           labels:
             severity: critical
           annotations:
-            summary: "ModelEngine Worker 不可用"
-            description: "modelstudio-worker 命名空间下存在 NotReady 的 ModelEngine Worker Pod。"
-
-    # API 5xx、API P99、模型实例数不足、推理队列积压需要业务侧暴露明确指标后再启用。
+            summary: "万象平台 ModelEngine Worker 不可用"
+            description: "万象平台 modelstudio-worker 命名空间下存在 NotReady 的 ModelEngine Worker Pod。"
+    # 模型实例数不足、推理队列积压依赖 ModelEngine 专用数据源，默认通过 Grafana Alerting 管理。
     # 推荐后续补充的指标示例：
-    # - http_requests_total{namespace, service, route, status}
-    # - http_request_duration_seconds_bucket{namespace, service, route, le}
     # - modelengine_model_replicas_expected{model}
     # - modelengine_model_replicas_running{model}
     # - modelengine_inference_queue_waiting_requests{model}

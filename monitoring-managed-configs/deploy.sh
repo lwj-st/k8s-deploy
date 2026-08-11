@@ -10,6 +10,11 @@ APPLY_RULES="${APPLY_RULES:-0}"
 APPLY_GRAFANA_ALERTING="${APPLY_GRAFANA_ALERTING:-1}"
 APPLY_GRAFANA_ALERTING_MODE="${APPLY_GRAFANA_ALERTING_MODE:-local}"
 APPLY_GRAFANA_SMTP="${APPLY_GRAFANA_SMTP:-1}"
+APPLY_KONG_METRICS_LABELS="${APPLY_KONG_METRICS_LABELS:-1}"
+KONG_METRICS_NAMESPACE="${KONG_METRICS_NAMESPACE:-platform}"
+KONG_METRICS_SERVICE_MONITOR="${KONG_METRICS_SERVICE_MONITOR:-kong-service-kong}"
+KONG_METRICS_SERVICE="${KONG_METRICS_SERVICE:-kong-service-kong-metrics}"
+KONG_METRICS_RELEASE_LABEL="${KONG_METRICS_RELEASE_LABEL:-kube-prom-stack}"
 DRY_RUN="${DRY_RUN:-0}"
 
 DASHBOARDS_DIR="${SCRIPT_DIR}/grafana-dashboards"
@@ -63,6 +68,40 @@ check_namespace() {
 
 check_prometheus_rule_crd() {
   kubectl get crd prometheusrules.monitoring.coreos.com >/dev/null 2>&1
+}
+
+apply_kong_metrics_labels() {
+  if [ "${APPLY_KONG_METRICS_LABELS}" != "1" ]; then
+    log_info "Skip Kong metrics labels because APPLY_KONG_METRICS_LABELS=${APPLY_KONG_METRICS_LABELS}"
+    return 0
+  fi
+
+  if ! kubectl get namespace "${KONG_METRICS_NAMESPACE}" >/dev/null 2>&1; then
+    log_warn "Skip Kong metrics labels because namespace not found: ${KONG_METRICS_NAMESPACE}"
+    return 0
+  fi
+
+  if kubectl -n "${KONG_METRICS_NAMESPACE}" get servicemonitor "${KONG_METRICS_SERVICE_MONITOR}" >/dev/null 2>&1; then
+    if [ "${DRY_RUN}" = "1" ]; then
+      log_info "Dry run: would label ServiceMonitor ${KONG_METRICS_NAMESPACE}/${KONG_METRICS_SERVICE_MONITOR} release=${KONG_METRICS_RELEASE_LABEL}"
+    else
+      log_info "Label ServiceMonitor ${KONG_METRICS_NAMESPACE}/${KONG_METRICS_SERVICE_MONITOR}"
+      kubectl -n "${KONG_METRICS_NAMESPACE}" label servicemonitor "${KONG_METRICS_SERVICE_MONITOR}" "release=${KONG_METRICS_RELEASE_LABEL}" --overwrite
+    fi
+  else
+    log_warn "Kong ServiceMonitor not found, skip label: ${KONG_METRICS_NAMESPACE}/${KONG_METRICS_SERVICE_MONITOR}"
+  fi
+
+  if kubectl -n "${KONG_METRICS_NAMESPACE}" get service "${KONG_METRICS_SERVICE}" >/dev/null 2>&1; then
+    if [ "${DRY_RUN}" = "1" ]; then
+      log_info "Dry run: would label Service ${KONG_METRICS_NAMESPACE}/${KONG_METRICS_SERVICE} enable-metrics=true"
+    else
+      log_info "Label Service ${KONG_METRICS_NAMESPACE}/${KONG_METRICS_SERVICE}"
+      kubectl -n "${KONG_METRICS_NAMESPACE}" label service "${KONG_METRICS_SERVICE}" enable-metrics=true --overwrite
+    fi
+  else
+    log_warn "Kong metrics Service not found, skip label: ${KONG_METRICS_NAMESPACE}/${KONG_METRICS_SERVICE}"
+  fi
 }
 
 apply_dashboards() {
@@ -262,6 +301,7 @@ main() {
   log_info "Dry run: ${DRY_RUN}"
 
   check_namespace
+  apply_kong_metrics_labels
   apply_datasources
   apply_dashboards
   apply_grafana_smtp

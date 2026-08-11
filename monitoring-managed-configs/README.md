@@ -11,7 +11,7 @@ monitoring-managed-configs/grafana-dashboards/platform
 monitoring-managed-configs/grafana-dashboards/modelengine
 ```
 
-- `platform`：平台基础看板。放 Kubernetes / 平台 / 命名空间 / Pod 状态类看板，使用 kube-prometheus 默认 Prometheus 数据源，不依赖 ModelEngine 专用数据源。
+- `platform`：平台基础看板。放 Kubernetes / 平台 / 命名空间 / Pod / Kong API 流量类看板，使用 kube-prometheus 默认 Prometheus 数据源，不依赖 ModelEngine 专用数据源。
 - `modelengine`：ModelEngine 专用看板。放依赖 `gpustack-prometheus` 或 `gpustack:*` 指标的 Runtime / Worker 看板。
 
 Grafana 数据源配置放在：
@@ -45,6 +45,15 @@ APPLY_RULES=1 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed-configs/deploy.sh
 ```bash
 bash monitoring-managed-configs/deploy.sh
 ```
+
+一键部署时默认会尝试自动给 Kong metrics 相关资源打 label，便于 kube-prometheus-stack 发现采集目标：
+
+```bash
+kubectl -n platform label servicemonitor kong-service-kong release=kube-prom-stack --overwrite
+kubectl -n platform label svc kong-service-kong-metrics enable-metrics=true --overwrite
+```
+
+如果目标集群没有 Kong，脚本只会输出 warning，不会阻塞其它配置部署。
 
 Dry run：
 
@@ -114,6 +123,11 @@ bash monitoring-managed-configs/deploy.sh
 - `APPLY_RULES`：设置为 `1` 时应用旧版 PrometheusRule，默认 `0`。
 - `APPLY_GRAFANA_ALERTING`：设置为 `0` 时跳过 Grafana Alerting 告警规则。
 - `APPLY_GRAFANA_ALERTING_MODE`：`local` 或 `job`，默认 `local`。部署机器没有 Python 时使用 `job`。
+- `APPLY_KONG_METRICS_LABELS`：设置为 `0` 时跳过 Kong metrics 资源自动打 label，默认 `1`。
+- `KONG_METRICS_NAMESPACE`：Kong metrics 所在命名空间，默认 `platform`。
+- `KONG_METRICS_SERVICE_MONITOR`：Kong ServiceMonitor 名称，默认 `kong-service-kong`。
+- `KONG_METRICS_SERVICE`：Kong metrics Service 名称，默认 `kong-service-kong-metrics`。
+- `KONG_METRICS_RELEASE_LABEL`：ServiceMonitor 需要匹配的 Prometheus release 标签值，默认 `kube-prom-stack`。
 - `GRAFANA_ALERTING_JOB_IMAGE`：Grafana Alerting Job 使用的镜像，默认 `grafana-alerting-applier:latest`。
 - `GRAFANA_ALERTING_JOB_NAME`：Grafana Alerting Job 名称，默认 `grafana-alerting-apply`。
 - `GRAFANA_ALERTING_CONFIGMAP`：Grafana Alerting Job 使用的 ConfigMap 名称，默认 `grafana-alerting-applier-config`。
@@ -137,6 +151,7 @@ bash monitoring-managed-configs/deploy.sh
 
 - `monitoring` 命名空间已存在，或通过环境变量指定正确命名空间。
 - 已安装 `kube-prometheus-stack`。
+- 如需 Kong API 流量看板和 API 5xx/P99 告警，集群内需要有 Kong metrics，并能通过 `kong_http_requests_total`、`kong_request_latency_ms_bucket` 查询到数据。
 - Grafana dashboard sidecar 会监听带有 `grafana_dashboard: "1"` 标签的 ConfigMap。
 - Grafana datasource sidecar 会监听带有 `grafana_datasource: "1"` 标签的 ConfigMap。
 - 如需应用 PrometheusRule，集群内必须已安装 Prometheus Operator CRD。
@@ -150,5 +165,8 @@ bash monitoring-managed-configs/deploy.sh
 - Grafana Alerting 通过 Grafana HTTP API 导入，并关闭 provenance，因此页面上可以继续编辑。
 - `local` 模式需要部署机器有 `python3`、`PyYAML`，并能执行 `kubectl port-forward`。
 - `job` 模式不需要部署机器有 Python。脚本会创建 ConfigMap、重建 Job，并由 Job 访问集群内 Grafana Service。
-- API 5xx、API P99、模型实例数、推理队列等规则依赖具体业务指标；未确认指标前不要随意开启占位规则。
+- API 5xx、API P99 使用 Kong metrics，默认过滤 `job="kong-service-kong-metrics", endpoint="status"`，按 `exported_service` 和 `route` 聚合。
+- API 5xx 告警增加了请求量门槛：2 分钟内请求量不少于 20，且 5xx 占比大于 5% 才触发。
+- API P99 告警当前使用统一阈值 2000ms；如果要严格实现“对应 API SLA 目标的 2 倍”，需要后续补充 SLA 指标或拆分为多条规则。
+- 模型实例数、推理队列等规则依赖 ModelEngine 专用指标。
 - `grafana-alerting/contact-points.example.yaml` 只是邮件通知示例，不要提交真实 SMTP 密码或私有 webhook token。
