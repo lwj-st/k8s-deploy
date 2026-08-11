@@ -25,11 +25,11 @@
 ## Env:
 ##   - MONITOR_ACCELERATOR: 可选，强制 nvidia|ascend|iluvatar|vxpu（覆盖自动检测）
 ##   - GRAFANA_INGRESS_HOST: Grafana Ingress 域名，默认 grafana.sensecorex.com
-##   - GRAFANA_PROMETHEUS_DATASOURCE_UID: Grafana Prometheus 数据源 uid，默认 prometheus
 ##   - GRAFANA_DEFAULT_LANGUAGE: Grafana 默认语言，默认 zh-Hans（中文简体）
 ##   - GRAFANA_DEFAULT_THEME: Grafana 默认主题，默认 light（浅色）
 ##   - GRAFANA_DEFAULT_TIMEZONE: Grafana 默认时区，默认 Asia/Shanghai
 ##   - GRAFANA_DEFAULT_WEEK_START: Grafana 默认每周起始日，默认 monday（周一）
+##   - GRAFANA_ADMIN_PASSWORD: Grafana admin 默认密码，默认 123456
 ##   - GRAFANA_PROMETHEUS_DATASOURCE_UID: Grafana Prometheus 数据源 uid，默认 prometheus
 ## Notes:
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
@@ -183,12 +183,13 @@ helm_install_or_upgrade() {
   local grafana_theme="${GRAFANA_DEFAULT_THEME:-light}"
   local grafana_timezone="${GRAFANA_DEFAULT_TIMEZONE:-Asia/Shanghai}"
   local grafana_week_start="${GRAFANA_DEFAULT_WEEK_START:-monday}"
+  local grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-123456}"
 
   [ -n "${CHART}" ] || die "CHART 为空，无法执行 Helm 安装/升级"
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
 
   log_info "Helm 安装/升级 ${RELEASE}（命名空间 ${NS}，values=${HELM_VALUES}，Grafana 默认语言=${grafana_language}，默认主题=${grafana_theme}，默认时区=${grafana_timezone}，默认每周起始日=${grafana_week_start}）..."
-  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace -f \"${HELM_VALUES}\" --set \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\" --set \"grafana.defaultDashboardsTimezone=${grafana_timezone}\""
+  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace -f \"${HELM_VALUES}\" --set \"grafana.adminPassword=${grafana_admin_password}\" --set \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\" --set \"grafana.defaultDashboardsTimezone=${grafana_timezone}\""
 }
 
 ################################################################################
