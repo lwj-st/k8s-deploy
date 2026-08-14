@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ################################################################################
 ## Filename:    27-Deploy-monitoring.sh
-## Description: 部署 monitoring（自动识别 vxpu/nvidia/ascend/iluvatar；都无则默认 nvidia）
+## Description: 部署 monitoring（自动识别 vxpu/nvidia/ascend/iluvatar）
 ## Usage:
 ##   bash 27-Deploy-monitoring.sh
 ## Artifacts:
@@ -30,6 +30,7 @@
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
 ##   - Ascend / Iluvatar / 昆仑芯 exporter 清单来自仓库 config
 ##   - 昆仑芯节点上 nvidia-smi 可能是 XPU 兼容命令，检测优先认 xpu-smi / /dev/xpu*
+##   - 未识别到加速卡时不会默认部署；可用 MONITOR_ACCELERATOR 强制指定
 ################################################################################
 set -euo pipefail
 
@@ -63,7 +64,6 @@ init_env() {
   have openssl || die "缺少 openssl"
 
   CHART="$(artifact_get_path_by_name "monitor.chart.kube-prometheus-stack.v72.7.0")"
-  DCGM_YAML="$(artifact_get_path_by_name "monitor.manifest.dcgm-exporter")"
 
   ASCEND_YAML="${K8S_DEPLOY_ROOT}/config/npu-exporter.yaml"
   ILUVATAR_YAML="${K8S_DEPLOY_ROOT}/config/ix-exporter.yaml"
@@ -74,7 +74,6 @@ init_env() {
   HELM_VALUES="${K8S_DEPLOY_ROOT}/config/kube-prometheus-stack-values.yaml"
 
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
-  [ -f "${DCGM_YAML}" ] || die "缺少制品: ${DCGM_YAML}"
   [ -f "${ASCEND_YAML}" ] || log_warn "未找到 ${ASCEND_YAML}，Ascend 分支将不可用"
   [ -f "${ILUVATAR_YAML}" ] || log_warn "未找到 ${ILUVATAR_YAML}，Iluvatar 分支将不可用"
   [ -f "${VXPU_YAML}" ] || log_warn "未找到 ${VXPU_YAML}，昆仑芯分支将不可用"
@@ -84,11 +83,16 @@ init_env() {
   [ -f "${HELM_VALUES}" ] || die "缺少配置: ${HELM_VALUES}"
 
   detect_accelerator
+
+  if [ "${RUNTIME_ACCELERATOR}" = "nvidia" ]; then
+    DCGM_YAML="$(artifact_get_path_by_name "monitor.manifest.dcgm-exporter")"
+    [ -f "${DCGM_YAML}" ] || die "缺少制品: ${DCGM_YAML}"
+  fi
 }
 
 ################################################################################
 # Function: detect_accelerator
-# Description: 按命令识别加速卡类型；都没有时默认 nvidia
+# Description: 按命令识别加速卡类型；都没有时提示用户显式指定
 ################################################################################
 detect_accelerator() {
   if [ -n "${MONITOR_ACCELERATOR:-}" ]; then
@@ -114,7 +118,7 @@ detect_accelerator() {
   elif have npu-smi; then
     RUNTIME_ACCELERATOR="ascend"
   else
-    RUNTIME_ACCELERATOR="nvidia"
+    die "未自动识别到加速卡类型；如需继续，请显式指定：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar bash 27-Deploy-monitoring.sh"
   fi
   log_info "检测到加速卡类型: ${RUNTIME_ACCELERATOR}"
 }

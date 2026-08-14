@@ -616,7 +616,7 @@ artifacts:
     path: /data/download/vxpu/vxpu-device-plugin-v1.0.0.tar
     url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/vxpu-device-plugin-v1.0.0.tar"
     base_url: "docker.io/projecthami/vxpu-device-plugin:v1.0.0"
-    md5: "__LOCAL_ONLY__"
+    md5: "c9f5e324f1e2775713657d4064893bcb"
     description: "Kunlunxin vxpu-device-plugin image tar; place locally (tag projecthami/vxpu-device-plugin:v1.0.0)"
 
   - module: vxpu
