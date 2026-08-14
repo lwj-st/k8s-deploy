@@ -19,7 +19,7 @@ data:
             "enable": true,
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
-            "name": "Annotations & Alerts",
+            "name": "注释和告警",
             "type": "dashboard"
           }
         ]
@@ -276,7 +276,7 @@ data:
                 "uid": "prometheus"
               },
               "expr": "sum(up{job=\"kong-service-kong-metrics\"})",
-              "legendFormat": "up",
+              "legendFormat": "在线",
               "refId": "A"
             }
           ],
@@ -792,7 +792,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "P99 Top 路由",
+          "title": "P99 最高的路由 Top10",
           "type": "table"
         }
       ],

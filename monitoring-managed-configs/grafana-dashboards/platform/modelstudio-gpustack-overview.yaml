@@ -19,7 +19,7 @@ data:
             "enable": true,
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
-            "name": "Annotations & Alerts",
+            "name": "注释和告警",
             "type": "dashboard"
           }
         ]
@@ -88,11 +88,11 @@ data:
                 "uid": "${DS_PROMETHEUS}"
               },
               "expr": "sum(kube_pod_status_ready{namespace=\"modelstudio-worker\",pod=~\"gpustack-worker-.*\",condition=\"true\"})",
-              "legendFormat": "ready",
+              "legendFormat": "就绪",
               "refId": "A"
             }
           ],
-          "title": "ModelEngine Worker Ready 数量",
+          "title": "ModelEngine Worker 就绪数量",
           "type": "stat"
         },
         {
@@ -152,11 +152,11 @@ data:
                 "uid": "${DS_PROMETHEUS}"
               },
               "expr": "sum(kube_pod_status_ready{namespace=\"modelstudio-worker\",pod=~\"gpustack-worker-.*\",condition=\"false\"})",
-              "legendFormat": "not ready",
+              "legendFormat": "未就绪",
               "refId": "A"
             }
           ],
-          "title": "ModelEngine Worker NotReady 数量",
+          "title": "ModelEngine Worker 未就绪数量",
           "type": "stat"
         },
         {
@@ -252,7 +252,7 @@ data:
                 "uid": "${DS_PROMETHEUS}"
               },
               "expr": "100 * (1 - sum(node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes))",
-              "legendFormat": "Memory",
+              "legendFormat": "内存",
               "refId": "B"
             }
           ],
@@ -316,7 +316,7 @@ data:
                 "uid": "${DS_PROMETHEUS}"
               },
               "expr": "sum(up == 0)",
-              "legendFormat": "down targets",
+              "legendFormat": "不可抓取目标",
               "refId": "A"
             }
           ],
@@ -385,7 +385,7 @@ data:
               "refId": "A"
             }
           ],
-          "title": "ModelEngine Worker Pod Ready 明细",
+          "title": "ModelEngine Worker Pod 就绪明细",
           "type": "table"
         }
       ],

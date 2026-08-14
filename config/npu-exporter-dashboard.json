@@ -1,10 +1,9 @@
-      
 {
   "__inputs": [
     {
       "name": "DS_PROMETHEUS",
       "label": "Prometheus",
-      "description": "ascend-npu-exporter",
+      "description": "昇腾 NPU 监控面板",
       "type": "datasource",
       "pluginId": "prometheus",
       "pluginName": "Prometheus"
@@ -66,7 +65,7 @@
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
+        "name": "注释和告警",
         "target": {
           "limit": 100,
           "matchAny": false,
@@ -77,7 +76,7 @@
       }
     ]
   },
-  "description": "「Ascend Npu Monitor」\r\nA Grafana dashboard for monitoring Ascend NPU metrics via ascend-npu-exporter. Visualize AI Core utilization, temperature, power, memory, and network status in real time.\r\n基于 ascend-npu-exporter 的昇腾NPU监控面板，支持AI Core、温度、功耗、内存、网络等关键指标的实时可视化。",
+  "description": "昇腾 NPU 监控面板，基于 ascend-npu-exporter 展示 AI Core 利用率、温度、功耗、内存、网络状态等关键指标。",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -1435,7 +1434,7 @@
         "definition": "label_values(npu_chip_info_name{}, job)",
         "hide": 0,
         "includeAll": false,
-        "label": "JOB",
+        "label": "任务",
         "multi": false,
         "name": "job_name",
         "options": [],
@@ -1458,7 +1457,7 @@
         "definition": "label_values(npu_chip_info_name{job=~\"$job_name\"}, instance)",
         "hide": 0,
         "includeAll": false,
-        "label": "实例名",
+        "label": "实例",
         "multi": false,
         "name": "instance",
         "options": [],
@@ -1481,7 +1480,7 @@
         "definition": "label_values(npu_chip_info_name{job=~\"$job_name\",instance=~\"$instance\"},id)",
         "hide": 0,
         "includeAll": false,
-        "label": "NPU_ID",
+        "label": "NPU ID",
         "multi": false,
         "name": "npu_id",
         "options": [],
@@ -1503,11 +1502,9 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "ascend-npu-exporter",
+  "title": "昇腾 NPU 监控面板",
   "uid": "Y1gwJsoIz",
   "version": 30,
   "weekStart": "",
   "gnetId": 20592
 }
-
-    
