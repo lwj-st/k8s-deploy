@@ -82,7 +82,7 @@ SERVICE_CIDR="$(trim_whitespace "${SERVICE_CIDR}")"
 SERVICE_CIDR="${SERVICE_CIDR:-10.96.0.0/12}"
 
 # Calico IP 自动探测网卡。这里只接受本机已存在的网卡名；16-Deploy-cni.sh
-# 会在后续自动补全为 interface=<网卡名>。
+# 会在后续自动补全为 interface=^<网卡名>$（精确匹配，避免 bond0 命中 bond0.200）。
 have ip || die "未找到 ip 命令，无法校验 Calico 网卡名"
 while true; do
   read -r -p "Calico IP 网卡名 (默认: bond0): " CALICO_IP_AUTODETECTION_METHOD

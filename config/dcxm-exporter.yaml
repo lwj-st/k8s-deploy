@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dcxm-exporter
+  labels:
+    app.kubernetes.io/name: dcxm-exporter
+    app.kubernetes.io/version: "1.0.0.1"
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcxm-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dcxm-exporter
+        app.kubernetes.io/version: "1.0.0.1"
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        xpu: "on"
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: dcxm-exporter
+          image: docker.io/library/dcxm-exporter-ubuntu20.04:1.0.0.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CXPU_VISIBLE_DEVICES
+              value: "all"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          ports:
+            - name: metrics
+              containerPort: 9400
+          securityContext:
+            privileged: true
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - name: xre
+              mountPath: /usr/local/xpu
+            - name: dev
+              mountPath: /dev
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+      volumes:
+        - name: xre
+          hostPath:
+            path: /usr/local/xpu
+        - name: dev
+          hostPath:
+            path: /dev
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcxm-exporter
+  labels:
+    app.kubernetes.io/name: dcxm-exporter
+    app.kubernetes.io/version: "1.0.0.1"
+spec:
+  selector:
+    app.kubernetes.io/name: dcxm-exporter
+  ports:
+    - name: metrics
+      port: 9400
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcxm-exporter
+  namespace: monitoring
+  labels:
+    release: kube-prom-stack
+    app.kubernetes.io/name: dcxm-exporter
+spec:
+  namespaceSelector:
+    matchNames:
+      - monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcxm-exporter
+  # 走 Prometheus scrapeClass，给无效 Content-Type 回退文本协议。
+  scrapeClass: legacy-text
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
