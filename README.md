@@ -148,7 +148,7 @@ sudo bash 23-Deploy-seaweedfs.sh          # 可选
 sudo bash 24-Deploy-minio.sh              # 可选
 sudo bash 25-Deploy-juicefs-csi-driver.sh # 可选
 sudo bash 26-Deploy-dragonfly-operator.sh # 可选
-sudo bash 27-Deploy-monitoring.sh         # 可选；昆仑芯会部署 dcxm-exporter 和 Grafana 仪表盘
+sudo bash 27-Deploy-monitoring.sh         # 可选
 # 可强制类型：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar
 ...
 ```
