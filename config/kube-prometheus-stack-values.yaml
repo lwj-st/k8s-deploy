@@ -1,0 +1,9 @@
+# kube-prometheus-stack 附加值。
+# Prometheus 3.x 遇到无效 Content-Type（如 dcxm-exporter 的 application/octet-stream）
+# 时，用文本 0.0.4 回退抓取。
+prometheus:
+  prometheusSpec:
+    scrapeClasses:
+      - name: legacy-text
+        default: true
+        fallbackScrapeProtocol: PrometheusText0.0.4

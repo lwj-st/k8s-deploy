@@ -25,6 +25,7 @@
 - `Script/15-Deploy-ascend.sh`：部署 Ascend plugin（NPU，仅择一执行）
 - `Script/15-Deploy-dcu.sh`：部署 Hygon DCU device-plugin（mixed/mig/hami）
 - `Script/15-Deploy-iluvatar.sh`：部署 天数智芯（Iluvatar CoreX）ix-device-plugin
+- `Script/15-Deploy-vxpu.sh`：部署昆仑芯（Kunlunxin）vxpu-device-plugin
 - `Script/20-Deploy-local-path.sh`
 - `Script/21-Deploy-nfs-provisioner.sh`
 - `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
@@ -32,7 +33,7 @@
 - `Script/24-Deploy-minio.sh`：部署 MinIO
 - `Script/25-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
 - `Script/26-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
-- `Script/27-Deploy-monitoring.sh`：部署 Monitoring
+- `Script/27-Deploy-monitoring.sh`：部署 Monitoring（NVIDIA DCGM / 昆仑芯 DCXM / Ascend / Iluvatar）
 - `Script/30-Deploy-rsyslog.sh`：配置 rsyslog 集中日志；日志服务器和每个 K8s 节点都执行同一个脚本
 - `Script/89-Generate-tls.sh`：生成 TLS 证书
 - `Script/90-Shovel-k8s.sh`：清理集群（kubeadm reset + 只清 KUBE/CALI 相关链）
@@ -131,6 +132,7 @@ sudo bash 15-Deploy-nvidia.sh            # 可选：仅 NVIDIA（GPU）
 sudo bash 15-Deploy-ascend.sh            # 可选：仅 Ascend
 sudo bash 15-Deploy-dcu.sh               # 可选：仅 Hygon DCU
 sudo bash 15-Deploy-iluvatar.sh          # 可选：仅天数智芯 Iluvatar CoreX
+sudo bash 15-Deploy-vxpu.sh              # 可选：仅昆仑芯 Kunlunxin
 sudo bash 16-Deploy-cni.sh
 sudo bash 17-Deploy-ingress.sh
 ```
@@ -146,7 +148,8 @@ sudo bash 23-Deploy-seaweedfs.sh          # 可选
 sudo bash 24-Deploy-minio.sh              # 可选
 sudo bash 25-Deploy-juicefs-csi-driver.sh # 可选
 sudo bash 26-Deploy-dragonfly-operator.sh # 可选
-sudo bash 27-Deploy-monitoring.sh         # 可选
+sudo bash 27-Deploy-monitoring.sh         # 可选；昆仑芯会部署 dcxm-exporter 和 Grafana 仪表盘
+# 可强制类型：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar
 ...
 ```
 
@@ -191,10 +194,10 @@ sudo bash 13-Install-k8s-packages.sh
 - 如果新节点网卡名与主节点不一致，需要调整 Calico 的 `CALICO_IP_AUTODETECTION_METHOD`。集群尚未部署 CNI 时，在主节点执行 `16-Deploy-cni.sh` 前设置；集群已部署 CNI 时，在主节点执行：
 
 ```bash
-kubectl -n kube-system set env daemonset/calico-node IP_AUTODETECTION_METHOD='interface=^(bond0|ens.*)$'
+kubectl -n kube-system set env daemonset/calico-node IP_AUTODETECTION_METHOD='interface=^bond0$'
 ```
 
-请按实际网卡名修改 `interface` 规则，例如 `bond0`、`ens.*`、`eth.*`。可参考 issue：https://github.com/lwj-st/k8s-deploy/issues/1
+Calico 的 `interface=` 值是正则，不是精确网卡名：`interface=bond0` 会匹配 `bond0.200`。只选一张网卡时请加锚点 `^...$`；多网卡再用 `interface=^(bond0|ens.*)$`。可参考 issue：https://github.com/lwj-st/k8s-deploy/issues/1
 
 ### 步骤 2：获取 kubeadm join 命令
 

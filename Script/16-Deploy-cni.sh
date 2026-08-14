@@ -12,6 +12,8 @@
 ##   - cni.image.calico-node.v3.30
 ## Env:
 ##   - CALICO_IP_AUTODETECTION_METHOD: 可选，设置 calico-node IP 探测方式
+## Notes:
+##   - 裸网卡名会写成 interface=^name$（Calico 的 interface= 是正则）
 ################################################################################
 set -euo pipefail
 
@@ -36,9 +38,11 @@ log_command "kubectl apply -f \"${calico}\""
 
 if [ -n "${CALICO_IP_AUTODETECTION_METHOD:-}" ]; then
   autodetect_method="${CALICO_IP_AUTODETECTION_METHOD}"
-  # 自动补全为 interface=<name>
+  # 裸网卡名补全为精确匹配。Calico 的 interface= 值是正则，
+  # interface=bond0 会误匹配 bond0.200 / bond01。
   if [[ "${autodetect_method}" != *=* ]]; then
-    autodetect_method="interface=${autodetect_method}"
+    autodetect_escaped="$(printf '%s' "${autodetect_method}" | sed -E 's/([][(){}.^$*+?|\\])/\\\1/g')"
+    autodetect_method="interface=^${autodetect_escaped}$"
   fi
   log_info "为 calico-node 设置 IP_AUTODETECTION_METHOD=${autodetect_method}"
   log_command "kubectl -n kube-system set env daemonset/calico-node IP_AUTODETECTION_METHOD=\"${autodetect_method}\""
