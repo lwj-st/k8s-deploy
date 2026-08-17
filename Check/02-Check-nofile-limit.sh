@@ -6,10 +6,17 @@
 ## 检查范围：
 ##   1-3  宿主机 / systemd（kubelet、containerd 服务）
 ##   4    ingress-nginx（Pod 就绪、FD 日志、ConfigMap、容器内 ulimit）
+##   5    ingress-nginx worker-processes（nginx.conf 配置值 vs 实际 worker 数）
 ##
 ## ingress CrashLoop 典型根因（宿主机 nofile 足够时仍可能发生）：
 ##   容器 soft nofile=1024 + 监听 IPv6 [::]:443 → fd 耗尽
 ##   推荐修复：ConfigMap disable-ipv6=true
+##
+## 高核数节点 worker 起不齐：
+##   worker-processes 未设置时按 nproc（auto）生成 nginx.conf；
+##   reuseport 监听占满 master 的 soft nofile=1024 后 socketpair() 失败，
+##   实际 worker 数 < 配置值，HTTPS 握手超时。
+##   推荐修复：ConfigMap worker-processes=8
 ################################################################################
 set -euo pipefail
 
@@ -26,6 +33,8 @@ detect_os
 readonly TARGET_NOFILE=65535
 readonly INGRESS_NS="${INGRESS_NS:-ingress-nginx}"
 readonly INGRESS_LABEL_SELECTOR="${INGRESS_LABEL_SELECTOR:-app.kubernetes.io/component=controller}"
+readonly INGRESS_CM="${INGRESS_CM:-ingress-nginx-controller}"
+readonly INGRESS_WORKER_PROCESSES_RECOMMENDED="${INGRESS_WORKER_PROCESSES_RECOMMENDED:-8}"
 readonly FD_LOG_PATTERN='no file descriptors available|socket\(\).*failed \(24:'
 readonly CRI_BASE_JSON="/etc/containerd/cri-base.json"
 
@@ -98,6 +107,30 @@ print_ingress_fd_solution() {
   kubectl -n ${INGRESS_NS} get pod -l ${INGRESS_LABEL_SELECTOR}
   kubectl -n ${INGRESS_NS} exec <pod> -- grep '\\[::\\]' /etc/nginx/nginx.conf   # 应无输出
   kubectl -n ${INGRESS_NS} exec <pod> -- curl -sf http://127.0.0.1:10254/healthz"
+}
+
+print_ingress_worker_processes_solution() {
+  local needed="$1" actual="$2"
+  print_solution "典型报错：
+  socketpair() failed while spawning \"worker process\" (24: No file descriptors available)
+
+现象：nginx.conf worker_processes=${needed}（需要），实际 worker 进程=${actual}（现有）。
+
+根因：未设置 worker-processes 时 ingress-nginx 按 CPU 核数（auto）生成配置；
+高核数节点上 master 会按该数量预建 reuseport 监听，再 socketpair() 拉 worker。
+容器 soft nofile 常为 1024，master 的 fd 先被监听 socket 占满，只能起一部分 worker。
+无人 accept 的 reuseport 插座仍在，HTTPS/TLS 握手会超时。
+
+【推荐】ConfigMap 钉死 worker 数量（单节点 Ingress 用 ${INGRESS_WORKER_PROCESSES_RECOMMENDED} 即可）：
+  kubectl -n ${INGRESS_NS} patch configmap ${INGRESS_CM} --type merge \\
+    -p '{\"data\":{\"worker-processes\":\"${INGRESS_WORKER_PROCESSES_RECOMMENDED}\"}}'
+  # controller 通常会自行 reload；未生效时再重建 Pod：
+  kubectl -n ${INGRESS_NS} delete pod -l ${INGRESS_LABEL_SELECTOR}
+
+【验证】
+  kubectl -n ${INGRESS_NS} exec <pod> -- grep worker_processes /etc/nginx/nginx.conf
+  # 应为 worker_processes ${INGRESS_WORKER_PROCESSES_RECOMMENDED};
+  # 实际 worker 进程数应与上述配置值一致"
 }
 
 kubectl_ready() {
@@ -277,18 +310,109 @@ check_ingress_nginx() {
   fi
 }
 
+# 需要的 worker 数：nginx.conf 中的 worker_processes（auto 视为 nproc）
+# 现有 worker 数：容器内 cmdline 为 "nginx: worker process" 的进程数
+ingress_nginx_worker_counts() {
+  local pod="$1"
+  local conf_line nproc_val needed actual
+
+  conf_line="$(kubectl -n "${INGRESS_NS}" exec "${pod}" --request-timeout=15s -- \
+    sh -c 'grep "^worker_processes" /etc/nginx/nginx.conf' 2>/dev/null || true)"
+  needed="$(echo "${conf_line}" | awk '{ gsub(";", "", $2); print $2 }')"
+  if [ "${needed}" = "auto" ] || [ -z "${needed}" ]; then
+    nproc_val="$(kubectl -n "${INGRESS_NS}" exec "${pod}" --request-timeout=10s -- \
+      nproc 2>/dev/null || true)"
+    needed="${nproc_val}"
+  fi
+
+  actual="$(kubectl -n "${INGRESS_NS}" exec "${pod}" --request-timeout=15s -- sh -c '
+    actual=0
+    for f in /proc/[0-9]*/cmdline; do
+      [ -r "$f" ] || continue
+      cmd=$(tr "\0" " " < "$f" 2>/dev/null) || continue
+      case "$cmd" in
+        "nginx: worker process"*) actual=$((actual + 1)) ;;
+      esac
+    done
+    echo "$actual"
+  ' 2>/dev/null || true)"
+  actual="$(echo "${actual}" | tr -d '[:space:]')"
+
+  echo "${needed:-} ${actual:-}"
+}
+
+check_ingress_worker_processes() {
+  log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log_info "检查 5/5：ingress-nginx worker-processes（配置值 vs 实际进程数）"
+
+  if ! have_cmd kubectl; then
+    log_warn "  ⚠ 未发现 kubectl，跳过"
+    return
+  fi
+  if ! kubectl_ready; then
+    log_warn "  ⚠ 集群不可达，跳过"
+    return
+  fi
+
+  local pods
+  pods="$(kubectl -n "${INGRESS_NS}" get pod -l "${INGRESS_LABEL_SELECTOR}" -o name 2>/dev/null || true)"
+  if [ -z "${pods}" ]; then
+    log_warn "  ⚠ 未找到 controller Pod（ns=${INGRESS_NS}）"
+    return
+  fi
+
+  local cm_wp
+  cm_wp="$(kubectl -n "${INGRESS_NS}" get configmap "${INGRESS_CM}" \
+    -o jsonpath='{.data.worker-processes}' 2>/dev/null || true)"
+  if [ -n "${cm_wp}" ]; then
+    log_info "  ConfigMap worker-processes = ${cm_wp}"
+  else
+    log_info "  ConfigMap worker-processes 未设置（nginx 按 auto=nproc 生成）"
+  fi
+
+  local fail=0 pod name counts needed actual
+  for pod in ${pods}; do
+    name="${pod#pod/}"
+    log_info "  ── Pod ${name} ──"
+
+    counts="$(ingress_nginx_worker_counts "${name}")"
+    needed="$(echo "${counts}" | awk '{print $1}')"
+    actual="$(echo "${counts}" | awk '{print $2}')"
+
+    if ! [[ "${needed}" =~ ^[0-9]+$ ]] || ! [[ "${actual}" =~ ^[0-9]+$ ]]; then
+      log_warn "    ⚠ 无法读取 worker 数量（needed=${needed:-empty} actual=${actual:-empty}）"
+      continue
+    fi
+
+    log_info "    需要的 worker-processes（nginx.conf）= ${needed}"
+    log_info "    现有 worker 进程数 = ${actual}"
+
+    if [ "${actual}" -ne "${needed}" ]; then
+      log_error "    ✗ 现有 ${actual} ≠ 需要 ${needed}"
+      fail=1
+    else
+      log_info "    ✓ 现有与需要的 worker 数量一致"
+    fi
+  done
+
+  if [ "${fail}" -eq 1 ]; then
+    print_ingress_worker_processes_solution "${needed:-?}" "${actual:-?}"
+  fi
+}
+
 main() {
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "nofile（打开文件数）限制检查"
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "OS: ${OS_ID:-unknown} ${OS_VERSION_ID:-unknown}"
   log_info "推荐值：nofile >= ${TARGET_NOFILE}"
-  log_info "说明：检查 1-3 为宿主机；检查 4 针对 ingress-nginx（与宿主机结果可不一致）"
+  log_info "说明：检查 1-3 为宿主机；检查 4-5 针对 ingress-nginx（与宿主机结果可不一致）"
 
   check_shell_ulimit
   check_proc_limits
   check_systemd_limits
   check_ingress_nginx
+  check_ingress_worker_processes
 
   log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   log_info "检查完成（如有 ✗ 项，请按对应 [解决方案] 调整后重试）"
