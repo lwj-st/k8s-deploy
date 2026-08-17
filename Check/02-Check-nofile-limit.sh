@@ -325,17 +325,21 @@ ingress_nginx_worker_counts() {
     needed="${nproc_val}"
   fi
 
-  actual="$(kubectl -n "${INGRESS_NS}" exec "${pod}" --request-timeout=15s -- sh -c '
-    actual=0
-    for f in /proc/[0-9]*/cmdline; do
-      [ -r "$f" ] || continue
-      cmd=$(tr "\0" " " < "$f" 2>/dev/null) || continue
-      case "$cmd" in
-        "nginx: worker process"*) actual=$((actual + 1)) ;;
-      esac
-    done
-    echo "$actual"
-  ' 2>/dev/null || true)"
+  local worker_count_script
+  # 远端脚本在容器内展开 $f/$cmd/$actual；quoted heredoc 避免 SC2016。
+  read -r -d '' worker_count_script <<'EOF' || true
+actual=0
+for f in /proc/[0-9]*/cmdline; do
+  [ -r "$f" ] || continue
+  cmd=$(tr "\0" " " < "$f" 2>/dev/null) || continue
+  case "$cmd" in
+    "nginx: worker process"*) actual=$((actual + 1)) ;;
+  esac
+done
+echo "$actual"
+EOF
+  actual="$(kubectl -n "${INGRESS_NS}" exec "${pod}" --request-timeout=15s -- \
+    sh -c "${worker_count_script}" 2>/dev/null || true)"
   actual="$(echo "${actual}" | tr -d '[:space:]')"
 
   echo "${needed:-} ${actual:-}"
