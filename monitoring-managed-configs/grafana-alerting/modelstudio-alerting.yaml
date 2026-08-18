@@ -3,6 +3,11 @@ folderTitle: 万象平台告警
 ruleGroup: 万象平台默认告警
 intervalSeconds: 60
 datasourceUid: prometheus
+dashboards:
+  - uid: platform-alert-overview
+    folderUid: modelstudio-alerting
+    folderTitle: 万象平台告警
+    path: ../grafana-dashboards/platform/platform-alert-overview.yaml
 rules:
   - uid: ms-core-replicas-unavailable
     title: 万象平台 - 核心服务副本不可用

@@ -196,11 +196,22 @@ apply_grafana_alerting_local() {
 }
 
 apply_grafana_alerting_job() {
-  local applier_key config_key grafana_secret
+  local applier_key config_key grafana_secret create_configmap_cmd
 
   applier_key="$(basename "${GRAFANA_ALERTING_APPLIER}")"
   config_key="$(basename "${GRAFANA_ALERTING_CONFIG}")"
   grafana_secret="${GRAFANA_SECRET:-kube-prom-stack-grafana}"
+  create_configmap_cmd=(
+    kubectl -n "${MONITORING_NAMESPACE}" create configmap "${GRAFANA_ALERTING_CONFIGMAP}"
+    "--from-file=${applier_key}=${GRAFANA_ALERTING_APPLIER}"
+    "--from-file=${config_key}=${GRAFANA_ALERTING_CONFIG}"
+  )
+
+  if [ -d "${DASHBOARDS_DIR}" ]; then
+    while IFS= read -r dashboard_file; do
+      create_configmap_cmd+=("--from-file=$(basename "${dashboard_file}")=${dashboard_file}")
+    done < <(find "${DASHBOARDS_DIR}" -type f \( -name '*.yaml' -o -name '*.yml' -o -name '*.json' \) | sort)
+  fi
 
   log_info "Apply Grafana alerting by Kubernetes Job: ${GRAFANA_ALERTING_JOB_NAME}"
   log_info "Grafana URL: ${GRAFANA_URL}"
@@ -212,10 +223,7 @@ apply_grafana_alerting_job() {
     return 0
   fi
 
-  kubectl -n "${MONITORING_NAMESPACE}" create configmap "${GRAFANA_ALERTING_CONFIGMAP}" \
-    --from-file="${applier_key}=${GRAFANA_ALERTING_APPLIER}" \
-    --from-file="${config_key}=${GRAFANA_ALERTING_CONFIG}" \
-    --dry-run=client -o yaml | kubectl apply -f -
+  "${create_configmap_cmd[@]}" --dry-run=client -o yaml | kubectl apply -f -
 
   kubectl -n "${MONITORING_NAMESPACE}" delete job "${GRAFANA_ALERTING_JOB_NAME}" --ignore-not-found --wait=true
 

@@ -3,6 +3,7 @@ import argparse
 import base64
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import time
@@ -250,6 +251,89 @@ def upsert_rule(client, rule_body):
         print(f"grafana alert rule/{uid} created")
 
 
+def load_dashboard(path):
+    source = Path(path)
+    if not source.is_file():
+        raise RuntimeError(f"Grafana dashboard file not found: {source}")
+
+    if source.suffix == ".json":
+        with source.open("r", encoding="utf-8") as fh:
+            return json.load(fh)
+
+    manifest = load_yaml(str(source))
+    data = manifest.get("data") or {}
+    json_values = [value for key, value in data.items() if key.endswith(".json")]
+    if len(json_values) != 1:
+        raise RuntimeError(f"Grafana dashboard ConfigMap must contain exactly one *.json data item: {source}")
+    return json.loads(json_values[0])
+
+
+def dashboard_payload(client, uid):
+    return client.request("GET", f"/api/dashboards/uid/{uid}", allow_404=True)
+
+
+def wait_until_dashboard_is_not_provisioned(client, uid):
+    for _ in range(45):
+        payload = dashboard_payload(client, uid)
+        if not payload:
+            return None
+        if not (payload.get("meta") or {}).get("provisioned"):
+            return payload
+        time.sleep(1)
+    return dashboard_payload(client, uid)
+
+
+def upsert_dashboard(client, dashboard_config, config_dir):
+    uid = dashboard_config["uid"]
+    folder_uid = dashboard_config["folderUid"]
+    folder_title = dashboard_config.get("folderTitle", folder_uid)
+    dashboard_path = dashboard_config.get("path")
+    if not dashboard_path:
+        print(f"grafana dashboard/{uid} has no path, skip")
+        return
+
+    ensure_folder(client, folder_uid, folder_title)
+
+    source = Path(dashboard_path)
+    if not source.is_absolute():
+        source = config_dir / source
+    if not source.is_file():
+        mounted_source = config_dir / Path(dashboard_path).name
+        if mounted_source.is_file():
+            source = mounted_source
+    dashboard = load_dashboard(source)
+    dashboard["uid"] = uid
+    dashboard["id"] = None
+
+    payload = wait_until_dashboard_is_not_provisioned(client, uid)
+    meta = (payload or {}).get("meta") or {}
+    if meta.get("provisioned"):
+        raise RuntimeError(
+            f"Grafana dashboard/{uid} is still sidecar-provisioned. "
+            "Remove grafana_dashboard label from its ConfigMap and retry after Grafana reloads."
+        )
+
+    client.request(
+        "POST",
+        "/api/dashboards/db",
+        {
+            "dashboard": dashboard,
+            "folderUid": folder_uid,
+            "overwrite": True,
+            "message": "apply managed alerting dashboard",
+        },
+    )
+    print(f"grafana dashboard/{uid} configured in folder/{folder_uid}")
+
+
+def apply_config(client, config, config_dir):
+    ensure_folder(client, config["folderUid"], config.get("folderTitle", config["folderUid"]))
+    for rule in config.get("rules") or []:
+        upsert_rule(client, build_rule(config, rule))
+    for dashboard in config.get("dashboards") or []:
+        upsert_dashboard(client, dashboard, config_dir)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
@@ -262,9 +346,13 @@ def main():
     args = parser.parse_args()
 
     config = load_yaml(args.config)
+    config_dir = Path(args.config).resolve().parent
     rules = config.get("rules") or []
     if args.dry_run:
-        print(json.dumps([build_rule(config, rule) for rule in rules], ensure_ascii=False, indent=2))
+        print(json.dumps({
+            "rules": [build_rule(config, rule) for rule in rules],
+            "dashboards": config.get("dashboards") or [],
+        }, ensure_ascii=False, indent=2))
         return
 
     username = os.getenv("GRAFANA_USER") or secret_value(args.namespace, args.grafana_secret, "admin-user")
@@ -273,18 +361,14 @@ def main():
     if args.grafana_url:
         client = GrafanaClient(args.grafana_url, username, password)
         wait_for_grafana(client)
-        ensure_folder(client, config["folderUid"], config.get("folderTitle", config["folderUid"]))
-        for rule in rules:
-            upsert_rule(client, build_rule(config, rule))
+        apply_config(client, config, config_dir)
         return
 
     proc = start_port_forward(args.namespace, args.grafana_resource, args.local_port, 3000)
     try:
         client = GrafanaClient(f"http://127.0.0.1:{args.local_port}", username, password)
         wait_for_grafana(client)
-        ensure_folder(client, config["folderUid"], config.get("folderTitle", config["folderUid"]))
-        for rule in rules:
-            upsert_rule(client, build_rule(config, rule))
+        apply_config(client, config, config_dir)
     finally:
         proc.terminate()
         try:
