@@ -422,7 +422,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 6
+            "y": 0
           },
           "id": 7,
           "options": {
@@ -494,7 +494,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 6
+            "y": 0
           },
           "id": 8,
           "options": {
@@ -534,146 +534,12 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 14
+            "y": 8
           },
           "id": 9,
           "panels": [],
           "title": "API 网关",
           "type": "row"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 5
-                  }
-                ]
-              },
-              "unit": "percent"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 6,
-            "x": 0,
-            "y": 15
-          },
-          "id": 10,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "12.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "max((100 * sum by (exported_service, route) (rate(kong_http_requests_total{job=\"kong-service-kong-metrics\", endpoint=\"status\", code=~\"5..\"}[5m])) / clamp_min(sum by (exported_service, route) (rate(kong_http_requests_total{job=\"kong-service-kong-metrics\", endpoint=\"status\"}[5m])), 0.001)) and sum by (exported_service, route) (increase(kong_http_requests_total{job=\"kong-service-kong-metrics\", endpoint=\"status\"}[2m])) >= 20) or vector(0)",
-              "instant": false,
-              "legendFormat": "最高 5xx 占比",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "API 5xx 最高占比",
-          "type": "stat"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 2000
-                  }
-                ]
-              },
-              "unit": "ms"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 5,
-            "w": 6,
-            "x": 6,
-            "y": 15
-          },
-          "id": 11,
-          "options": {
-            "colorMode": "background",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "12.2.0",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "max((histogram_quantile(0.99, sum by (le, exported_service, route) (rate(kong_request_latency_ms_bucket{job=\"kong-service-kong-metrics\", endpoint=\"status\"}[5m])))) and sum by (exported_service, route) (increase(kong_http_requests_total{job=\"kong-service-kong-metrics\", endpoint=\"status\"}[5m])) >= 20) or vector(0)",
-              "instant": false,
-              "legendFormat": "最高 P99",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "API P99 最高响应时间",
-          "type": "stat"
         },
         {
           "datasource": {
@@ -739,7 +605,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 20
+            "y": 14
           },
           "id": 12,
           "options": {
@@ -839,7 +705,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 20
+            "y": 14
           },
           "id": 13,
           "options": {
@@ -881,7 +747,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 28
+            "y": 22
           },
           "id": 14,
           "panels": [],
@@ -920,7 +786,7 @@ data:
             "h": 5,
             "w": 6,
             "x": 0,
-            "y": 29
+            "y": 23
           },
           "id": 15,
           "options": {
@@ -987,7 +853,7 @@ data:
             "h": 5,
             "w": 6,
             "x": 6,
-            "y": 29
+            "y": 23
           },
           "id": 16,
           "options": {
@@ -1086,7 +952,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 34
+            "y": 28
           },
           "id": 17,
           "options": {
@@ -1160,7 +1026,7 @@ data:
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 34
+            "y": 28
           },
           "id": 18,
           "options": {
