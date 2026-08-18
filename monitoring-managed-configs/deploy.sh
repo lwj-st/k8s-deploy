@@ -27,6 +27,13 @@ GRAFANA_ALERTING_CONFIGMAP="${GRAFANA_ALERTING_CONFIGMAP:-grafana-alerting-appli
 GRAFANA_ALERTING_JOB_IMAGE="${GRAFANA_ALERTING_JOB_IMAGE:-grafana-alerting-applier:latest}"
 GRAFANA_URL="${GRAFANA_URL:-http://kube-prom-stack-grafana.${MONITORING_NAMESPACE}.svc:80}"
 GRAFANA_SMTP_APPLIER="${SCRIPT_DIR}/scripts/apply_grafana_smtp.sh"
+GRAFANA_API_DASHBOARD_CONFIGMAPS=(
+  modelengine-grafana-dashboard-runtime
+  modelengine-grafana-dashboard-worker
+  grafana-dashboard-kong-api-traffic-overview
+  grafana-dashboard-modelstudio-gpustack-overview
+  grafana-dashboard-platform-alert-overview
+)
 
 log_info() {
   printf '[INFO] %s\n' "$*"
@@ -118,6 +125,25 @@ apply_dashboards() {
 
   log_info "Apply Grafana dashboards: ${DASHBOARDS_DIR}"
   kubectl_apply "${DASHBOARDS_DIR}"
+}
+
+unlabel_api_managed_dashboards() {
+  if [ "${APPLY_DASHBOARDS}" != "1" ] || [ "${APPLY_GRAFANA_ALERTING}" != "1" ]; then
+    return 0
+  fi
+
+  local configmap
+  for configmap in "${GRAFANA_API_DASHBOARD_CONFIGMAPS[@]}"; do
+    if ! kubectl -n "${MONITORING_NAMESPACE}" get configmap "${configmap}" >/dev/null 2>&1; then
+      continue
+    fi
+    if [ "${DRY_RUN}" = "1" ]; then
+      log_info "Dry run: would remove grafana_dashboard label from ConfigMap ${MONITORING_NAMESPACE}/${configmap}"
+    else
+      log_info "Remove sidecar dashboard label from ConfigMap ${MONITORING_NAMESPACE}/${configmap}"
+      kubectl -n "${MONITORING_NAMESPACE}" label configmap "${configmap}" grafana_dashboard- --overwrite >/dev/null
+    fi
+  done
 }
 
 apply_datasources() {
@@ -312,6 +338,7 @@ main() {
   apply_kong_metrics_labels
   apply_datasources
   apply_dashboards
+  unlabel_api_managed_dashboards
   apply_grafana_smtp
   apply_rules
   apply_grafana_alerting

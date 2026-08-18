@@ -4,6 +4,22 @@ ruleGroup: 万象平台默认告警
 intervalSeconds: 60
 datasourceUid: prometheus
 dashboards:
+  - uid: b281712d-8bff-41ef-9f3f-71ad43c05e9
+    folderUid: modelstudio-alerting
+    folderTitle: 万象平台告警
+    path: ../grafana-dashboards/modelengine/modelengine-grafana-dashboard-runtime.yaml
+  - uid: f33ade9f-821d-4e96-a7f2-eb16c8b9c447
+    folderUid: modelstudio-alerting
+    folderTitle: 万象平台告警
+    path: ../grafana-dashboards/modelengine/modelengine-grafana-dashboard-worker.yaml
+  - uid: kong-api-traffic-overview
+    folderUid: modelstudio-alerting
+    folderTitle: 万象平台告警
+    path: ../grafana-dashboards/platform/kong-api-traffic-overview.yaml
+  - uid: modelstudio-gpustack-overview
+    folderUid: modelstudio-alerting
+    folderTitle: 万象平台告警
+    path: ../grafana-dashboards/platform/modelstudio-gpustack-overview.yaml
   - uid: platform-alert-overview
     folderUid: modelstudio-alerting
     folderTitle: 万象平台告警

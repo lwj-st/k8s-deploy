@@ -66,6 +66,5 @@ metadata:
     grafana_folder: 万象平台告警
   labels:
     app: modelengine-monitoring
-    grafana_dashboard: "1"
   name: modelengine-grafana-dashboard-runtime
   namespace: monitoring
