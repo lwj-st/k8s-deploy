@@ -300,7 +300,7 @@ for src_key, (cm_name, out_key) in key_map.items():
             "name": cm_name,
             "namespace": ns_monitoring,
             "labels": {"app": "modelengine-monitoring", "grafana_dashboard": "1"},
-            "annotations": {"grafana_folder": "ModelEngine"},
+            "annotations": {"grafana_folder": "万象平台告警"},
         },
         "data": {out_key: json.dumps(dash, ensure_ascii=False, separators=(",", ":"))},
     })
