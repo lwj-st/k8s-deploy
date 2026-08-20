@@ -261,7 +261,7 @@ metadata:
   namespace: ${MONITORING_NAMESPACE}
   labels:
     app.kubernetes.io/name: grafana-alerting-applier
-    app.kubernetes.io/managed-by: monitoring-managed-configs
+    app.kubernetes.io/managed-by: monitoring-managed
 spec:
   backoffLimit: 1
   ttlSecondsAfterFinished: 3600

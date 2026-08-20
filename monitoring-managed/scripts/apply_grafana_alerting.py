@@ -224,7 +224,7 @@ def build_rule(config, rule):
         },
         "labels": {
             "severity": rule.get("severity", "warning"),
-            "managed_by": "monitoring-managed-configs",
+            "managed_by": "monitoring-managed",
         },
         "isPaused": bool(rule.get("isPaused", False)),
     }

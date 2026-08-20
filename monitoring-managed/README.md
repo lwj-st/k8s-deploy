@@ -7,8 +7,8 @@
 Grafana 仪表盘按用途分组：
 
 ```bash
-monitoring-managed-configs/grafana-dashboards/platform
-monitoring-managed-configs/grafana-dashboards/modelengine
+monitoring-managed/grafana-dashboards/platform
+monitoring-managed/grafana-dashboards/modelengine
 ```
 
 - `platform`：平台基础看板。放 Kubernetes / 平台 / 命名空间 / Pod / Kong API 流量类看板，使用 kube-prometheus 默认 Prometheus 数据源，不依赖 ModelEngine 专用数据源。
@@ -17,7 +17,7 @@ monitoring-managed-configs/grafana-dashboards/modelengine
 Grafana 数据源配置放在：
 
 ```bash
-monitoring-managed-configs/grafana-datasources
+monitoring-managed/grafana-datasources
 ```
 
 ## 常用命令
@@ -25,25 +25,25 @@ monitoring-managed-configs/grafana-datasources
 只应用 ModelEngine 数据源和仪表盘：
 
 ```bash
-bash monitoring-managed-configs/scripts/apply_modelengine_grafana.sh apply
+bash monitoring-managed/scripts/apply_modelengine_grafana.sh apply
 ```
 
 只应用仪表盘：
 
 ```bash
-kubectl apply --recursive -f monitoring-managed-configs/grafana-dashboards
+kubectl apply --recursive -f monitoring-managed/grafana-dashboards
 ```
 
 应用旧版 PrometheusRule 告警规则：
 
 ```bash
-APPLY_RULES=1 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed-configs/deploy.sh
+APPLY_RULES=1 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed/deploy.sh
 ```
 
 一键部署：
 
 ```bash
-bash monitoring-managed-configs/deploy.sh
+bash monitoring-managed/deploy.sh
 ```
 
 一键部署时默认会尝试自动给 Kong metrics 相关资源打 label，便于 kube-prometheus-stack 发现采集目标：
@@ -58,25 +58,25 @@ kubectl -n platform label svc kong-service-kong-metrics enable-metrics=true --ov
 Dry run：
 
 ```bash
-DRY_RUN=1 bash monitoring-managed-configs/deploy.sh
+DRY_RUN=1 bash monitoring-managed/deploy.sh
 ```
 
 只应用仪表盘和数据源，不应用告警：
 
 ```bash
-APPLY_RULES=0 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed-configs/deploy.sh
+APPLY_RULES=0 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed/deploy.sh
 ```
 
 只应用旧版 PrometheusRule 告警规则：
 
 ```bash
-APPLY_DASHBOARDS=0 APPLY_RULES=1 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed-configs/deploy.sh
+APPLY_DASHBOARDS=0 APPLY_RULES=1 APPLY_GRAFANA_ALERTING=0 bash monitoring-managed/deploy.sh
 ```
 
 只应用 Grafana Alerting 告警：
 
 ```bash
-APPLY_DASHBOARDS=0 APPLY_RULES=0 bash monitoring-managed-configs/deploy.sh
+APPLY_DASHBOARDS=0 APPLY_RULES=0 bash monitoring-managed/deploy.sh
 ```
 
 ## 使用 Job 导入 Grafana 告警
@@ -86,14 +86,14 @@ APPLY_DASHBOARDS=0 APPLY_RULES=0 bash monitoring-managed-configs/deploy.sh
 ```bash
 APPLY_GRAFANA_ALERTING_MODE=job \
 GRAFANA_ALERTING_JOB_IMAGE=your-registry/grafana-alerting-applier:python3-pyyaml \
-bash monitoring-managed-configs/deploy.sh
+bash monitoring-managed/deploy.sh
 ```
 
 构建 Job 镜像：
 
 ```bash
 docker build -t your-registry/grafana-alerting-applier:python3-pyyaml \
-  monitoring-managed-configs/images/grafana-alerting-applier
+  monitoring-managed/images/grafana-alerting-applier
 ```
 
 Job 镜像只包含运行环境，不包含告警配置。部署脚本会把 Python 脚本和告警 YAML 创建成 ConfigMap，再挂载到 Job 中执行。
@@ -107,7 +107,7 @@ GRAFANA_SMTP_HOST=smtp.example.com:465 \
 GRAFANA_SMTP_USER=grafana@example.com \
 GRAFANA_SMTP_PASSWORD='change-me' \
 GRAFANA_SMTP_FROM_ADDRESS=grafana@example.com \
-bash monitoring-managed-configs/deploy.sh
+bash monitoring-managed/deploy.sh
 ```
 
 脚本会把 SMTP 配置写入 Kubernetes Secret，并注入 Grafana Deployment 的 `GF_SMTP_*` 环境变量，然后重启 Grafana 使配置生效。
