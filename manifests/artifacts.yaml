@@ -612,21 +612,21 @@ artifacts:
 
   - module: vxpu
     type: tar
-    name: vxpu.image.device-plugin.v1.0.0
-    path: /data/download/vxpu/vxpu-device-plugin-v1.0.0.tar
-    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/vxpu-device-plugin-v1.0.0.tar"
-    base_url: "docker.io/projecthami/vxpu-device-plugin:v1.0.0"
-    md5: "c9f5e324f1e2775713657d4064893bcb"
-    description: "Kunlunxin vxpu-device-plugin image tar; place locally (tag projecthami/vxpu-device-plugin:v1.0.0)"
+    name: vxpu.image.device-plugin.v5.0.2.3
+    path: /data/download/vxpu/xpu-device-plugin-v5.0.2.3.tar
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/xpu_device_plugin_dockerimg.tar"
+    base_url: "iregistry.baidu-int.com/kunlunxin/xpu-device-plugin:v5.0.2-alpha.3"
+    md5: "8b2d39fdb3a03c688402fa80bde3bcae"
+    description: "Official Kunlunxin xpu-device-plugin image tar from xpu_k8s_device_plugin_5.0.2.3 (file: xpu_device_plugin_dockerimg.tar)"
 
   - module: vxpu
     type: file
-    name: vxpu.manifest.device-plugin.v1.0.0
-    path: /data/download/vxpu/vxpu-device-plugin.yaml
-    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/vxpu-device-plugin.yaml"
-    base_url: "https://project-hami.io/docs/userguide/kunlunxin-device/enable-kunlunxin-vxpu"
-    md5: "58be518304cf5ec19814534976a2bfcf"
-    description: "Kunlunxin vxpu-device-plugin DaemonSet manifest"
+    name: vxpu.manifest.device-plugin.v5.0.2.3
+    path: /data/download/vxpu/xpu-device-plugin-v5.0.2.3.yaml
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/xpu-device-plugin-v5.0.2.3.yaml"
+    base_url: "https://klx-sdk-release-public.su.bcebos.com/xre/component/device-plugin/5.0.2.3/xpu_k8s_device_plugin_5.0.2.3.tar.gz"
+    md5: "3d164cfbd9fa6f12bffb2c0f43d77129"
+    description: "Official Kunlunxin xpu-device-plugin DaemonSet+RBAC (xpu-device-plugin-v5.0.2.3.yaml)"
 
   - module: os
     type: dir
