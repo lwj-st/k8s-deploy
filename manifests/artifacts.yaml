@@ -622,11 +622,11 @@ artifacts:
   - module: vxpu
     type: file
     name: vxpu.manifest.device-plugin.v5.0.2.3
-    path: /data/download/vxpu/xpu-device-plugin.yaml
-    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/xpu-device-plugin.yaml"
+    path: /data/download/vxpu/xpu-device-plugin-v5.0.2.3.yaml
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/vxpu/xpu-device-plugin-v5.0.2.3.yaml"
     base_url: "https://klx-sdk-release-public.su.bcebos.com/xre/component/device-plugin/5.0.2.3/xpu_k8s_device_plugin_5.0.2.3.tar.gz"
     md5: "3d164cfbd9fa6f12bffb2c0f43d77129"
-    description: "Official Kunlunxin xpu-device-plugin DaemonSet+RBAC (k8s-deploy/config/xpu-device-plugin-v5.0.2.3.yaml)"
+    description: "Official Kunlunxin xpu-device-plugin DaemonSet+RBAC (xpu-device-plugin-v5.0.2.3.yaml)"
 
   - module: os
     type: dir

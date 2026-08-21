@@ -5,6 +5,7 @@
 ## Usage:
 ##   bash 15-Deploy-vxpu.sh [install|uninstall|status]
 ## Artifacts:
+##   - vxpu.manifest.device-plugin.v5.0.2.3
 ##   - vxpu.image.device-plugin.v5.0.2.3
 ## Images:
 ##   - vxpu.image.device-plugin.v5.0.2.3
@@ -15,11 +16,11 @@
 ##   - VXPU_NODE_NAME: 可选，覆盖当前节点名
 ## Notes:
 ##   - 复用 k8s-deploy 的 framework.sh 日志与错误处理
-##   - 默认 apply config/xpu-device-plugin-v5.0.2.3.yaml（官方 rbac+DaemonSet）
+##   - 默认从 manifests/artifacts.yaml 读取 YAML（xpu-device-plugin-v5.0.2.3.yaml）
 ##   - 镜像 tar：download/vxpu/xpu-device-plugin-v5.0.2.3.tar
 ##     tag: iregistry.baidu-int.com/kunlunxin/xpu-device-plugin:v5.0.2-alpha.3
-##   - 资源名默认 kunlunxin.com/xpu（社区 HAMi 版曾用 kunlunxin.com/vxpu）
-##   - install 会先卸掉旧的 vxpu-device-plugin（HAMi）
+##   - 资源名默认 kunlunxin.com/xpu
+##   - 不卸载社区版 HAMi vxpu-device-plugin
 ##   - 不负责安装驱动 / XRE / xpu-container-toolkit（xpu-smi、/dev/xpu* 需提前就绪）
 ##   - DaemonSet 使用 nodeSelector: xpu=on；未打标签则 Desired=0
 ################################################################################
@@ -27,9 +28,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
-
-K8S_DEPLOY_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-VXPU_DEFAULT_YAML="${K8S_DEPLOY_ROOT}/config/xpu-device-plugin-v5.0.2.3.yaml"
 
 VXPU_PLUGIN_YAML="${VXPU_PLUGIN_YAML:-}"
 VXPU_ACTION="${VXPU_ACTION:-install}"          # install|uninstall|status
@@ -41,7 +39,7 @@ resolve_vxpu_manifest() {
     printf '%s\n' "${VXPU_PLUGIN_YAML}"
     return 0
   fi
-  printf '%s\n' "${VXPU_DEFAULT_YAML}"
+  artifact_get_path_by_name "vxpu.manifest.device-plugin.v5.0.2.3"
 }
 
 resolve_node_name() {
@@ -89,14 +87,6 @@ label_current_node_if_needed() {
   log_command "kubectl label node \"${node}\" xpu=on --overwrite"
 }
 
-remove_legacy_hami_plugin() {
-  log_info "卸载社区版 HAMi vxpu-device-plugin（若存在）..."
-  log_command "kubectl delete ds -n kube-system vxpu-device-plugin --ignore-not-found=true"
-  log_command "kubectl delete sa -n kube-system vxpu-device-plugin --ignore-not-found=true"
-  log_command "kubectl delete clusterrolebinding vxpu-device-plugin --ignore-not-found=true"
-  log_command "kubectl delete clusterrole vxpu-device-plugin --ignore-not-found=true"
-}
-
 install_vxpu_device_plugin() {
   local yaml=""
   yaml="$(resolve_vxpu_manifest)"
@@ -105,7 +95,6 @@ install_vxpu_device_plugin() {
   log_info "导入昆仑芯官方 xpu-device-plugin 镜像..."
   import_image_artifact "vxpu.image.device-plugin.v5.0.2.3"
 
-  remove_legacy_hami_plugin
   label_current_node_if_needed
   log_info "部署昆仑芯官方 xpu-device-plugin（yaml=${yaml}）..."
   log_command "kubectl apply -f \"${yaml}\""
@@ -118,7 +107,6 @@ uninstall_vxpu_device_plugin() {
 
   log_info "卸载昆仑芯官方 xpu-device-plugin（yaml=${yaml}）..."
   log_command "kubectl delete -f \"${yaml}\" --ignore-not-found=true"
-  remove_legacy_hami_plugin
 }
 
 status_vxpu_device_plugin() {
@@ -150,7 +138,7 @@ main() {
     [ -f "${VXPU_PLUGIN_YAML}" ] || die "VXPU_PLUGIN_YAML 不存在: ${VXPU_PLUGIN_YAML}"
     log_info "VXPU_PLUGIN_YAML=${VXPU_PLUGIN_YAML}"
   else
-    log_info "vxpu 清单路径: ${VXPU_DEFAULT_YAML}"
+    log_info "vxpu 清单路径来源: manifests/artifacts.yaml"
   fi
   log_info "VXPU_ACTION=${VXPU_ACTION}"
 
