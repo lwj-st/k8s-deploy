@@ -33,7 +33,7 @@
 - `Script/24-Deploy-minio.sh`：部署 MinIO
 - `Script/25-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
 - `Script/26-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
-- `Script/27-Deploy-monitoring.sh`：部署 Monitoring（NVIDIA DCGM / 昆仑芯 DCXM / Ascend / Iluvatar）
+- `Script/27-Deploy-monitoring.sh`：部署 Monitoring（NVIDIA DCGM / 昆仑芯 DCXM / Ascend / Iluvatar / Hygon DCU）
 - `Script/30-Deploy-rsyslog.sh`：配置 rsyslog 集中日志；日志服务器和每个 K8s 节点都执行同一个脚本
 - `Script/89-Generate-tls.sh`：生成 TLS 证书
 - `Script/90-Shovel-k8s.sh`：清理集群（kubeadm reset + 只清 KUBE/CALI 相关链）
@@ -156,9 +156,29 @@ sudo bash 24-Deploy-minio.sh              # 可选
 sudo bash 25-Deploy-juicefs-csi-driver.sh # 可选
 sudo bash 26-Deploy-dragonfly-operator.sh # 可选
 sudo bash 27-Deploy-monitoring.sh         # 可选
-# 可强制类型：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar
+# 可强制类型：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar|dcu
 ...
 ```
+
+### DCU Exporter 离线镜像
+
+上游目前只提供源码和 Dockerfile，没有可直接下载的镜像。请在已安装 Go 1.21+ 和 Docker 的可联网 x86_64 构建机上提前构建：
+
+```bash
+git clone https://github.com/Project-HAMi/dcu-exporter.git
+cd dcu-exporter
+bash build.sh
+docker save -o dcu-exporter-v2.0.0.240718.tar dcu-exporter:v2.0.0.240718
+```
+
+将生成的 tar 复制到执行部署的节点和每个 DCU 节点，然后放入清单声明的路径：
+
+```bash
+sudo install -D -m 0644 dcu-exporter-v2.0.0.240718.tar \
+  /data/download/dcu/dcu-exporter-v2.0.0.240718.tar
+```
+
+每个 DCU 节点放置后执行 `12-Load-images.sh`。DCU 节点必须同时存在 `/dev/kfd`、`/dev/mkfd` 和 `/dev/dri`；DaemonSet 会在实际调度节点校验这些路径。监控脚本不会删除已有的 NVIDIA DCGM Exporter，便于混合加速卡集群使用。
 
 集中日志审计（二级等保，按需执行）：
 

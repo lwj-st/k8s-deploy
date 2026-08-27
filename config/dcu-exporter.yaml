@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dcu-exporter
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dcu-exporter
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dcu-exporter
+subjects:
+  - kind: ServiceAccount
+    name: dcu-exporter
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dcu-exporter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dcu-exporter
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: dcu-exporter
+    app.kubernetes.io/version: "v2.0.0.240718"
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcu-exporter
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "16080"
+        prometheus.io/path: "/metrics"
+      labels:
+        app.kubernetes.io/name: dcu-exporter
+        app.kubernetes.io/version: "v2.0.0.240718"
+    spec:
+      hostNetwork: true
+      serviceAccountName: dcu-exporter
+      nodeSelector:
+        hygon.com/dcu: "true"
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: dcu-exporter
+          image: dcu-exporter:v2.0.0.240718
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            runAsNonRoot: false
+            runAsUser: 0
+          env:
+            - name: DCU_EXPORTER_LISTEN
+              value: "16080"
+          ports:
+            - name: metrics
+              containerPort: 16080
+              hostPort: 16080
+          volumeMounts:
+            - name: kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: kfd
+              mountPath: /dev/kfd
+              readOnly: true
+            - name: mkfd
+              mountPath: /dev/mkfd
+              readOnly: true
+            - name: dri
+              mountPath: /dev/dri
+              readOnly: true
+            - name: hostname
+              mountPath: /etc/hostname
+              readOnly: true
+            - name: vdev
+              mountPath: /etc/vdev
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+      volumes:
+        - name: kubelet
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: kfd
+          hostPath:
+            path: /dev/kfd
+            type: CharDevice
+        - name: mkfd
+          hostPath:
+            path: /dev/mkfd
+            type: CharDevice
+        - name: dri
+          hostPath:
+            path: /dev/dri
+            type: Directory
+        - name: hostname
+          hostPath:
+            path: /etc/hostname
+            type: File
+        - name: vdev
+          hostPath:
+            path: /etc/vdev
+            type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcu-exporter
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: dcu-exporter
+    app.kubernetes.io/version: "v2.0.0.240718"
+spec:
+  selector:
+    app.kubernetes.io/name: dcu-exporter
+  ports:
+    - name: metrics
+      port: 16080
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: dcu-exporter
+  namespace: monitoring
+  labels:
+    release: kube-prom-stack
+    app.kubernetes.io/name: dcu-exporter
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-system
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dcu-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

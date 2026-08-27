@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 ################################################################################
 ## Filename:    27-Deploy-monitoring.sh
-## Description: 部署 monitoring（自动识别 vxpu/nvidia/ascend/iluvatar）
+## Description: 部署 monitoring（自动识别 vxpu/nvidia/ascend/iluvatar/dcu）
 ## Usage:
 ##   bash 27-Deploy-monitoring.sh
 ## Artifacts:
 ##   - monitor.chart.kube-prometheus-stack.v72.7.0
 ##   - monitor.manifest.dcgm-exporter
 ##   - monitor.image.dcxm-exporter.v1.0.0.1
+##   - dcu.image.exporter.v2.0.0.240718
 ##   - iluvatar.image.ix-exporter.latest-x86_64
 ## Images:
 ##   - monitor.image.kube-state-metrics.v2.15.0
@@ -21,9 +22,10 @@
 ##   - monitor.image.prometheus.v3.4.0
 ##   - monitor.image.dcgm-exporter.v4.5.2-4.8.1-distroless
 ##   - monitor.image.dcxm-exporter.v1.0.0.1
+##   - dcu.image.exporter.v2.0.0.240718
 ##   - iluvatar.image.ix-exporter.latest-x86_64
 ## Env:
-##   - MONITOR_ACCELERATOR: 可选，强制 nvidia|ascend|iluvatar|vxpu（覆盖自动检测）
+##   - MONITOR_ACCELERATOR: 可选，强制 nvidia|ascend|iluvatar|vxpu|dcu（覆盖自动检测）
 ##   - GRAFANA_INGRESS_HOST: Grafana Ingress 域名，默认 grafana.sensecorex.com
 ##   - GRAFANA_DEFAULT_LANGUAGE: Grafana 默认语言，默认 zh-Hans（中文简体）
 ##   - GRAFANA_DEFAULT_THEME: Grafana 默认主题，默认 light（浅色）
@@ -33,7 +35,8 @@
 ##   - GRAFANA_PROMETHEUS_DATASOURCE_UID: Grafana Prometheus 数据源 uid，默认 prometheus
 ## Notes:
 ##   - kube-prometheus-stack chart、dcgm-exporter manifest、镜像 tar 来自 manifests/artifacts.yaml
-##   - Ascend / Iluvatar / 昆仑芯 exporter 清单来自仓库 config
+##   - Ascend / Iluvatar / 昆仑芯 / DCU exporter 清单来自仓库 config
+##   - DCU Exporter 上游未发布可直接下载的镜像，需按 README 提前准备离线镜像 tar
 ##   - 昆仑芯节点上 nvidia-smi 可能是 XPU 兼容命令，检测优先认 xpu-smi / /dev/xpu*
 ##   - 未识别到加速卡时不会默认部署；可用 MONITOR_ACCELERATOR 强制指定
 ################################################################################
@@ -50,6 +53,8 @@ ASCEND_YAML=""
 ILUVATAR_YAML=""
 VXPU_YAML=""
 VXPU_DASHBOARD_JSON=""
+DCU_YAML=""
+DCU_DASHBOARD_JSON=""
 INGRESS_TMPL=""
 SM_YAML=""
 HELM_VALUES=""
@@ -80,6 +85,8 @@ init_env() {
   ILUVATAR_YAML="${K8S_DEPLOY_ROOT}/config/ix-exporter.yaml"
   VXPU_YAML="${K8S_DEPLOY_ROOT}/config/dcxm-exporter.yaml"
   VXPU_DASHBOARD_JSON="${K8S_DEPLOY_ROOT}/config/dcxm-exporter-dashboard.json"
+  DCU_YAML="${K8S_DEPLOY_ROOT}/config/dcu-exporter.yaml"
+  DCU_DASHBOARD_JSON="${K8S_DEPLOY_ROOT}/config/dcu-exporter-dashboard.json"
   INGRESS_TMPL="${K8S_DEPLOY_ROOT}/config/grafana-ingress.yaml"
   SM_YAML="${K8S_DEPLOY_ROOT}/config/service-monitor.yaml"
   HELM_VALUES="${K8S_DEPLOY_ROOT}/config/kube-prometheus-stack-values.yaml"
@@ -94,6 +101,8 @@ init_env() {
   [ -f "${NVIDIA_DASHBOARD_JSON}" ] || log_warn "未找到 ${NVIDIA_DASHBOARD_JSON}，nvidia Grafana 面板将跳过"
   [ -f "${ASCEND_DASHBOARD_JSON}" ] || log_warn "未找到 ${ASCEND_DASHBOARD_JSON}，ascend Grafana 面板将跳过"
   [ -f "${ILUVATAR_DASHBOARD_JSON}" ] || log_warn "未找到 ${ILUVATAR_DASHBOARD_JSON}，iluvatar Grafana 面板将跳过"
+  [ -f "${DCU_YAML}" ] || log_warn "未找到 ${DCU_YAML}，DCU 分支将不可用"
+  [ -f "${DCU_DASHBOARD_JSON}" ] || log_warn "未找到 ${DCU_DASHBOARD_JSON}，DCU Grafana 仪表盘将不可用"
   [ -f "${INGRESS_TMPL}" ] || die "缺少配置: ${INGRESS_TMPL}"
   [ -f "${SM_YAML}" ] || die "缺少配置: ${SM_YAML}"
   [ -f "${HELM_VALUES}" ] || die "缺少配置: ${HELM_VALUES}"
@@ -113,13 +122,13 @@ init_env() {
 detect_accelerator() {
   if [ -n "${MONITOR_ACCELERATOR:-}" ]; then
     case "${MONITOR_ACCELERATOR}" in
-      nvidia|ascend|iluvatar|vxpu)
+      nvidia|ascend|iluvatar|vxpu|dcu)
         RUNTIME_ACCELERATOR="${MONITOR_ACCELERATOR}"
         log_info "使用环境变量强制加速卡类型: ${RUNTIME_ACCELERATOR}"
         return 0
         ;;
       *)
-        die "MONITOR_ACCELERATOR 仅支持 nvidia|ascend|iluvatar|vxpu，当前=${MONITOR_ACCELERATOR}"
+        die "MONITOR_ACCELERATOR 仅支持 nvidia|ascend|iluvatar|vxpu|dcu，当前=${MONITOR_ACCELERATOR}"
         ;;
     esac
   fi
@@ -131,10 +140,12 @@ detect_accelerator() {
     RUNTIME_ACCELERATOR="nvidia"
   elif have ixsmi || [ -d /sys/bus/pci/drivers/iluvatar ]; then
     RUNTIME_ACCELERATOR="iluvatar"
+  elif have hy-smi || have rocm-smi || [ -e /dev/kfd ] || [ -e /dev/mkfd ]; then
+    RUNTIME_ACCELERATOR="dcu"
   elif have npu-smi; then
     RUNTIME_ACCELERATOR="ascend"
   else
-    die "未自动识别到加速卡类型；如需继续，请显式指定：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar bash 27-Deploy-monitoring.sh"
+    die "未自动识别到加速卡类型；如需继续，请显式指定：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar|dcu bash 27-Deploy-monitoring.sh"
   fi
   log_info "检测到加速卡类型: ${RUNTIME_ACCELERATOR}"
 }
@@ -161,6 +172,12 @@ import_monitor_images() {
       ;;
     vxpu)
       import_image_artifact "monitor.image.dcxm-exporter.v1.0.0.1"
+      ;;
+    dcu)
+      local dcu_image_tar
+      dcu_image_tar="$(artifact_get_path_by_name "dcu.image.exporter.v2.0.0.240718")"
+      [ -f "${dcu_image_tar}" ] || die "缺少 DCU Exporter 离线镜像: ${dcu_image_tar}；请按 README 的「DCU Exporter 离线镜像」说明提前构建并放置"
+      import_image_artifact "dcu.image.exporter.v2.0.0.240718"
       ;;
     iluvatar)
       import_image_artifact "iluvatar.image.ix-exporter.latest-x86_64"
@@ -439,6 +456,12 @@ apply_monitoring_addons() {
       log_command "kubectl -n \"${NS}\" delete daemonset,svc,servicemonitor dcgm-exporter --ignore-not-found=true"
       log_command "kubectl apply -n \"${NS}\" -f \"${VXPU_YAML}\""
       apply_grafana_dashboard_json "${VXPU_DASHBOARD_JSON}" "dcxm-exporter-dashboard"
+      ;;
+    dcu)
+      [ -f "${DCU_YAML}" ] || die "DCU 分支需要配置文件: ${DCU_YAML}"
+      log_info "检测到 DCU，部署 dcu-exporter: ${DCU_YAML}"
+      log_command "kubectl apply -f \"${DCU_YAML}\""
+      apply_grafana_dashboard_json "${DCU_DASHBOARD_JSON}" "dcu-exporter-dashboard"
       ;;
     ascend)
       [ -f "${ASCEND_YAML}" ] || die "Ascend 分支需要配置文件: ${ASCEND_YAML}"
