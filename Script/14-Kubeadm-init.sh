@@ -24,6 +24,19 @@ source "${SCRIPT_DIR}/framework.sh"
 init_framework
 require_root
 
+ensure_kubernetes_sysctl() {
+  local ip_forward
+  ip_forward="$(sysctl -n net.ipv4.ip_forward 2>/dev/null || true)"
+  if [ "${ip_forward}" != "1" ]; then
+    log_warn "检测到 net.ipv4.ip_forward=${ip_forward:-未知}，在 kubeadm init 前自动修正"
+    log_command "sysctl -w net.ipv4.ip_forward=1"
+  fi
+
+  ip_forward="$(sysctl -n net.ipv4.ip_forward 2>/dev/null || true)"
+  [ "${ip_forward}" = "1" ] || die "net.ipv4.ip_forward 未能设置为 1，无法执行 kubeadm init"
+  log_info "kubeadm 前置检查通过：net.ipv4.ip_forward=1"
+}
+
 ensure_kubeconfig_for_user() {
   # 初始化后自动配置 kubectl：使用 admin.conf，与常见集群 context 名 kubernetes-admin@kubernetes 保持一致
   # 幂等：如已存在 ~/.kube/config 则先备份
@@ -55,6 +68,7 @@ fi
 
 have kubeadm || die "缺少 kubeadm（请先执行 13-Install-k8s-packages.sh）"
 have kubelet || die "缺少 kubelet（请先执行 13-Install-k8s-packages.sh）"
+ensure_kubernetes_sysctl
 node_name="$(get_local_k8s_node_name)"
 log_info "当前 Kubernetes 节点名: ${node_name}"
 
