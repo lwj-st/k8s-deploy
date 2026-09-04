@@ -1,0 +1,203 @@
+name: Build And Upload Offline Packages
+
+run-name: >-
+  ${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_id:
+        description: 目标操作系统
+        required: true
+        type: choice
+        options:
+          - ubuntu
+          - centos
+          - rocky
+          - openeuler
+          - kylin
+      os_version:
+        description: 目标系统版本，例如 22.03-lts、9.3、22.04
+        required: true
+        type: string
+        default: 22.03-lts
+      package_type:
+        description: 要下载的离线包类型
+        required: true
+        type: choice
+        options:
+          - k8s-packages
+          - tools-packages
+      k8s_version:
+        description: Kubernetes 版本，仅 k8s-packages 使用
+        required: true
+        type: string
+        default: 1.31.11
+
+permissions:
+  contents: read
+
+concurrency:
+  group: >-
+    offline-packages-${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    name: Download, package and upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      INPUT_OS_ID: ${{ inputs.os_id }}
+      INPUT_OS_VERSION: ${{ inputs.os_version }}
+      INPUT_PACKAGE_TYPE: ${{ inputs.package_type }}
+      INPUT_K8S_VERSION: ${{ inputs.k8s_version }}
+      OSS_BASE_URL: https://oss.88888888.qzz.io/api/write/items/public
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+
+          case "$INPUT_OS_ID" in
+            ubuntu|centos|rocky|openeuler|kylin) ;;
+            *) echo "不支持的 os_id: $INPUT_OS_ID"; exit 1 ;;
+          esac
+          case "$INPUT_PACKAGE_TYPE" in
+            k8s-packages|tools-packages) ;;
+            *) echo "不支持的 package_type: $INPUT_PACKAGE_TYPE"; exit 1 ;;
+          esac
+          [[ "$INPUT_OS_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || {
+            echo "os_version 格式不正确: $INPUT_OS_VERSION"
+            exit 1
+          }
+          [[ "$INPUT_K8S_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "k8s_version 格式不正确: $INPUT_K8S_VERSION"
+            exit 1
+          }
+
+          source Script/framework.sh
+          platform_is_supported "$INPUT_OS_ID" "$INPUT_OS_VERSION" || {
+            echo "不支持的平台组合: ${INPUT_OS_ID}-${INPUT_OS_VERSION}"
+            echo "该系统支持的版本:"
+            platform_get_supported_versions "$INPUT_OS_ID"
+            exit 1
+          }
+
+      - name: Download offline packages
+        id: download
+        run: |
+          set -euo pipefail
+
+          archive_stem="${INPUT_OS_ID}-${INPUT_PACKAGE_TYPE}-${INPUT_OS_VERSION}"
+          output_dir="${RUNNER_TEMP}/${archive_stem}"
+          mkdir -p "$output_dir"
+
+          case "$INPUT_PACKAGE_TYPE" in
+            k8s-packages)
+              bash Script/00-Download-k8s-packages-docker.sh \
+                "$INPUT_OS_ID" \
+                "$INPUT_OS_VERSION" \
+                "$output_dir" \
+                "$INPUT_K8S_VERSION"
+              ;;
+            tools-packages)
+              bash Script/00-Download-tools-packages-docker.sh \
+                "$INPUT_OS_ID" \
+                "$INPUT_OS_VERSION" \
+                "$output_dir"
+              ;;
+          esac
+
+          package_count=$(find "$output_dir" -type f \( -name '*.rpm' -o -name '*.deb' \) | wc -l)
+          if [ "$package_count" -lt 1 ]; then
+            echo "下载目录中没有 RPM 或 DEB: $output_dir"
+            exit 1
+          fi
+
+          echo "archive_stem=$archive_stem" >> "$GITHUB_OUTPUT"
+          echo "output_dir=$output_dir" >> "$GITHUB_OUTPUT"
+          echo "package_count=$package_count" >> "$GITHUB_OUTPUT"
+
+      - name: Create archive and split when needed
+        id: archive
+        env:
+          ARCHIVE_STEM: ${{ steps.download.outputs.archive_stem }}
+          OUTPUT_DIR: ${{ steps.download.outputs.output_dir }}
+        run: |
+          set -euo pipefail
+
+          archive="${RUNNER_TEMP}/${ARCHIVE_STEM}.tar.gz"
+          tar -C "$RUNNER_TEMP" -czf "$archive" "$ARCHIVE_STEM"
+          archive_size=$(stat -c '%s' "$archive")
+          split_threshold=$((100 * 1024 * 1024))
+
+          upload_dir="${RUNNER_TEMP}/upload"
+          mkdir -p "$upload_dir"
+          if [ "$archive_size" -gt "$split_threshold" ]; then
+            split -b 90M -d -a 3 \
+              "$archive" \
+              "${upload_dir}/${ARCHIVE_STEM}.tar.gz.part."
+            is_split=true
+          else
+            cp "$archive" "$upload_dir/"
+            is_split=false
+          fi
+
+          file_count=$(find "$upload_dir" -maxdepth 1 -type f | wc -l)
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "archive_size=$archive_size" >> "$GITHUB_OUTPUT"
+          echo "upload_dir=$upload_dir" >> "$GITHUB_OUTPUT"
+          echo "file_count=$file_count" >> "$GITHUB_OUTPUT"
+          echo "is_split=$is_split" >> "$GITHUB_OUTPUT"
+
+          echo "待上传文件："
+          find "$upload_dir" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+          sha256sum "$archive"
+
+      - name: Upload to OSS
+        env:
+          UPLOAD_DIR: ${{ steps.archive.outputs.upload_dir }}
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r -d '' file; do
+            filename=$(basename "$file")
+            echo "上传: $filename"
+            curl \
+              --fail-with-body \
+              --show-error \
+              --silent \
+              --retry 3 \
+              --retry-all-errors \
+              -X PUT \
+              -H "Content-Type: application/x-www-form-urlencoded" \
+              --data-binary "@${file}" \
+              "${OSS_BASE_URL}/${filename}"
+            echo
+          done < <(find "$UPLOAD_DIR" -maxdepth 1 -type f -print0 | sort -z)
+
+      - name: Write summary
+        if: success()
+        env:
+          ARCHIVE_STEM: ${{ steps.download.outputs.archive_stem }}
+          PACKAGE_COUNT: ${{ steps.download.outputs.package_count }}
+          ARCHIVE_SIZE: ${{ steps.archive.outputs.archive_size }}
+          FILE_COUNT: ${{ steps.archive.outputs.file_count }}
+          IS_SPLIT: ${{ steps.archive.outputs.is_split }}
+        run: |
+          {
+            echo "## 离线包上传完成"
+            echo
+            echo "- 平台：${INPUT_OS_ID}-${INPUT_OS_VERSION}"
+            echo "- 类型：${INPUT_PACKAGE_TYPE}"
+            echo "- 包数量：${PACKAGE_COUNT}"
+            echo "- 压缩包：${ARCHIVE_STEM}.tar.gz"
+            echo "- 压缩后大小：${ARCHIVE_SIZE} bytes"
+            echo "- 是否分片：${IS_SPLIT}"
+            echo "- 上传文件数：${FILE_COUNT}"
+            echo "- OSS 目录：${OSS_BASE_URL}/"
+          } >> "$GITHUB_STEP_SUMMARY"
