@@ -171,6 +171,27 @@ download_kylin_rpms() {
   log_info "✓ Kylin RPM 包下载完成: ${OUTPUT_DIR}"
 }
 
+create_rpm_repo_metadata() {
+  if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
+    log_info "安装本地仓库元数据工具..."
+    if command -v dnf &>/dev/null; then
+      dnf install -y createrepo_c || dnf install -y createrepo
+    else
+      yum install -y createrepo_c || yum install -y createrepo
+    fi
+  fi
+
+  log_info "生成离线 YUM/DNF 仓库元数据..."
+  if command -v createrepo_c &>/dev/null; then
+    createrepo_c --update "${OUTPUT_DIR}"
+  elif command -v createrepo &>/dev/null; then
+    createrepo --update "${OUTPUT_DIR}"
+  else
+    die "未找到 createrepo_c/createrepo，不能生成离线仓库元数据"
+  fi
+  [ -f "${OUTPUT_DIR}/repodata/repomd.xml" ] || die "未生成 repodata/repomd.xml: ${OUTPUT_DIR}"
+}
+
 case "${OS_TYPE}" in
   ubuntu)
     download_ubuntu_debs
@@ -188,6 +209,10 @@ case "${OS_TYPE}" in
     die "不支持的 OS 类型: ${OS_TYPE}"
     ;;
 esac
+
+if [ "${OS_TYPE}" != "ubuntu" ]; then
+  create_rpm_repo_metadata
+fi
 
 log_info ""
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

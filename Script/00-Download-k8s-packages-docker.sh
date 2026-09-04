@@ -290,6 +290,27 @@ if [ "${PKG_COUNT}" -eq 0 ]; then
   exit 1
 fi
 
+# 将全部候选依赖做成本地仓库。安装端只请求 Kubernetes 主包，
+# 由 dnf/yum 从这里选择目标机真正缺少的依赖，避免整目录强制安装。
+if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
+  log "安装本地仓库元数据工具..."
+  ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo_c || \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo || {
+      log "错误: 无法安装 createrepo_c/createrepo，不能生成离线仓库元数据"
+      exit 1
+    }
+fi
+if command -v createrepo_c &>/dev/null; then
+  createrepo_c --update "${OUTPUT_DIR}"
+else
+  createrepo --update "${OUTPUT_DIR}"
+fi
+[ -f "${OUTPUT_DIR}/repodata/repomd.xml" ] || {
+  log "错误: 未生成 repodata/repomd.xml"
+  exit 1
+}
+log "已生成离线 YUM/DNF 仓库元数据"
+
 # 列出下载的包
 log "下载的包列表:"
 for pkg in "${RPM_FILES[@]}"; do

@@ -285,6 +285,7 @@ kubectl get nodes <节点名> -o yaml | grep -A5 "labels:"
 ## 说明
 - 所有“可能覆盖的文件/目录”会先 `mv` 成 `原名.k8s-deploy.<时间戳>`，并记录在 `/var/lib/k8s-deploy/backups.tsv`，供清理脚本回滚使用。
 - 离线模式下，OS 依赖包与 `kubelet/kubeadm/kubectl` 需要你提前放到清单指定目录。
+- RPM 下载脚本会在离线目录生成 `repodata/` 本地仓库元数据。安装时只请求 `kubelet/kubeadm/kubectl/cri-tools/kubernetes-cni`，由 dnf/yum 从本地仓库选择真正需要的依赖；不会整目录安装，也不会使用 `--allowerasing` 替换或删除宿主机的软件包。离线目录若包含同名多版本 RPM，会要求先清理旧版本，避免选择错误版本。
 - `Script/environment.sh` 是唯一配置入口（由 `01-Cluster-host.sh` 生成）。你如果**手动移动了下载目录**，请同步修改 `DOWNLOAD_DIR`，脚本不会自动帮你创建软链或改回路径。
 
 ## 系统准备（Kubernetes 1.31 + containerd）
