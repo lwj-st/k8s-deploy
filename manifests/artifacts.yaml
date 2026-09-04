@@ -1213,7 +1213,7 @@ artifacts:
     type: tar
     name: monitor.image.dcxm-exporter.v1.0.0.1
     path: /data/download/monitor/dcxm-exporter-ubuntu20.04-v1.0.0.1.tar
-    url: ""
+    url: "https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/monitor/dcxm-exporter-ubuntu20.04-v1.0.0.1.tar"
     base_url: "docker.io/library/dcxm-exporter-ubuntu20.04:1.0.0.1"
     md5: "23ded10251478c666c19861438a3e669"
     description: "Kunlunxin DCXM exporter image tar; inner docker save from official dcxm-exporter-ubuntu20.04_1.0.0.1 package"
