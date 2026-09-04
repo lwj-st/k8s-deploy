@@ -81,7 +81,9 @@ install_offline_rpms() {
   for pkg in "${pkgs[@]}"; do
     name="$(rpm -qp --qf '%{NAME}' "${pkg}" 2>/dev/null || true)"
     arch="$(rpm -qp --qf '%{ARCH}' "${pkg}" 2>/dev/null || true)"
-    [ -n "${name}" ] && [ -n "${arch}" ] || die "无法读取 RPM 元数据，文件可能损坏: ${pkg}"
+    if [ -z "${name}" ] || [ -z "${arch}" ]; then
+      die "无法读取 RPM 元数据，文件可能损坏: ${pkg}"
+    fi
 
     if [ "${arch}" != "noarch" ] && [ "${arch}" != "${system_arch}" ]; then
       die "RPM 架构不匹配: $(basename "${pkg}")（包架构=${arch}，系统架构=${system_arch}）"
