@@ -1,9 +1,20 @@
 name: Build And Upload Offline Packages
 
 run-name: >-
-  ${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
+  ${{ inputs.os_id || 'openeuler' }}-${{ inputs.os_version || '22.03-lts' }}-${{ inputs.package_type || 'k8s-packages' }}
 
 on:
+  # 临时测试：工作流进入默认分支后删除此 push 触发。
+  push:
+    branches:
+      - fix/k8s-packages-install
+    paths:
+      - '.github/workflows/build-upload-offline-packages.yml'
+      - 'Script/00-Download-k8s-packages-docker.sh'
+      - 'Script/00-Download-tools-packages-docker.sh'
+      - 'Script/framework.sh'
+      - 'config/package-repos/**'
+      - 'manifests/artifacts.yaml'
   workflow_dispatch:
     inputs:
       os_id:
@@ -39,7 +50,7 @@ permissions:
 
 concurrency:
   group: >-
-    offline-packages-${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
+    offline-packages-${{ inputs.os_id || 'openeuler' }}-${{ inputs.os_version || '22.03-lts' }}-${{ inputs.package_type || 'k8s-packages' }}
   cancel-in-progress: false
 
 jobs:
@@ -48,11 +59,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      INPUT_OS_ID: ${{ inputs.os_id }}
-      INPUT_OS_VERSION: ${{ inputs.os_version }}
-      INPUT_PACKAGE_TYPE: ${{ inputs.package_type }}
-      INPUT_K8S_VERSION: ${{ inputs.k8s_version }}
-      OSS_BASE_URL: https://oss.88888888.qzz.io/api/write/items/public
+      INPUT_OS_ID: ${{ inputs.os_id || 'openeuler' }}
+      INPUT_OS_VERSION: ${{ inputs.os_version || '22.03-lts' }}
+      INPUT_PACKAGE_TYPE: ${{ inputs.package_type || 'k8s-packages' }}
+      INPUT_K8S_VERSION: ${{ inputs.k8s_version || '1.31.11' }}
+      ADS_CLI_URL: https://quark.aoss.cn-sh-01.sensecoreapi-oss.cn/ads-cli/release/v1.9.0/ads-cli
+      OSS_ENDPOINT: devops.aoss.cn-sh-01b.sensecoreapi-oss.cn
+      OSS_BUCKET: sensecorex
+      OSS_PACKAGE_PREFIX: x86/download/packages
 
     steps:
       - name: Checkout
@@ -92,8 +106,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          archive_stem="${INPUT_OS_ID}-${INPUT_PACKAGE_TYPE}-${INPUT_OS_VERSION}"
-          output_dir="${RUNNER_TEMP}/${archive_stem}"
+          archive_stem="${INPUT_OS_ID}-${INPUT_OS_VERSION}-${INPUT_PACKAGE_TYPE}-x86"
+          package_root="${RUNNER_TEMP}/${archive_stem}-content"
+          case "$INPUT_PACKAGE_TYPE" in
+            k8s-packages) folder_name=kubernetes ;;
+            tools-packages) folder_name=tools ;;
+          esac
+          output_dir="${package_root}/${folder_name}"
           mkdir -p "$output_dir"
 
           case "$INPUT_PACKAGE_TYPE" in
@@ -120,91 +139,73 @@ jobs:
 
           {
             echo "archive_stem=$archive_stem"
+            echo "folder_name=$folder_name"
+            echo "package_root=$package_root"
             echo "output_dir=$output_dir"
             echo "package_count=$package_count"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create archive and split when needed
+      - name: Create archive
         id: archive
         env:
           ARCHIVE_STEM: ${{ steps.download.outputs.archive_stem }}
-          OUTPUT_DIR: ${{ steps.download.outputs.output_dir }}
+          FOLDER_NAME: ${{ steps.download.outputs.folder_name }}
+          PACKAGE_ROOT: ${{ steps.download.outputs.package_root }}
         run: |
           set -euo pipefail
 
           archive="${RUNNER_TEMP}/${ARCHIVE_STEM}.tar.gz"
-          tar -C "$RUNNER_TEMP" -czf "$archive" "$ARCHIVE_STEM"
+          tar -C "$PACKAGE_ROOT" -czf "$archive" "$FOLDER_NAME"
           archive_size=$(stat -c '%s' "$archive")
-          split_threshold=$((100 * 1024 * 1024))
-
-          upload_dir="${RUNNER_TEMP}/upload"
-          mkdir -p "$upload_dir"
-          if [ "$archive_size" -gt "$split_threshold" ]; then
-            split -b 90M -d -a 3 \
-              "$archive" \
-              "${upload_dir}/${ARCHIVE_STEM}.tar.gz.part."
-            is_split=true
-          else
-            cp "$archive" "$upload_dir/"
-            is_split=false
-          fi
-
-          file_count=$(find "$upload_dir" -maxdepth 1 -type f | wc -l)
           {
             echo "archive=$archive"
             echo "archive_size=$archive_size"
-            echo "upload_dir=$upload_dir"
-            echo "file_count=$file_count"
-            echo "is_split=$is_split"
           } >> "$GITHUB_OUTPUT"
 
           echo "待上传文件："
-          find "$upload_dir" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+          printf '%s %s bytes\n' "$(basename "$archive")" "$archive_size"
+          echo "压缩包顶层目录："
+          tar -tzf "$archive" | sed -n '1p'
           sha256sum "$archive"
 
-      - name: Upload to OSS
-        env:
-          UPLOAD_DIR: ${{ steps.archive.outputs.upload_dir }}
+      - name: Install ads-cli
         run: |
           set -euo pipefail
 
-          while IFS= read -r -d '' file; do
-            filename=$(basename "$file")
-            echo "上传: $filename"
-            curl \
-              --fail-with-body \
-              --show-error \
-              --silent \
-              --retry 3 \
-              --retry-all-errors \
-              -X PUT \
-              -H "Content-Type: application/x-www-form-urlencoded" \
-              --data-binary "@${file}" \
-              "${OSS_BASE_URL}/${filename}"
-            echo
-          done < <(find "$UPLOAD_DIR" -maxdepth 1 -type f -print0 | sort -z)
+          wget --https-only --tries=3 -O ads-cli "$ADS_CLI_URL"
+          chmod +x ads-cli
+          sudo mv ads-cli /usr/bin/ads-cli
+
+      - name: Upload to OSS
+        env:
+          AK: ${{ secrets.AK }}
+          SK: ${{ secrets.SK }}
+          ARCHIVE: ${{ steps.archive.outputs.archive }}
+        run: |
+          set -euo pipefail
+
+          [ -n "$AK" ] || { echo "缺少 GitHub Secret: AK"; exit 1; }
+          [ -n "$SK" ] || { echo "缺少 GitHub Secret: SK"; exit 1; }
+          echo "::add-mask::$AK"
+          echo "::add-mask::$SK"
+
+          filename=$(basename "$ARCHIVE")
+          destination="s3://${AK}:${SK}@${OSS_ENDPOINT}/${OSS_BUCKET}/${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
+          echo "上传 ${filename} 到 ${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
+          ads-cli --threads 100 sync "$ARCHIVE" "$destination"
 
       - name: Write summary
         if: success()
         env:
           ARCHIVE_STEM: ${{ steps.download.outputs.archive_stem }}
+          FOLDER_NAME: ${{ steps.download.outputs.folder_name }}
           PACKAGE_COUNT: ${{ steps.download.outputs.package_count }}
           ARCHIVE_SIZE: ${{ steps.archive.outputs.archive_size }}
-          FILE_COUNT: ${{ steps.archive.outputs.file_count }}
-          IS_SPLIT: ${{ steps.archive.outputs.is_split }}
         run: |
           echo "下载与恢复方法："
-          if [ "$IS_SPLIT" = "true" ]; then
-            echo "1. 下载 ${ARCHIVE_STEM}.tar.gz.part.* 的全部分片到同一目录"
-            echo "2. 按分片名称顺序合并："
-            echo "   cat ${ARCHIVE_STEM}.tar.gz.part.* > ${ARCHIVE_STEM}.tar.gz"
-            echo "3. 解压："
-            echo "   tar -xzf ${ARCHIVE_STEM}.tar.gz"
-          else
-            echo "1. 下载 ${ARCHIVE_STEM}.tar.gz"
-            echo "2. 解压："
-            echo "   tar -xzf ${ARCHIVE_STEM}.tar.gz"
-          fi
+          echo "1. 下载 ${ARCHIVE_STEM}.tar.gz"
+          echo "2. 解压：tar -xzf ${ARCHIVE_STEM}.tar.gz"
+          echo "3. 解压后顶层目录：${FOLDER_NAME}/"
 
           {
             echo "## 离线包上传完成"
@@ -214,24 +215,14 @@ jobs:
             echo "- 包数量：${PACKAGE_COUNT}"
             echo "- 压缩包：${ARCHIVE_STEM}.tar.gz"
             echo "- 压缩后大小：${ARCHIVE_SIZE} bytes"
-            echo "- 是否分片：${IS_SPLIT}"
-            echo "- 上传文件数：${FILE_COUNT}"
-            echo "- OSS 目录：${OSS_BASE_URL}/"
+            echo "- 解压后目录：${FOLDER_NAME}/"
+            echo "- OSS 目录：${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
             echo
             echo "### 下载与恢复"
             echo
-            if [ "$IS_SPLIT" = "true" ]; then
-              echo "下载全部 \`${ARCHIVE_STEM}.tar.gz.part.*\` 分片到同一目录，然后执行："
-              echo
-              echo '```bash'
-              echo "cat ${ARCHIVE_STEM}.tar.gz.part.* > ${ARCHIVE_STEM}.tar.gz"
-              echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
-              echo '```'
-            else
-              echo "下载 \`${ARCHIVE_STEM}.tar.gz\` 后执行："
-              echo
-              echo '```bash'
-              echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
-              echo '```'
-            fi
+            echo "下载 \`${ARCHIVE_STEM}.tar.gz\` 后执行："
+            echo
+            echo '```bash'
+            echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

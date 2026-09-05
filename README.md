@@ -8,7 +8,7 @@
 - `Script/00-Download-tools-packages-docker.sh` 可提前下载所需的工具包，可以使用 Docker 容器来模拟 (可选)
 - `Script/00-Download-tools-packages.sh` 本机 `apt`/`yum` 拉工具离线包，无 Docker（可选）；已满足的依赖不再进缓存，包量常与 Docker 版不完全一致
 - `Script/01-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
-- `Script/02-Download.sh`：按清单下载（可选 MD5 校验）
+- `Script/02-Download.sh`：下载当前 OS/目标版本的 Kubernetes、tools 离线包，并按清单补齐其他制品
 - `Script/03-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
 - `Script/08-Install-nfs.sh`：安装nfs 共享
 - `Script/09-Install-tools.sh`：安装 helm/helmfile
@@ -111,6 +111,13 @@ bash 02-Download.sh
 cd /data/download
 bash pkg_download.sh pkg_md5_ubuntu24.04.txt 
 ```
+
+`02-Download.sh` 会根据当前系统和 `environment.sh` 中的 `TARGET_OS_VERSION`，从 OSS 下载：
+
+- `<OS>-<版本>-k8s-packages-x86.tar.gz`，解压后为 `kubernetes/`
+- `<OS>-<版本>-tools-packages-x86.tar.gz`，解压后为 `tools/`
+
+`/data/download/packages/` 必须预先存在；脚本会自动创建 `<OS>/<版本>/`。两个压缩包不校验 MD5，下载和解压完成后仍保留在版本目录中。
 
 下载完成后校验制品（建议 `MAAS_MD5_CHECK=1`，能发现坏包/截断包）：
 

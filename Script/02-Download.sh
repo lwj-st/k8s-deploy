@@ -1,17 +1,103 @@
 #!/usr/bin/env bash
 ################################################################################
 ## Filename:    02-Download.sh
-## Description: 根据 artifacts.yaml 下载所有缺失制品（可选做 md5 校验）
+## Description: 下载当前 OS 离线包，并根据 artifacts.yaml 下载其他缺失制品
 ## Usage:
 ##   bash 02-Download.sh
+## Artifacts:
+##   - os.dir.kubernetes.<os_id>.<os_version>
+##   - os.dir.tools.<os_id>.<os_version>
 ## Notes:
 ##   - 只负责下载，不做镜像导入/包安装
+##   - Kubernetes 和工具离线包不校验 md5，下载后保留 tar.gz 并解压
 ##   - 已存在文件：根据 MAAS_MD5_CHECK 决定是否重下
 ################################################################################
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/framework.sh"
+
+PACKAGE_OSS_BASE_URL="https://aoss.cn-sh-01b.sensecoreapi-oss.cn/devops/sensecorex/x86/download/packages"
+
+################################################################################
+# Function: validate_package_archive
+# Description: 校验压缩包可读，且所有内容都在预期的顶层目录中
+################################################################################
+validate_package_archive() {
+  local archive="$1"
+  local expected_dir="$2"
+
+  have tar || die "缺少 tar，无法解压离线包"
+  if ! tar -tzf "$archive" | awk -v expected="$expected_dir" '
+    BEGIN { found = 0 }
+    {
+      entry = $0
+      sub(/^\.\//, "", entry)
+      if (entry == "") next
+      if (entry ~ /^\// || entry ~ /(^|\/)\.\.(\/|$)/) exit 2
+      split(entry, parts, "/")
+      if (parts[1] != expected) exit 3
+      found = 1
+    }
+    END { if (!found) exit 4 }
+  '; then
+    die "压缩包内容不正确，必须只包含 ${expected_dir}/ 顶层目录: ${archive}"
+  fi
+}
+
+################################################################################
+# Function: download_and_extract_package_archive
+# Description: 下载并解压单个 OS 离线包；已有 tar.gz 会保留并复用
+################################################################################
+download_and_extract_package_archive() {
+  local package_type="$1"
+  local expected_dir="$2"
+  local target_dir="$3"
+  local archive_name="${OS_ID}-${TARGET_OS_VERSION}-${package_type}-x86.tar.gz"
+  local archive_path="${target_dir}/${archive_name}"
+  local archive_url="${PACKAGE_OSS_BASE_URL}/${OS_ID}/${TARGET_OS_VERSION}/${archive_name}"
+  local partial_path="${archive_path}.part.$$"
+
+  if [ -f "$archive_path" ]; then
+    log_info "[SKIP] 离线包已存在（不校验 md5）: ${archive_path}"
+  else
+    log_info "[GET] ${package_type}: ${archive_name}"
+    if ! download_file "$archive_url" "$partial_path"; then
+      rm -f "$partial_path"
+      die "离线包下载失败: ${archive_url}"
+    fi
+    mv -f "$partial_path" "$archive_path"
+  fi
+
+  validate_package_archive "$archive_path" "$expected_dir"
+  log_info "[EXTRACT] ${archive_name} -> ${target_dir}/${expected_dir}/"
+  tar -xzf "$archive_path" -C "$target_dir"
+  [ -d "${target_dir}/${expected_dir}" ] || die "离线包解压后缺少目录: ${target_dir}/${expected_dir}"
+}
+
+################################################################################
+# Function: download_os_package_archives
+# Description: 按当前 OS 和目标版本下载 Kubernetes、tools 离线包
+################################################################################
+download_os_package_archives() {
+  local kubernetes_dir=""
+  local tools_dir=""
+  local target_dir=""
+  local packages_root=""
+
+  kubernetes_dir="$(artifact_get_os_kubernetes_dir "$OS_ID" "$TARGET_OS_VERSION")"
+  tools_dir="$(artifact_get_os_tools_dir "$OS_ID" "$TARGET_OS_VERSION")"
+  target_dir="$(dirname "$kubernetes_dir")"
+  [ "$(dirname "$tools_dir")" = "$target_dir" ] || die "Kubernetes 与 tools 离线包目录不在同一版本目录"
+
+  packages_root="$(dirname "$(dirname "$(dirname "$kubernetes_dir")")")"
+  [ -d "$packages_root" ] || die "离线包根目录不存在，请先创建: ${packages_root}"
+  mkdir -p "$target_dir"
+
+  log_info "OS 离线包目录: ${target_dir}"
+  download_and_extract_package_archive "k8s-packages" "kubernetes" "$target_dir"
+  download_and_extract_package_archive "tools-packages" "tools" "$target_dir"
+}
 
 ################################################################################
 # Function: download_from_manifest
@@ -103,6 +189,8 @@ main() {
   [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
 
   log_info "MAAS_MD5_CHECK: ${MAAS_MD5_CHECK:-0}"
+  log_info "Kubernetes 与 tools 离线包固定不校验 md5"
+  download_os_package_archives
   download_from_manifest "${manifest}"
   log_info "建议下一步：bash 03-Verify-artifacts.sh"
 }
