@@ -21,53 +21,91 @@ source "${SCRIPT_DIR}/framework.sh"
 init_framework
 require_root
 
-install_ubuntu_debs_from_dir() {
+run_command_argv() {
+  local rendered=""
+  printf -v rendered ' %q' "$@"
+  log_info "执行命令:${rendered}"
+  "$@"
+}
+
+install_ubuntu_nfs_from_repo() {
   local dir="$1"
-  local -a debs=()
-  local -a install_debs=()
-  local deb pkg deb_version installed_version
+  [ -f "${dir}/Packages" ] || [ -f "${dir}/Packages.gz" ] || \
+    die "NFS 离线 DEB 目录缺少 Packages/Packages.gz，请重新执行工具包下载脚本: ${dir}"
 
-  shopt -s nullglob
-  debs=("${dir}"/*.deb)
-  shopt -u nullglob
-  [ "${#debs[@]}" -gt 0 ] || die "目录为空: ${dir}"
+  local apt_tmp
+  apt_tmp="$(mktemp -d /tmp/k8s-deploy-nfs-apt.XXXXXX)"
+  mkdir -p "${apt_tmp}/lists/partial"
+  chmod 755 "${apt_tmp}" "${apt_tmp}/lists"
+  printf 'deb [trusted=yes] file:%s ./\n' "${dir}" > "${apt_tmp}/sources.list"
 
-  for deb in "${debs[@]}"; do
-    pkg="$(dpkg-deb -f "${deb}" Package 2>/dev/null || true)"
-    deb_version="$(dpkg-deb -f "${deb}" Version 2>/dev/null || true)"
-    if [ -n "${pkg}" ] && [ -n "${deb_version}" ]; then
-      installed_version="$(dpkg-query -W -f='${Version}' "${pkg}" 2>/dev/null || true)"
-      if [ -n "${installed_version}" ] && dpkg --compare-versions "${installed_version}" ge "${deb_version}"; then
-        log_info "[SKIP] ${pkg} 已安装且版本不低: installed=${installed_version}, deb=${deb_version}"
-        continue
-      fi
-    fi
-    install_debs+=("${deb}")
-  done
+  local -a apt_opts=(
+    -o "Dir::Etc::sourcelist=${apt_tmp}/sources.list"
+    -o "Dir::Etc::sourceparts=-"
+    -o "Dir::State::lists=${apt_tmp}/lists"
+    -o "APT::Get::List-Cleanup=0"
+  )
+  local install_ok=0
 
-  if [ "${#install_debs[@]}" -eq 0 ]; then
-    log_info "NFS 相关 .deb 均已满足，无需安装"
+  if run_command_argv apt-get "${apt_opts[@]}" update && \
+    run_command_argv apt-get "${apt_opts[@]}" install -y --no-download --no-remove --no-install-recommends nfs-kernel-server; then
+    install_ok=1
+  fi
+  rm -rf "${apt_tmp}"
+
+  if [ "${install_ok}" -eq 1 ]; then
     return 0
   fi
-
-  log_info "安装 NFS 相关 .deb：${#install_debs[@]} 个"
   if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-    # 禁止 APT 为解决本地包版本冲突删除宿主机已有包。
-    log_info "在线安装：apt-get --no-remove"
-    apt-get install -y --no-remove --no-install-recommends "${install_debs[@]}"
+    log_warn "本地 APT 仓库依赖不足，ALLOW_ONLINE=yes，回退到系统软件源"
+    run_command_argv apt-get update
+    run_command_argv apt-get install -y --no-remove --no-install-recommends nfs-kernel-server
     return 0
   fi
+  die "严格离线安装 nfs-kernel-server 失败，请重新下载完整依赖"
+}
 
-  # 严格离线不调用 APT resolver。APT 可能在解析阶段删除 vim、ubuntu-server
-  # 等宿主机包；dpkg 两阶段安装可保留本地包并处理 Python Pre-Depends 顺序。
-  log_info "严格离线安装：dpkg --unpack 两阶段解包并统一配置"
-  dpkg --unpack "${install_debs[@]}" || \
-    log_warn "首轮解包存在依赖顺序问题，先配置已解包的基础包"
-  dpkg --configure -a || \
-    log_warn "首轮配置未完成，继续第二轮解包"
-  dpkg --unpack "${install_debs[@]}" || \
-    log_warn "第二轮解包仍有未满足依赖，继续最终配置"
-  dpkg --configure -a || die "严格离线 NFS 配置失败，请补齐依赖 .deb"
+install_rpm_nfs_from_repo() {
+  local dir="$1"
+  [ -f "${dir}/repodata/repomd.xml" ] || \
+    die "NFS 离线 RPM 目录缺少 repodata/repomd.xml，请重新执行工具包下载脚本: ${dir}"
+
+  local repo_id="k8s-deploy-nfs-offline"
+  local repo_url="file://${dir}"
+  if have dnf; then
+    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+      run_command_argv dnf -y \
+        --repofrompath="${repo_id},${repo_url}" \
+        --setopt="${repo_id}.gpgcheck=0" \
+        --setopt="${repo_id}.repo_gpgcheck=0" \
+        install nfs-utils || die "dnf 安装 nfs-utils 失败"
+    else
+      run_command_argv dnf -y \
+        --disablerepo='*' \
+        --repofrompath="${repo_id},${repo_url}" \
+        --enablerepo="${repo_id}" \
+        --setopt="${repo_id}.gpgcheck=0" \
+        --setopt="${repo_id}.repo_gpgcheck=0" \
+        --setopt=install_weak_deps=False \
+        install nfs-utils || die "严格离线安装 nfs-utils 失败，请重新下载完整依赖"
+    fi
+  elif have yum; then
+    if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
+      run_command_argv yum -y \
+        --repofrompath="${repo_id},${repo_url}" \
+        --setopt="${repo_id}.gpgcheck=0" \
+        install nfs-utils || die "yum 安装 nfs-utils 失败"
+    else
+      run_command_argv yum -y \
+        --disablerepo='*' \
+        --repofrompath="${repo_id},${repo_url}" \
+        --enablerepo="${repo_id}" \
+        --setopt="${repo_id}.gpgcheck=0" \
+        install nfs-utils || die "严格离线安装 nfs-utils 失败，请重新下载完整依赖"
+    fi
+  else
+    die "未找到 dnf 或 yum，无法安全解析 NFS RPM 依赖"
+  fi
 }
 
 # 未配置 NFS 则跳过
@@ -111,29 +149,23 @@ else
 
   case "${OS_ID}" in
     ubuntu)
-      install_ubuntu_debs_from_dir "${nfs_dir}"
+      install_ubuntu_nfs_from_repo "${nfs_dir}"
       ;;
     *)
-      shopt -s nullglob
-      rpms=("${nfs_dir}"/*.rpm)
-      shopt -u nullglob
-      [ ${#rpms[@]} -gt 0 ] || die "目录为空: ${nfs_dir}"
-      if have dnf; then
-        if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-          log_command "dnf -y install ${nfs_dir}/*.rpm"
-        else
-          log_command "dnf -y install --disablerepo='*' --setopt=install_weak_deps=False ${nfs_dir}/*.rpm"
-        fi
-      else
-        if [ "${ALLOW_ONLINE:-no}" = "yes" ]; then
-          log_command "yum -y localinstall ${nfs_dir}/*.rpm"
-        else
-          log_command "yum -y localinstall --disablerepo='*' ${nfs_dir}/*.rpm"
-        fi
-      fi
+      install_rpm_nfs_from_repo "${nfs_dir}"
       ;;
   esac
 fi
+
+case "${OS_ID}" in
+  ubuntu)
+    dpkg-query -W -f='${Status}' nfs-kernel-server 2>/dev/null | grep -q 'install ok installed' || \
+      die "NFS 安装完成后仍未检测到 nfs-kernel-server"
+    ;;
+  *)
+    rpm -q nfs-utils >/dev/null 2>&1 || die "NFS 安装完成后仍未检测到 nfs-utils"
+    ;;
+esac
 
 # 启用并启动 NFS 服务（服务名：Ubuntu nfs-kernel-server，RHEL 系 nfs-server）
 if have systemctl; then

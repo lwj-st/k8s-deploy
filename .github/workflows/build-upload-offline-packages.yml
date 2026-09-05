@@ -118,9 +118,11 @@ jobs:
             exit 1
           fi
 
-          echo "archive_stem=$archive_stem" >> "$GITHUB_OUTPUT"
-          echo "output_dir=$output_dir" >> "$GITHUB_OUTPUT"
-          echo "package_count=$package_count" >> "$GITHUB_OUTPUT"
+          {
+            echo "archive_stem=$archive_stem"
+            echo "output_dir=$output_dir"
+            echo "package_count=$package_count"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create archive and split when needed
         id: archive
@@ -148,11 +150,13 @@ jobs:
           fi
 
           file_count=$(find "$upload_dir" -maxdepth 1 -type f | wc -l)
-          echo "archive=$archive" >> "$GITHUB_OUTPUT"
-          echo "archive_size=$archive_size" >> "$GITHUB_OUTPUT"
-          echo "upload_dir=$upload_dir" >> "$GITHUB_OUTPUT"
-          echo "file_count=$file_count" >> "$GITHUB_OUTPUT"
-          echo "is_split=$is_split" >> "$GITHUB_OUTPUT"
+          {
+            echo "archive=$archive"
+            echo "archive_size=$archive_size"
+            echo "upload_dir=$upload_dir"
+            echo "file_count=$file_count"
+            echo "is_split=$is_split"
+          } >> "$GITHUB_OUTPUT"
 
           echo "待上传文件："
           find "$upload_dir" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
@@ -189,6 +193,19 @@ jobs:
           FILE_COUNT: ${{ steps.archive.outputs.file_count }}
           IS_SPLIT: ${{ steps.archive.outputs.is_split }}
         run: |
+          echo "下载与恢复方法："
+          if [ "$IS_SPLIT" = "true" ]; then
+            echo "1. 下载 ${ARCHIVE_STEM}.tar.gz.part.* 的全部分片到同一目录"
+            echo "2. 按分片名称顺序合并："
+            echo "   cat ${ARCHIVE_STEM}.tar.gz.part.* > ${ARCHIVE_STEM}.tar.gz"
+            echo "3. 解压："
+            echo "   tar -xzf ${ARCHIVE_STEM}.tar.gz"
+          else
+            echo "1. 下载 ${ARCHIVE_STEM}.tar.gz"
+            echo "2. 解压："
+            echo "   tar -xzf ${ARCHIVE_STEM}.tar.gz"
+          fi
+
           {
             echo "## 离线包上传完成"
             echo
@@ -200,4 +217,21 @@ jobs:
             echo "- 是否分片：${IS_SPLIT}"
             echo "- 上传文件数：${FILE_COUNT}"
             echo "- OSS 目录：${OSS_BASE_URL}/"
+            echo
+            echo "### 下载与恢复"
+            echo
+            if [ "$IS_SPLIT" = "true" ]; then
+              echo "下载全部 \`${ARCHIVE_STEM}.tar.gz.part.*\` 分片到同一目录，然后执行："
+              echo
+              echo '```bash'
+              echo "cat ${ARCHIVE_STEM}.tar.gz.part.* > ${ARCHIVE_STEM}.tar.gz"
+              echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
+              echo '```'
+            else
+              echo "下载 \`${ARCHIVE_STEM}.tar.gz\` 后执行："
+              echo
+              echo '```bash'
+              echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
+              echo '```'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
