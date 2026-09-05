@@ -117,7 +117,7 @@ bash pkg_download.sh pkg_md5_ubuntu24.04.txt
 - `<OS>-<版本>-k8s-packages-x86.tar.gz`，解压后为 `kubernetes/`
 - `<OS>-<版本>-tools-packages-x86.tar.gz`，解压后为 `tools/`
 
-`/data/download/packages/` 必须预先存在；脚本会自动创建 `<OS>/<版本>/`。两个压缩包不校验 MD5，下载和解压完成后仍保留在版本目录中。
+`/data/download/packages/` 必须预先存在；脚本会自动创建 `<OS>/<版本>/`。脚本会下载对应的 `.tar.gz.md5` 文件并校验压缩包，MD5 不一致时立即退出；校验通过后解压，压缩包和 MD5 文件仍保留在版本目录中。
 
 下载完成后校验制品（建议 `MAAS_MD5_CHECK=1`，能发现坏包/截断包）：
 

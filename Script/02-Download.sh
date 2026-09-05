@@ -9,7 +9,7 @@
 ##   - os.dir.tools.<os_id>.<os_version>
 ## Notes:
 ##   - 只负责下载，不做镜像导入/包安装
-##   - Kubernetes 和工具离线包不校验 md5，下载后保留 tar.gz 并解压
+##   - Kubernetes 和工具离线包下载对应 .md5，校验通过后解压并保留两个文件
 ##   - 已存在文件：根据 MAAS_MD5_CHECK 决定是否重下
 ################################################################################
 set -euo pipefail
@@ -57,9 +57,19 @@ download_and_extract_package_archive() {
   local archive_path="${target_dir}/${archive_name}"
   local archive_url="${PACKAGE_OSS_BASE_URL}/${OS_ID}/${TARGET_OS_VERSION}/${archive_name}"
   local partial_path="${archive_path}.part.$$"
+  local md5_name="${archive_name}.md5"
+  local md5_path="${target_dir}/${md5_name}"
+  local md5_url="${PACKAGE_OSS_BASE_URL}/${OS_ID}/${TARGET_OS_VERSION}/${md5_name}"
+  local md5_partial_path="${md5_path}.part.$$"
+  local expected_md5=""
+  local expected_filename=""
+  local extra_field=""
+  local actual_md5=""
+
+  have md5sum || die "缺少 md5sum，无法校验离线包"
 
   if [ -f "$archive_path" ]; then
-    log_info "[SKIP] 离线包已存在（不校验 md5）: ${archive_path}"
+    log_info "[SKIP] 离线包已存在，将复用并校验: ${archive_path}"
   else
     log_info "[GET] ${package_type}: ${archive_name}"
     if ! download_file "$archive_url" "$partial_path"; then
@@ -68,6 +78,26 @@ download_and_extract_package_archive() {
     fi
     mv -f "$partial_path" "$archive_path"
   fi
+
+  log_info "[GET] MD5: ${md5_name}"
+  if ! download_file "$md5_url" "$md5_partial_path"; then
+    rm -f "$md5_partial_path"
+    die "MD5 文件下载失败: ${md5_url}"
+  fi
+  mv -f "$md5_partial_path" "$md5_path"
+
+  read -r expected_md5 expected_filename extra_field < "$md5_path" || true
+  expected_filename="${expected_filename#\*}"
+  if [[ ! "$expected_md5" =~ ^[[:xdigit:]]{32}$ ]] || \
+    [ "$expected_filename" != "$archive_name" ] || [ -n "$extra_field" ]; then
+    die "MD5 文件格式或文件名不正确: ${md5_path}"
+  fi
+  expected_md5=$(printf '%s' "$expected_md5" | tr '[:upper:]' '[:lower:]')
+  actual_md5=$(md5sum "$archive_path" | awk '{print $1}')
+  if [ "$actual_md5" != "$expected_md5" ]; then
+    die "离线包 MD5 校验失败: ${archive_path}（期望 ${expected_md5}，实际 ${actual_md5}）"
+  fi
+  log_info "[OK] MD5 校验通过: ${actual_md5}  ${archive_name}"
 
   validate_package_archive "$archive_path" "$expected_dir"
   log_info "[EXTRACT] ${archive_name} -> ${target_dir}/${expected_dir}/"
@@ -189,7 +219,7 @@ main() {
   [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
 
   log_info "MAAS_MD5_CHECK: ${MAAS_MD5_CHECK:-0}"
-  log_info "Kubernetes 与 tools 离线包固定不校验 md5"
+  log_info "Kubernetes 与 tools 离线包使用随包发布的 .md5 文件校验"
   download_os_package_archives
   download_from_manifest "${manifest}"
   log_info "建议下一步：bash 03-Verify-artifacts.sh"
