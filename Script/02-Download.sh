@@ -56,22 +56,24 @@ download_and_extract_package_archive() {
   local archive_name="${OS_ID}-${TARGET_OS_VERSION}-${package_type}-x86.tar.gz"
   local archive_path="${target_dir}/${archive_name}"
   local archive_url="${PACKAGE_OSS_BASE_URL}/${OS_ID}/${TARGET_OS_VERSION}/${archive_name}"
-  local partial_path="${archive_path}.part.$$"
+  local partial_path=""
   local md5_name="${archive_name}.md5"
   local md5_path="${target_dir}/${md5_name}"
   local md5_url="${PACKAGE_OSS_BASE_URL}/${OS_ID}/${TARGET_OS_VERSION}/${md5_name}"
-  local md5_partial_path="${md5_path}.part.$$"
+  local md5_partial_path=""
   local expected_md5=""
   local expected_filename=""
   local extra_field=""
   local actual_md5=""
 
+  have mktemp || die "缺少 mktemp，无法安全创建下载临时文件"
   have md5sum || die "缺少 md5sum，无法校验离线包"
 
   if [ -f "$archive_path" ]; then
     log_info "[SKIP] 离线包已存在，将复用并校验: ${archive_path}"
   else
     log_info "[GET] ${package_type}: ${archive_name}"
+    partial_path="$(mktemp "${archive_path}.part.XXXXXX")"
     if ! download_file "$archive_url" "$partial_path"; then
       rm -f "$partial_path"
       die "离线包下载失败: ${archive_url}"
@@ -80,6 +82,7 @@ download_and_extract_package_archive() {
   fi
 
   log_info "[GET] MD5: ${md5_name}"
+  md5_partial_path="$(mktemp "${md5_path}.part.XXXXXX")"
   if ! download_file "$md5_url" "$md5_partial_path"; then
     rm -f "$md5_partial_path"
     die "MD5 文件下载失败: ${md5_url}"

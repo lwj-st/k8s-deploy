@@ -1,26 +1,16 @@
 name: Build And Upload Offline Packages
 
 run-name: >-
-  ${{ inputs.os_id || 'ubuntu' }}-${{ inputs.os_version || '22.04' }}-${{ inputs.package_type || 'k8s-packages' }}
+  ${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
 
 on:
-  # 临时测试：工作流进入默认分支后删除此 push 触发。
-  push:
-    branches:
-      - fix/k8s-packages-install
-    paths:
-      - '.github/workflows/build-upload-offline-packages.yml'
-      - 'Script/00-Download-k8s-packages-docker.sh'
-      - 'Script/00-Download-tools-packages-docker.sh'
-      - 'Script/framework.sh'
-      - 'config/package-repos/**'
-      - 'manifests/artifacts.yaml'
   workflow_dispatch:
     inputs:
       os_id:
         description: 目标操作系统
         required: true
         type: choice
+        default: ubuntu
         options:
           - ubuntu
           - centos
@@ -31,7 +21,7 @@ on:
         description: 目标系统版本，例如 22.03-lts、9.3、22.04
         required: true
         type: string
-        default: 22.03-lts
+        default: 22.04
       package_type:
         description: 要下载的离线包类型
         required: true
@@ -50,7 +40,7 @@ permissions:
 
 concurrency:
   group: >-
-    offline-packages-${{ inputs.os_id || 'ubuntu' }}-${{ inputs.os_version || '22.04' }}-${{ inputs.package_type || 'k8s-packages' }}
+    offline-packages-${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
   cancel-in-progress: false
 
 jobs:
@@ -59,10 +49,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      INPUT_OS_ID: ${{ inputs.os_id || 'ubuntu' }}
-      INPUT_OS_VERSION: ${{ inputs.os_version || '22.04' }}
-      INPUT_PACKAGE_TYPE: ${{ inputs.package_type || 'k8s-packages' }}
-      INPUT_K8S_VERSION: ${{ inputs.k8s_version || '1.31.11' }}
+      INPUT_OS_ID: ${{ inputs.os_id }}
+      INPUT_OS_VERSION: ${{ inputs.os_version }}
+      INPUT_PACKAGE_TYPE: ${{ inputs.package_type }}
+      INPUT_K8S_VERSION: ${{ inputs.k8s_version }}
       ADS_CLI_URL: https://quark.aoss.cn-sh-01.sensecoreapi-oss.cn/ads-cli/release/v1.9.0/ads-cli
       OSS_ENDPOINT: devops.aoss.cn-sh-01b.sensecoreapi-oss.cn
       OSS_BUCKET: sensecorex
@@ -154,7 +144,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          archive="${RUNNER_TEMP}/${ARCHIVE_STEM}.tar.gz"
+          upload_dir="${RUNNER_TEMP}/${ARCHIVE_STEM}-upload"
+          mkdir -p "$upload_dir"
+          archive="${upload_dir}/${ARCHIVE_STEM}.tar.gz"
           tar -C "$PACKAGE_ROOT" -czf "$archive" "$FOLDER_NAME"
           archive_size=$(stat -c '%s' "$archive")
           archive_size_human=$(du -h "$archive" | awk '{print $1}')
@@ -168,6 +160,7 @@ jobs:
             echo "archive_size_human=$archive_size_human"
             echo "md5_file=$md5_file"
             echo "md5_value=$md5_value"
+            echo "upload_dir=$upload_dir"
           } >> "$GITHUB_OUTPUT"
 
           echo "待上传文件："
@@ -189,7 +182,7 @@ jobs:
         env:
           AK: ${{ secrets.AK }}
           SK: ${{ secrets.SK }}
-          ARCHIVE: ${{ steps.archive.outputs.archive }}
+          UPLOAD_DIR: ${{ steps.archive.outputs.upload_dir }}
         run: |
           set -euo pipefail
 
@@ -198,10 +191,10 @@ jobs:
           echo "::add-mask::$AK"
           echo "::add-mask::$SK"
 
-          filename=$(basename "$ARCHIVE")
           destination="s3://${AK}:${SK}@${OSS_ENDPOINT}/${OSS_BUCKET}/${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
-          echo "上传 ${filename} 到 ${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
-          ads-cli --https --verbose --threads 100 sync "$ARCHIVE" "$destination"
+          echo "上传以下文件到 ${INPUT_OS_ID}/${INPUT_OS_VERSION}/："
+          find "$UPLOAD_DIR" -maxdepth 1 -type f -printf '  %f\n' | sort
+          ads-cli --https --verbose --threads 100 sync "${UPLOAD_DIR}/" "$destination"
 
       - name: Write summary
         if: success()

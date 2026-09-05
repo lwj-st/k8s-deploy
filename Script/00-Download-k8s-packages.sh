@@ -132,10 +132,8 @@ EOF
     dnf makecache
     log_info "下载 Kubernetes RPM 包及其依赖..."
     cd "${OUTPUT_DIR}"
-    dnf download --resolve --alldeps --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
-      log_warn "依赖解析失败，使用简单下载方式..."
-      dnf download --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
-    }
+    dnf download --resolve --alldeps --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || \
+      die "Kubernetes RPM 依赖解析或下载失败，拒绝生成不完整离线包"
   else
     yum clean all
     yum makecache
@@ -143,16 +141,15 @@ EOF
     cd "${OUTPUT_DIR}"
     # yum 需要安装 yum-plugin-downloadonly（如果可用）
     if yum install -y yum-plugin-downloadonly 2>/dev/null; then
-      yumdownloader --resolve --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
-        log_warn "依赖解析失败，使用简单下载方式..."
-        yumdownloader --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
-      }
+      yumdownloader --resolve --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || \
+        die "Kubernetes RPM 依赖解析或下载失败，拒绝生成不完整离线包"
     else
       # 如果没有 downloadonly 插件，尝试直接下载
       log_warn "yum-plugin-downloadonly 不可用，尝试其他方法..."
       # 使用 repotrack（如果可用）
       if command -v repotrack &>/dev/null; then
-        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-"${K8S_VERSION}" kubeadm-"${K8S_VERSION}" kubectl-"${K8S_VERSION}" || true
+        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-"${K8S_VERSION}" kubeadm-"${K8S_VERSION}" kubectl-"${K8S_VERSION}" || \
+          die "Kubernetes RPM 依赖解析或下载失败，拒绝生成不完整离线包"
       else
         log_error "无法下载 RPM 包，请手动安装 yum-plugin-downloadonly 或 repotrack"
         return 1

@@ -158,7 +158,7 @@ install_offline_rpms() {
     seen_names["${name}"]="$(basename "${pkg}")"
 
     case "${name}" in
-      kubelet|kubeadm|kubectl|cri-tools|kubernetes-cni)
+      kubelet|kubeadm|kubectl)
         nevra="$(rpm -qp --qf '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}' "${pkg}")"
         root_specs+=("${nevra}")
         case "${name}" in

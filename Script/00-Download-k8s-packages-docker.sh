@@ -273,14 +273,20 @@ if [ "${PKG_MGR}" = "dnf" ]; then
     dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes ${PKG_NAMES_VERSIONED} 2>&1 || true
+      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes ${PKG_NAMES_VERSIONED} 2>&1 || {
+        log "错误: Kubernetes RPM 及其依赖下载失败"
+        exit 1
+      }
     }
   elif command -v yumdownloader &>/dev/null; then
     log "dnf download 不可用，回退使用 yumdownloader..."
     yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || {
+        log "错误: Kubernetes RPM 及其依赖下载失败"
+        exit 1
+      }
     }
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
@@ -292,7 +298,10 @@ else
     yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
       ${PKG_NAMES_VERSIONED} 2>&1 || {
       log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || {
+        log "错误: Kubernetes RPM 及其依赖下载失败"
+        exit 1
+      }
     }
   else
     log "错误: yumdownloader 不可用（应该在安装工具阶段已安装）"
@@ -310,6 +319,12 @@ if [ "${PKG_COUNT}" -eq 0 ]; then
   log "错误: 未下载到任何 RPM 包，请检查仓库和插件配置"
   exit 1
 fi
+for required_pkg in kubelet kubeadm kubectl; do
+  compgen -G "${OUTPUT_DIR}/${required_pkg}-*.rpm" >/dev/null || {
+    log "错误: 缺少 Kubernetes 主包: ${required_pkg}"
+    exit 1
+  }
+done
 
 # 将全部候选依赖做成本地仓库。安装端只请求 Kubernetes 主包，
 # 由 dnf/yum 从这里选择目标机真正缺少的依赖，避免整目录强制安装。
