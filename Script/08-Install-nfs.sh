@@ -48,7 +48,7 @@ install_ubuntu_nfs_from_repo() {
   local install_ok=0
 
   if run_command_argv apt-get "${apt_opts[@]}" update && \
-    run_command_argv apt-get "${apt_opts[@]}" install -y --no-download --no-remove --no-install-recommends nfs-kernel-server; then
+    run_command_argv apt-get "${apt_opts[@]}" install -y --no-remove --no-install-recommends nfs-kernel-server; then
     install_ok=1
   fi
   rm -rf "${apt_tmp}"

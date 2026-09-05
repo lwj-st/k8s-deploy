@@ -110,7 +110,11 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   log "检测到 Ubuntu/Debian，使用 apt 下载 Kubernetes .deb 包..."
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq || true
-  apt-get install -y -qq curl ca-certificates gpg 2>/dev/null || true
+  apt-get install -y -qq curl ca-certificates gpg dpkg-dev 2>/dev/null || true
+  command -v dpkg-scanpackages &>/dev/null || {
+    log "错误: 未找到 dpkg-scanpackages，不能生成离线 APT 仓库元数据"
+    exit 1
+  }
 
   # Kubernetes 官方 apt 源（URL 格式须为 core:/stable:/vX.XX，见 https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/change-package-repository/）
   : "${K8S_DEB_REPO:?未配置 Kubernetes APT 源}"
@@ -119,6 +123,7 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   curl -fsSL "${K8S_DEB_KEY_URL}" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] ${K8S_DEB_REPO}/ /" > /etc/apt/sources.list.d/kubernetes.list
   apt-get update -qq || true
+  rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
 
   log "下载 kubelet/kubeadm/kubectl 及其依赖（仅下载不安装）..."
   apt-get install -d -y kubelet="${K8S_VERSION}-*" kubeadm="${K8S_VERSION}-*" kubectl="${K8S_VERSION}-*" 2>&1 || true
@@ -134,6 +139,22 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
     log "错误: 未下载到任何 .deb 包，请检查网络或版本 ${K8S_VERSION} 是否存在"
     exit 1
   fi
+  for required_pkg in kubelet kubeadm kubectl; do
+    compgen -G "${OUTPUT_DIR}/${required_pkg}_*.deb" >/dev/null || {
+      log "错误: 缺少 Kubernetes 主包: ${required_pkg}"
+      exit 1
+    }
+  done
+  (
+    cd "${OUTPUT_DIR}"
+    dpkg-scanpackages . /dev/null > Packages
+    gzip -9 -c Packages > Packages.gz
+  )
+  [ -f "${OUTPUT_DIR}/Packages.gz" ] || {
+    log "错误: 未生成 Packages.gz"
+    exit 1
+  }
+  log "已生成离线 APT 仓库元数据"
   log "下载完成！共 ${PKG_COUNT} 个 .deb 包"
   for pkg in "${DEB_FILES[@]}"; do
     size="$(du -h "${pkg}" | awk '{print $1}')"
@@ -401,8 +422,4 @@ log_info ""
 log_info "下一步："
 log_info "1. 将 ${OUTPUT_DIR} 目录复制到离线环境"
 log_info "2. 确保 artifacts.yaml 中的 path 指向正确路径"
-if [ "${OS_TYPE}" = "ubuntu" ]; then
-  log_info "3. 离线安装: dpkg -i *.deb 或 apt install ./*.deb（需与 13-Install-k8s-packages 等脚本配合）"
-else
-  log_info "3. 执行 13-Install-k8s-packages.sh 进行离线安装"
-fi
+log_info "3. 执行 13-Install-k8s-packages.sh，由本地仓库按需选择依赖"

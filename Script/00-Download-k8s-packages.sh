@@ -49,6 +49,9 @@ download_ubuntu_debs() {
   if ! command -v curl &>/dev/null; then
     apt-get update && apt-get install -y curl
   fi
+  if ! command -v dpkg-scanpackages &>/dev/null; then
+    apt-get update && apt-get install -y dpkg-dev
+  fi
   
   # 添加 Kubernetes GPG key
   mkdir -p /etc/apt/keyrings
@@ -92,6 +95,18 @@ download_ubuntu_debs() {
   shopt -s nullglob
   deb_pkgs=("${OUTPUT_DIR}"/*.deb)
   shopt -u nullglob
+
+  [ "${#deb_pkgs[@]}" -gt 0 ] || die "未下载到 Kubernetes DEB 包"
+  local required_pkg
+  for required_pkg in kubelet kubeadm kubectl; do
+    compgen -G "${OUTPUT_DIR}/${required_pkg}_*.deb" >/dev/null || die "缺少 Kubernetes 主包: ${required_pkg}"
+  done
+  (
+    cd "${OUTPUT_DIR}"
+    dpkg-scanpackages . /dev/null > Packages
+    gzip -9 -c Packages > Packages.gz
+  )
+  [ -f "${OUTPUT_DIR}/Packages.gz" ] || die "未生成 Packages.gz: ${OUTPUT_DIR}"
 
   log_info "✓ Ubuntu/Debian 包下载完成: ${OUTPUT_DIR}"
   log_info "  包数量: ${#deb_pkgs[@]}"
