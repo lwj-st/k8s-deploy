@@ -1,7 +1,7 @@
 name: Build And Upload Offline Packages
 
 run-name: >-
-  ${{ inputs.os_id || 'openeuler' }}-${{ inputs.os_version || '22.03-lts' }}-${{ inputs.package_type || 'k8s-packages' }}
+  ${{ inputs.os_id || 'ubuntu' }}-${{ inputs.os_version || '22.04' }}-${{ inputs.package_type || 'k8s-packages' }}
 
 on:
   # 临时测试：工作流进入默认分支后删除此 push 触发。
@@ -50,7 +50,7 @@ permissions:
 
 concurrency:
   group: >-
-    offline-packages-${{ inputs.os_id || 'openeuler' }}-${{ inputs.os_version || '22.03-lts' }}-${{ inputs.package_type || 'k8s-packages' }}
+    offline-packages-${{ inputs.os_id || 'ubuntu' }}-${{ inputs.os_version || '22.04' }}-${{ inputs.package_type || 'k8s-packages' }}
   cancel-in-progress: false
 
 jobs:
@@ -59,8 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      INPUT_OS_ID: ${{ inputs.os_id || 'openeuler' }}
-      INPUT_OS_VERSION: ${{ inputs.os_version || '22.03-lts' }}
+      INPUT_OS_ID: ${{ inputs.os_id || 'ubuntu' }}
+      INPUT_OS_VERSION: ${{ inputs.os_version || '22.04' }}
       INPUT_PACKAGE_TYPE: ${{ inputs.package_type || 'k8s-packages' }}
       INPUT_K8S_VERSION: ${{ inputs.k8s_version || '1.31.11' }}
       ADS_CLI_URL: https://quark.aoss.cn-sh-01.sensecoreapi-oss.cn/ads-cli/release/v1.9.0/ads-cli
@@ -157,16 +157,25 @@ jobs:
           archive="${RUNNER_TEMP}/${ARCHIVE_STEM}.tar.gz"
           tar -C "$PACKAGE_ROOT" -czf "$archive" "$FOLDER_NAME"
           archive_size=$(stat -c '%s' "$archive")
+          archive_size_human=$(du -h "$archive" | awk '{print $1}')
+          archive_filename=$(basename "$archive")
+          md5_file="${archive}.md5"
+          md5_value=$(md5sum "$archive" | awk '{print $1}')
+          printf '%s  %s\n' "$md5_value" "$archive_filename" > "$md5_file"
           {
             echo "archive=$archive"
             echo "archive_size=$archive_size"
+            echo "archive_size_human=$archive_size_human"
+            echo "md5_file=$md5_file"
+            echo "md5_value=$md5_value"
           } >> "$GITHUB_OUTPUT"
 
           echo "待上传文件："
-          printf '%s %s bytes\n' "$(basename "$archive")" "$archive_size"
+          printf '%s %s (%s bytes)\n' "$archive_filename" "$archive_size_human" "$archive_size"
+          printf '%s\n' "$(basename "$md5_file")"
+          echo "MD5: ${md5_value}  ${archive_filename}"
           echo "压缩包顶层目录："
           tar -tzf "$archive" | sed -n '1p'
-          sha256sum "$archive"
 
       - name: Install ads-cli
         run: |
@@ -192,7 +201,7 @@ jobs:
           filename=$(basename "$ARCHIVE")
           destination="s3://${AK}:${SK}@${OSS_ENDPOINT}/${OSS_BUCKET}/${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
           echo "上传 ${filename} 到 ${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
-          ads-cli --threads 100 sync "$ARCHIVE" "$destination"
+          ads-cli --https --verbose --threads 100 sync "$ARCHIVE" "$destination"
 
       - name: Write summary
         if: success()
@@ -201,6 +210,8 @@ jobs:
           FOLDER_NAME: ${{ steps.download.outputs.folder_name }}
           PACKAGE_COUNT: ${{ steps.download.outputs.package_count }}
           ARCHIVE_SIZE: ${{ steps.archive.outputs.archive_size }}
+          ARCHIVE_SIZE_HUMAN: ${{ steps.archive.outputs.archive_size_human }}
+          MD5_VALUE: ${{ steps.archive.outputs.md5_value }}
         run: |
           echo "下载与恢复方法："
           echo "1. 下载 ${ARCHIVE_STEM}.tar.gz"
@@ -214,7 +225,8 @@ jobs:
             echo "- 类型：${INPUT_PACKAGE_TYPE}"
             echo "- 包数量：${PACKAGE_COUNT}"
             echo "- 压缩包：${ARCHIVE_STEM}.tar.gz"
-            echo "- 压缩后大小：${ARCHIVE_SIZE} bytes"
+            echo "- 压缩后大小：${ARCHIVE_SIZE_HUMAN}（${ARCHIVE_SIZE} bytes）"
+            echo "- MD5：${MD5_VALUE}"
             echo "- 解压后目录：${FOLDER_NAME}/"
             echo "- OSS 目录：${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
             echo
@@ -223,6 +235,7 @@ jobs:
             echo "下载 \`${ARCHIVE_STEM}.tar.gz\` 后执行："
             echo
             echo '```bash'
+            echo "echo '${MD5_VALUE}  ${ARCHIVE_STEM}.tar.gz' | md5sum -c -"
             echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
