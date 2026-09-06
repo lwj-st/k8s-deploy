@@ -33,6 +33,11 @@ description: Use when creating or editing k8s-deploy shell scripts, especially s
    - `01-Cluster-host.sh` 必须展示自动识别的版本，并要求用户从当前 OS 的支持列表选择 `TARGET_OS_VERSION`。
    - 后续脚本只使用 `TARGET_OS_VERSION` 选择离线包；不允许以自动识别版本覆盖用户选择。
    - 不在支持列表中的 OS 或版本必须退出，不能回退到其他发行版或版本；Debian 不作为受支持目标系统。
+9. 所有改动都必须检查对支持矩阵中每个 `os_id + os_version` 的影响，不能为了修复或优化一个平台破坏其他平台。
+   - 修改共享流程前，逐项检查 Ubuntu 的 APT/DEB 与 CentOS、Rocky、openEuler、Kylin 的 YUM/DNF/RPM 分支；发行版特有的仓库名、包名、服务名和命令参数只能放在对应分支或版本化配置中。
+   - 新增平台差异时优先扩展 `manifests/artifacts.yaml` 或 `config/package-repos/<os_id>/<os_version>/`，不要把某个 OS 的默认值写进所有 RPM 系或所有 Linux 的共享路径。
+   - 修改下载、安装、路径或 CI 逻辑时，测试必须覆盖所有受影响的支持组合；无法执行真实环境测试时，要明确说明未验证范围，不能把单一 OS 的通过结果当成全平台通过。
+   - 审查改动时同时检查未修改分支的行为是否保持不变，并确认不支持的平台仍会明确退出。
 
 ## 脚本标头
 

@@ -1,0 +1,234 @@
+name: Build And Upload Offline Packages
+
+run-name: >-
+  ${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_id:
+        description: 目标操作系统
+        required: true
+        type: choice
+        default: ubuntu
+        options:
+          - ubuntu
+          - centos
+          - rocky
+          - openeuler
+          - kylin
+      os_version:
+        description: 目标系统版本，例如 22.03-lts、9.3、22.04
+        required: true
+        type: string
+        default: 22.04
+      package_type:
+        description: 要下载的离线包类型
+        required: true
+        type: choice
+        options:
+          - k8s-packages
+          - tools-packages
+      k8s_version:
+        description: Kubernetes 版本，仅 k8s-packages 使用
+        required: true
+        type: string
+        default: 1.31.11
+
+permissions:
+  contents: read
+
+concurrency:
+  group: >-
+    offline-packages-${{ inputs.os_id }}-${{ inputs.os_version }}-${{ inputs.package_type }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-upload:
+    name: Download, package and upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      INPUT_OS_ID: ${{ inputs.os_id }}
+      INPUT_OS_VERSION: ${{ inputs.os_version }}
+      INPUT_PACKAGE_TYPE: ${{ inputs.package_type }}
+      INPUT_K8S_VERSION: ${{ inputs.k8s_version }}
+      ADS_CLI_URL: https://quark.aoss.cn-sh-01.sensecoreapi-oss.cn/ads-cli/release/v1.9.0/ads-cli
+      OSS_ENDPOINT: devops.aoss.cn-sh-01b.sensecoreapi-oss.cn
+      OSS_BUCKET: sensecorex
+      OSS_PACKAGE_PREFIX: x86/download/packages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+
+          case "$INPUT_OS_ID" in
+            ubuntu|centos|rocky|openeuler|kylin) ;;
+            *) echo "不支持的 os_id: $INPUT_OS_ID"; exit 1 ;;
+          esac
+          case "$INPUT_PACKAGE_TYPE" in
+            k8s-packages|tools-packages) ;;
+            *) echo "不支持的 package_type: $INPUT_PACKAGE_TYPE"; exit 1 ;;
+          esac
+          [[ "$INPUT_OS_VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || {
+            echo "os_version 格式不正确: $INPUT_OS_VERSION"
+            exit 1
+          }
+          [[ "$INPUT_K8S_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "k8s_version 格式不正确: $INPUT_K8S_VERSION"
+            exit 1
+          }
+
+          source Script/framework.sh
+          platform_is_supported "$INPUT_OS_ID" "$INPUT_OS_VERSION" || {
+            echo "不支持的平台组合: ${INPUT_OS_ID}-${INPUT_OS_VERSION}"
+            echo "该系统支持的版本:"
+            platform_get_supported_versions "$INPUT_OS_ID"
+            exit 1
+          }
+
+      - name: Download offline packages
+        id: download
+        run: |
+          set -euo pipefail
+
+          archive_stem="${INPUT_OS_ID}-${INPUT_OS_VERSION}-${INPUT_PACKAGE_TYPE}-x86"
+          package_root="${RUNNER_TEMP}/${archive_stem}-content"
+          case "$INPUT_PACKAGE_TYPE" in
+            k8s-packages) folder_name=kubernetes ;;
+            tools-packages) folder_name=tools ;;
+          esac
+          output_dir="${package_root}/${folder_name}"
+          mkdir -p "$output_dir"
+
+          case "$INPUT_PACKAGE_TYPE" in
+            k8s-packages)
+              bash Script/00-Download-k8s-packages-docker.sh \
+                "$INPUT_OS_ID" \
+                "$INPUT_OS_VERSION" \
+                "$output_dir" \
+                "$INPUT_K8S_VERSION"
+              ;;
+            tools-packages)
+              bash Script/00-Download-tools-packages-docker.sh \
+                "$INPUT_OS_ID" \
+                "$INPUT_OS_VERSION" \
+                "$output_dir"
+              ;;
+          esac
+
+          package_count=$(find "$output_dir" -type f \( -name '*.rpm' -o -name '*.deb' \) | wc -l)
+          if [ "$package_count" -lt 1 ]; then
+            echo "下载目录中没有 RPM 或 DEB: $output_dir"
+            exit 1
+          fi
+
+          {
+            echo "archive_stem=$archive_stem"
+            echo "folder_name=$folder_name"
+            echo "package_root=$package_root"
+            echo "output_dir=$output_dir"
+            echo "package_count=$package_count"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create archive
+        id: archive
+        env:
+          ARCHIVE_STEM: ${{ steps.download.outputs.archive_stem }}
+          FOLDER_NAME: ${{ steps.download.outputs.folder_name }}
+          PACKAGE_ROOT: ${{ steps.download.outputs.package_root }}
+        run: |
+          set -euo pipefail
+
+          upload_dir="${RUNNER_TEMP}/${ARCHIVE_STEM}-upload"
+          mkdir -p "$upload_dir"
+          archive="${upload_dir}/${ARCHIVE_STEM}.tar.gz"
+          tar -C "$PACKAGE_ROOT" -czf "$archive" "$FOLDER_NAME"
+          archive_size=$(stat -c '%s' "$archive")
+          archive_size_human=$(du -h "$archive" | awk '{print $1}')
+          archive_filename=$(basename "$archive")
+          md5_file="${archive}.md5"
+          md5_value=$(md5sum "$archive" | awk '{print $1}')
+          printf '%s  %s\n' "$md5_value" "$archive_filename" > "$md5_file"
+          {
+            echo "archive=$archive"
+            echo "archive_size=$archive_size"
+            echo "archive_size_human=$archive_size_human"
+            echo "md5_file=$md5_file"
+            echo "md5_value=$md5_value"
+            echo "upload_dir=$upload_dir"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "待上传文件："
+          printf '%s %s (%s bytes)\n' "$archive_filename" "$archive_size_human" "$archive_size"
+          printf '%s\n' "$(basename "$md5_file")"
+          echo "MD5: ${md5_value}  ${archive_filename}"
+          echo "压缩包顶层目录："
+          tar -tzf "$archive" | sed -n '1p'
+
+      - name: Install ads-cli
+        run: |
+          set -euo pipefail
+
+          wget --https-only --tries=3 -O ads-cli "$ADS_CLI_URL"
+          chmod +x ads-cli
+          sudo mv ads-cli /usr/bin/ads-cli
+
+      - name: Upload to OSS
+        env:
+          AK: ${{ secrets.AK }}
+          SK: ${{ secrets.SK }}
+          UPLOAD_DIR: ${{ steps.archive.outputs.upload_dir }}
+        run: |
+          set -euo pipefail
+
+          [ -n "$AK" ] || { echo "缺少 GitHub Secret: AK"; exit 1; }
+          [ -n "$SK" ] || { echo "缺少 GitHub Secret: SK"; exit 1; }
+          echo "::add-mask::$AK"
+          echo "::add-mask::$SK"
+
+          destination="s3://${AK}:${SK}@${OSS_ENDPOINT}/${OSS_BUCKET}/${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
+          echo "上传以下文件到 ${INPUT_OS_ID}/${INPUT_OS_VERSION}/："
+          find "$UPLOAD_DIR" -maxdepth 1 -type f -printf '  %f\n' | sort
+          ads-cli --https --verbose --threads 100 sync "${UPLOAD_DIR}/" "$destination"
+
+      - name: Write summary
+        if: success()
+        env:
+          ARCHIVE_STEM: ${{ steps.download.outputs.archive_stem }}
+          FOLDER_NAME: ${{ steps.download.outputs.folder_name }}
+          PACKAGE_COUNT: ${{ steps.download.outputs.package_count }}
+          ARCHIVE_SIZE: ${{ steps.archive.outputs.archive_size }}
+          ARCHIVE_SIZE_HUMAN: ${{ steps.archive.outputs.archive_size_human }}
+          MD5_VALUE: ${{ steps.archive.outputs.md5_value }}
+        run: |
+          echo "下载与恢复方法："
+          echo "1. 下载 ${ARCHIVE_STEM}.tar.gz"
+          echo "2. 解压：tar -xzf ${ARCHIVE_STEM}.tar.gz"
+          echo "3. 解压后顶层目录：${FOLDER_NAME}/"
+
+          {
+            echo "## 离线包上传完成"
+            echo
+            echo "- 平台：${INPUT_OS_ID}-${INPUT_OS_VERSION}"
+            echo "- 类型：${INPUT_PACKAGE_TYPE}"
+            echo "- 包数量：${PACKAGE_COUNT}"
+            echo "- 压缩包：${ARCHIVE_STEM}.tar.gz"
+            echo "- 压缩后大小：${ARCHIVE_SIZE_HUMAN}（${ARCHIVE_SIZE} bytes）"
+            echo "- MD5：${MD5_VALUE}"
+            echo "- 解压后目录：${FOLDER_NAME}/"
+            echo "- OSS 目录：${OSS_PACKAGE_PREFIX}/${INPUT_OS_ID}/${INPUT_OS_VERSION}/"
+            echo
+            echo "### 下载与恢复"
+            echo
+            echo "下载 \`${ARCHIVE_STEM}.tar.gz\` 后执行："
+            echo
+            echo '```bash'
+            echo "echo '${MD5_VALUE}  ${ARCHIVE_STEM}.tar.gz' | md5sum -c -"
+            echo "tar -xzf ${ARCHIVE_STEM}.tar.gz"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

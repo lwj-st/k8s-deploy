@@ -64,6 +64,8 @@ log() {
 mkdir -p "${OUTPUT_DIR}"
 source /repo-config/apply.sh
 apply_package_repos "${OS_TYPE}" "${OS_VERSION}"
+# 历史版本曾生成 baseos 聚合目录；新版本按工具建立独立仓库，避免全量安装。
+rm -rf "${OUTPUT_DIR}/baseos" 2>/dev/null || true
 
 ################################################################################
 # Ubuntu/Debian：apt 下载 .deb
@@ -72,23 +74,29 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   log "检测到 Ubuntu，使用 apt 下载 .deb 包..."
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq || true
+  if ! command -v dpkg-scanpackages &>/dev/null; then
+    apt-get install -y -qq dpkg-dev
+  fi
+  rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
 
   # 按工具「一个一个下载」：每个工具单独 apt-get install -d，只得到该工具及其真实依赖，再清缓存，避免依赖解析错乱
   # rsyslog / rsyslog-gnutls / logrotate / openssl：30-Deploy-rsyslog.sh
   # coreutils util-linux procps kmod gawk grep sed：04-Check-required-commands.sh 中部分 check_required 在极简/裁剪镜像上可能缺（iptables/ip6tables 随发行版基础环境提供，不单列）
   PRIMARY_TOOLS="vim git tmux net-tools curl wget iputils-ping dnsutils telnet lsof unzip rsync chrony sysstat netcat-openbsd strace tcpdump psmisc less file zip openssh-client screen mlocate iproute2 ethtool numactl bash-completion ca-certificates jq tree htop silversearcher-ag nfs-kernel-server coreutils util-linux procps kmod gawk grep sed rsyslog rsyslog-gnutls logrotate openssl"
   total_debs=0
-  mkdir -p "${OUTPUT_DIR}/baseos"
   for tool in ${PRIMARY_TOOLS}; do
     log "下载工具: ${tool}（仅下载不安装）..."
     apt-get install -d -y "${tool}" 2>&1 || true
     mkdir -p "${OUTPUT_DIR}/${tool}"
-    # 所有新下载的包统一汇总到 baseos，同时按工具分目录；baseos 目录可用于“先装基础依赖，再按需装工具”，方便完全离线环境
-    cp -n /var/cache/apt/archives/*.deb "${OUTPUT_DIR}/baseos/" 2>/dev/null || true
     cp -n /var/cache/apt/archives/*.deb "${OUTPUT_DIR}/${tool}/" 2>/dev/null || true
     n=$(find "${OUTPUT_DIR}/${tool}" -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
     if [ "${n}" -gt 0 ]; then
-      echo "安装: sudo dpkg -i ${tool}/*.deb" > "${OUTPUT_DIR}/${tool}/README.txt"
+      (
+        cd "${OUTPUT_DIR}/${tool}"
+        dpkg-scanpackages . /dev/null > Packages
+        gzip -9 -c Packages > Packages.gz
+      )
+      echo "本目录是离线 APT 仓库；安装时只请求主包 ${tool}。" > "${OUTPUT_DIR}/${tool}/README.txt"
       total_debs=$((total_debs + n))
       log "  ${tool}: ${n} 个包"
     else
@@ -102,13 +110,8 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   fi
   log "下载完成！各工具子目录共 ${total_debs} 个 .deb（按工具分别存放）"
   cat > "${OUTPUT_DIR}/README.txt" <<'BYTOOL_EOF'
-按工具分子目录，只装一个工具时进入对应目录执行即可。
-例如只装 vim:   sudo dpkg -i vim/*.deb
-例如只装 git:   sudo dpkg -i git/*.deb
-
-如果是几乎“裸机”的离线环境，建议先安装 baseos 目录中的基础依赖：
-  sudo dpkg -i baseos/*.deb || true
-然后再按需进入各工具子目录补充安装。
+每个工具子目录都是独立的离线 APT 仓库，包含主包、候选依赖和
+Packages/Packages.gz 元数据。安装端应只请求主包，由 APT 选择实际依赖。
 BYTOOL_EOF
   log "子目录: $(ls -d ${OUTPUT_DIR}/*/ 2>/dev/null | xargs -I{} basename {} | tr '\n' ' ')"
   exit 0
@@ -166,6 +169,15 @@ cd "${OUTPUT_DIR}"
 
 log "待下载工具包（基础 + 扩展）..."
 
+if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
+  log "安装本地仓库元数据工具..."
+  ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo_c || \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo || {
+      log "错误: 无法安装 createrepo_c/createrepo"
+      exit 1
+    }
+fi
+
 download_pkgs() {
   local pkgs="$1"
   local destdir="$2"
@@ -194,24 +206,23 @@ else
   log "下载完成！共 ${PKG_COUNT} 个 RPM 包（已按工具目录存放）"
 fi
 
-# 提供 baseos（基础依赖全集），便于离线环境先批量安装
-rm -rf "${OUTPUT_DIR}/baseos" 2>/dev/null || true
-mkdir -p "${OUTPUT_DIR}/baseos"
-for f in "${OUTPUT_DIR}"/*/*.rpm; do
-  [ -f "$f" ] || continue
-  cp -n "$f" "${OUTPUT_DIR}/baseos/" 2>/dev/null || true
+for repo_dir in "${OUTPUT_DIR}"/*/; do
+  [ -d "${repo_dir}" ] || continue
+  compgen -G "${repo_dir}/*.rpm" >/dev/null || continue
+  if command -v createrepo_c &>/dev/null; then
+    createrepo_c --update "${repo_dir}"
+  else
+    createrepo --update "${repo_dir}"
+  fi
+  [ -f "${repo_dir}/repodata/repomd.xml" ] || {
+    log "错误: 未生成仓库元数据: ${repo_dir}"
+    exit 1
+  }
 done
 
 cat > "${OUTPUT_DIR}/README.txt" <<'RPMTOOL_EOF'
-按工具分好的子目录，只装一个工具时进入对应目录执行即可。
-例如只装 vim: sudo rpm -ivh vim-enhanced/*.rpm 或 sudo yum localinstall vim-enhanced/*.rpm
-例如只装 git: sudo rpm -ivh git/*.rpm
-
-如果是几乎“裸机”的离线环境，建议：
-  1. 先安装 baseos 目录中的基础依赖：
-       sudo rpm -ivh baseos/*.rpm || sudo yum localinstall baseos/*.rpm
-  2. 再按需进入各工具子目录补充安装对应工具：
-       cd <工具名> && sudo rpm -ivh *.rpm
+每个工具子目录都是独立的离线 YUM/DNF 仓库，包含主包、候选依赖和
+repodata/ 元数据。安装端应只请求主包，由 YUM/DNF 选择实际依赖。
 RPMTOOL_EOF
 log "子目录: $(for d in "${OUTPUT_DIR}"/*/; do [ -d "$d" ] || continue; basename "$d"; done | tr '\n' ' ' || true)"
 SCRIPT_EOF
@@ -290,9 +301,7 @@ for d in "${OUTPUT_DIR}"/*/; do
 done
 log_info ""
 if [ "${OS_TYPE}" = "ubuntu" ]; then
-  log_info "下一步：cd ${OUTPUT_DIR} && sudo dpkg -i <工具名>/*.deb（如 vim/*.deb、nfs-kernel-server/*.deb）"
+  log_info "下一步：使用对应部署脚本从工具子目录的本地 APT 仓库按需安装；NFS 执行 08-Install-nfs.sh"
 else
-  log_info "下一步："
-  log_info "  - 只装单个工具：cd ${OUTPUT_DIR} && sudo rpm -ivh vim-enhanced/*.rpm 或 git/*.rpm 等"
-  log_info "  - 全装：根据需要依次进入各工具子目录，批量安装 *.rpm"
+  log_info "下一步：使用对应部署脚本从工具子目录的本地 YUM/DNF 仓库按需安装；NFS 执行 08-Install-nfs.sh"
 fi

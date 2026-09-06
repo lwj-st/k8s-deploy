@@ -86,7 +86,7 @@ EOF
 
 ################################################################################
 # Function: configure_sysctl
-# Description: 写入 sysctl 配置并应用（容错：sysctl --system 失败不致命）
+# Description: 写入 sysctl 配置并应用，关键参数必须校验成功
 ################################################################################
 configure_sysctl() {
   backup_if_exists "${SYSCTL_FILE}"
@@ -98,7 +98,17 @@ vm.swappiness = 0
 fs.inotify.max_user_instances = 8192
 fs.inotify.max_user_watches = 1048576
 EOF
-  log_command "sysctl --system || true"
+  if ! sysctl --system; then
+    log_warn "sysctl --system 未完全成功，继续单独应用 Kubernetes 关键参数"
+  fi
+
+  # 某些发行版的其他 sysctl 文件或系统服务可能把 ip_forward 重置为 0。
+  # 在所有配置加载结束后再次显式设置，并以运行时值作为最终判断依据。
+  log_command "sysctl -w net.ipv4.ip_forward=1"
+  if [ "$(sysctl -n net.ipv4.ip_forward 2>/dev/null || true)" != "1" ]; then
+    die "无法启用 net.ipv4.ip_forward；请检查内核限制或是否有其他服务持续覆盖该参数"
+  fi
+  log_info "已确认 net.ipv4.ip_forward=1"
 }
 
 ################################################################################
@@ -129,4 +139,3 @@ main() {
 }
 
 main "$@"
-

@@ -49,6 +49,9 @@ download_ubuntu_debs() {
   if ! command -v curl &>/dev/null; then
     apt-get update && apt-get install -y curl
   fi
+  if ! command -v dpkg-scanpackages &>/dev/null; then
+    apt-get update && apt-get install -y dpkg-dev
+  fi
   
   # 添加 Kubernetes GPG key
   mkdir -p /etc/apt/keyrings
@@ -93,6 +96,18 @@ download_ubuntu_debs() {
   deb_pkgs=("${OUTPUT_DIR}"/*.deb)
   shopt -u nullglob
 
+  [ "${#deb_pkgs[@]}" -gt 0 ] || die "未下载到 Kubernetes DEB 包"
+  local required_pkg
+  for required_pkg in kubelet kubeadm kubectl; do
+    compgen -G "${OUTPUT_DIR}/${required_pkg}_*.deb" >/dev/null || die "缺少 Kubernetes 主包: ${required_pkg}"
+  done
+  (
+    cd "${OUTPUT_DIR}"
+    dpkg-scanpackages . /dev/null > Packages
+    gzip -9 -c Packages > Packages.gz
+  )
+  [ -f "${OUTPUT_DIR}/Packages.gz" ] || die "未生成 Packages.gz: ${OUTPUT_DIR}"
+
   log_info "✓ Ubuntu/Debian 包下载完成: ${OUTPUT_DIR}"
   log_info "  包数量: ${#deb_pkgs[@]}"
 }
@@ -117,10 +132,8 @@ EOF
     dnf makecache
     log_info "下载 Kubernetes RPM 包及其依赖..."
     cd "${OUTPUT_DIR}"
-    dnf download --resolve --alldeps --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
-      log_warn "依赖解析失败，使用简单下载方式..."
-      dnf download --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
-    }
+    dnf download --resolve --alldeps --disableexcludes=kubernetes kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || \
+      die "Kubernetes RPM 依赖解析或下载失败，拒绝生成不完整离线包"
   else
     yum clean all
     yum makecache
@@ -128,16 +141,15 @@ EOF
     cd "${OUTPUT_DIR}"
     # yum 需要安装 yum-plugin-downloadonly（如果可用）
     if yum install -y yum-plugin-downloadonly 2>/dev/null; then
-      yumdownloader --resolve --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || {
-        log_warn "依赖解析失败，使用简单下载方式..."
-        yumdownloader --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || true
-      }
+      yumdownloader --resolve --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" kubelet-"${K8S_VERSION}"-* kubeadm-"${K8S_VERSION}"-* kubectl-"${K8S_VERSION}"-* || \
+        die "Kubernetes RPM 依赖解析或下载失败，拒绝生成不完整离线包"
     else
       # 如果没有 downloadonly 插件，尝试直接下载
       log_warn "yum-plugin-downloadonly 不可用，尝试其他方法..."
       # 使用 repotrack（如果可用）
       if command -v repotrack &>/dev/null; then
-        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-"${K8S_VERSION}" kubeadm-"${K8S_VERSION}" kubectl-"${K8S_VERSION}" || true
+        repotrack -a x86_64 -p "${OUTPUT_DIR}" kubelet-"${K8S_VERSION}" kubeadm-"${K8S_VERSION}" kubectl-"${K8S_VERSION}" || \
+          die "Kubernetes RPM 依赖解析或下载失败，拒绝生成不完整离线包"
       else
         log_error "无法下载 RPM 包，请手动安装 yum-plugin-downloadonly 或 repotrack"
         return 1
@@ -171,6 +183,27 @@ download_kylin_rpms() {
   log_info "✓ Kylin RPM 包下载完成: ${OUTPUT_DIR}"
 }
 
+create_rpm_repo_metadata() {
+  if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
+    log_info "安装本地仓库元数据工具..."
+    if command -v dnf &>/dev/null; then
+      dnf install -y createrepo_c || dnf install -y createrepo
+    else
+      yum install -y createrepo_c || yum install -y createrepo
+    fi
+  fi
+
+  log_info "生成离线 YUM/DNF 仓库元数据..."
+  if command -v createrepo_c &>/dev/null; then
+    createrepo_c --update "${OUTPUT_DIR}"
+  elif command -v createrepo &>/dev/null; then
+    createrepo --update "${OUTPUT_DIR}"
+  else
+    die "未找到 createrepo_c/createrepo，不能生成离线仓库元数据"
+  fi
+  [ -f "${OUTPUT_DIR}/repodata/repomd.xml" ] || die "未生成 repodata/repomd.xml: ${OUTPUT_DIR}"
+}
+
 case "${OS_TYPE}" in
   ubuntu)
     download_ubuntu_debs
@@ -188,6 +221,10 @@ case "${OS_TYPE}" in
     die "不支持的 OS 类型: ${OS_TYPE}"
     ;;
 esac
+
+if [ "${OS_TYPE}" != "ubuntu" ]; then
+  create_rpm_repo_metadata
+fi
 
 log_info ""
 log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

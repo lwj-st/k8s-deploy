@@ -8,7 +8,7 @@
 - `Script/00-Download-tools-packages-docker.sh` 可提前下载所需的工具包，可以使用 Docker 容器来模拟 (可选)
 - `Script/00-Download-tools-packages.sh` 本机 `apt`/`yum` 拉工具离线包，无 Docker（可选）；已满足的依赖不再进缓存，包量常与 Docker 版不完全一致
 - `Script/01-Cluster-host.sh`：交互式生成 `Script/environment.sh`（所有配置统一从这里来）
-- `Script/02-Download.sh`：按清单下载（可选 MD5 校验）
+- `Script/02-Download.sh`：下载当前 OS/目标版本的 Kubernetes、tools 离线包，并按清单补齐其他制品
 - `Script/03-Verify-artifacts.sh`：检查制品是否齐全（缺失直接退出，清单见 `manifests/artifacts.yaml`）
 - `Script/08-Install-nfs.sh`：安装nfs 共享
 - `Script/09-Install-tools.sh`：安装 helm/helmfile
@@ -111,6 +111,13 @@ bash 02-Download.sh
 cd /data/download
 bash pkg_download.sh pkg_md5_ubuntu24.04.txt 
 ```
+
+`02-Download.sh` 会根据当前系统和 `environment.sh` 中的 `TARGET_OS_VERSION`，从 OSS 下载：
+
+- `<OS>-<版本>-k8s-packages-x86.tar.gz`，解压后为 `kubernetes/`
+- `<OS>-<版本>-tools-packages-x86.tar.gz`，解压后为 `tools/`
+
+`/data/download/packages/` 必须预先存在；脚本会自动创建 `<OS>/<版本>/`。脚本会下载对应的 `.tar.gz.md5` 文件并校验压缩包，MD5 不一致时立即退出；校验通过后解压，压缩包和 MD5 文件仍保留在版本目录中。
 
 下载完成后校验制品（建议 `MAAS_MD5_CHECK=1`，能发现坏包/截断包）：
 
@@ -285,6 +292,9 @@ kubectl get nodes <节点名> -o yaml | grep -A5 "labels:"
 ## 说明
 - 所有“可能覆盖的文件/目录”会先 `mv` 成 `原名.k8s-deploy.<时间戳>`，并记录在 `/var/lib/k8s-deploy/backups.tsv`，供清理脚本回滚使用。
 - 离线模式下，OS 依赖包与 `kubelet/kubeadm/kubectl` 需要你提前放到清单指定目录。
+- RPM 下载脚本会在离线目录生成 `repodata/` 本地仓库元数据。安装时只请求 `kubelet/kubeadm/kubectl/cri-tools/kubernetes-cni`，由 dnf/yum 从本地仓库选择真正需要的依赖；不会整目录安装，也不会使用 `--allowerasing` 替换或删除宿主机的软件包。离线目录若包含同名多版本 RPM，会要求先清理旧版本，避免选择错误版本。
+- Ubuntu Kubernetes 下载目录会生成 `Packages/Packages.gz`。安装时只请求精确版本的 `kubelet/kubeadm/kubectl`，由临时本地 APT 仓库选择实际依赖；不会整目录安装，也不会修改宿主机已有的软件源。
+- 工具包下载脚本会为每个工具子目录生成本地仓库元数据（DEB 为 `Packages/Packages.gz`，RPM 为 `repodata/`）。安装 NFS 时只请求 Ubuntu 的 `nfs-kernel-server` 或 RPM 系统的 `nfs-utils`，其余包仅作为候选依赖，不会整目录安装。
 - `Script/environment.sh` 是唯一配置入口（由 `01-Cluster-host.sh` 生成）。你如果**手动移动了下载目录**，请同步修改 `DOWNLOAD_DIR`，脚本不会自动帮你创建软链或改回路径。
 
 ## 系统准备（Kubernetes 1.31 + containerd）

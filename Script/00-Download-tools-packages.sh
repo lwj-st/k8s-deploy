@@ -68,6 +68,11 @@ download_ubuntu_tools() {
   log_info "使用 apt 下载 .deb（仅下载，不安装到系统；按工具分子目录，无 baseos）..."
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -qq || true
+  if ! command -v dpkg-scanpackages &>/dev/null; then
+    log_info "安装本地 APT 仓库元数据工具 dpkg-dev..."
+    apt-get install -y dpkg-dev
+  fi
+  ubuntu_clear_archives
 
   local total_debs=0
   local tool n
@@ -97,7 +102,12 @@ download_ubuntu_tools() {
     fi
 
     if [ "${n}" -gt 0 ]; then
-      echo "安装: sudo dpkg -i ${tool}/*.deb" > "${OUTPUT_DIR}/${tool}/README.txt"
+      (
+        cd "${OUTPUT_DIR}/${tool}"
+        dpkg-scanpackages . /dev/null > Packages
+        gzip -9 -c Packages > Packages.gz
+      )
+      echo "本目录是离线 APT 仓库；安装时只请求主包 ${tool}。" > "${OUTPUT_DIR}/${tool}/README.txt"
       total_debs=$((total_debs + n))
       log_info "  ${tool}: ${n} 个包"
     else
@@ -115,11 +125,8 @@ download_ubuntu_tools() {
   fi
 
   cat > "${OUTPUT_DIR}/README.txt" <<'BYTOOL_EOF'
-每个子目录对应一类工具及其依赖 .deb，按需进入目录安装即可。
-例如只装 vim:   sudo dpkg -i vim/*.deb
-例如只装 git:   sudo dpkg -i git/*.deb
-
-若 dpkg 报依赖缺失，先安装该工具目录内全部 .deb；仍缺则再装相关工具目录中的包。
+每个工具子目录都是独立的离线 APT 仓库，包含主包、候选依赖和
+Packages/Packages.gz 元数据。安装端应只请求主包，由 APT 选择实际依赖。
 BYTOOL_EOF
   log_info "✓ Ubuntu/Debian 包下载完成: ${OUTPUT_DIR}"
 }
@@ -240,10 +247,29 @@ REPO_EOF
 
   ${PKG_MGR} makecache 2>/dev/null || true
 
+  if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
+    log_info "安装本地仓库元数据工具..."
+    ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo_c || \
+      ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo || \
+      die "无法安装 createrepo_c/createrepo"
+  fi
+
   log_info "逐个下载基础工具包..."
   for tool in ${TOOLS_BASE}; do
     log_info "下载工具: ${tool}..."
     download_pkgs_rpm "${tool}" "${OUTPUT_DIR}/${tool}"
+  done
+
+  local repo_dir
+  for repo_dir in "${OUTPUT_DIR}"/*/; do
+    [ -d "${repo_dir}" ] || continue
+    compgen -G "${repo_dir}/*.rpm" >/dev/null || continue
+    if command -v createrepo_c &>/dev/null; then
+      createrepo_c --update "${repo_dir}"
+    else
+      createrepo --update "${repo_dir}"
+    fi
+    [ -f "${repo_dir}/repodata/repomd.xml" ] || die "未生成仓库元数据: ${repo_dir}"
   done
 
   PKG_COUNT=$(find "${OUTPUT_DIR}" -maxdepth 2 -name "*.rpm" 2>/dev/null | wc -l)
@@ -254,11 +280,8 @@ REPO_EOF
   fi
 
   cat > "${OUTPUT_DIR}/README.txt" <<'RPMTOOL_EOF'
-每个子目录对应一类工具及其依赖 .rpm，按需进入目录安装即可。
-例如只装 vim: sudo rpm -ivh vim-enhanced/*.rpm 或 sudo yum localinstall vim-enhanced/*.rpm
-例如只装 git: sudo rpm -ivh git/*.rpm
-
-若 rpm 报依赖缺失，在同一工具目录内应已包含解析时拉取的依赖；仍缺时再装相关工具子目录中的包。
+每个工具子目录都是独立的离线 YUM/DNF 仓库，包含主包、候选依赖和
+repodata/ 元数据。安装端应只请求主包，由 YUM/DNF 选择实际依赖。
 RPMTOOL_EOF
   log_info "✓ RPM 包下载完成: ${OUTPUT_DIR}"
 }
