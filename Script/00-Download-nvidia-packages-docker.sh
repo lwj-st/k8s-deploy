@@ -199,11 +199,22 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
     -o /etc/yum.repos.d/nvidia-container-toolkit.repo
 
   # 仅刷新 NVIDIA 仓库，并通过 -y 在 CI 中非交互确认导入官方 GPG Key。
-  ${PKG_MGR} ${PKG_MGR_FLAGS} --disablerepo="*" \
-    --enablerepo=nvidia-container-toolkit makecache || {
+  # Kylin V10 SP1 的旧版 DNF 首次导入仓库密钥后会返回 141，
+  # 但密钥已正常写入；仅对该版本重试一次，其他平台仍严格失败。
+  if ! ${PKG_MGR} ${PKG_MGR_FLAGS} --disablerepo="*" \
+    --enablerepo=nvidia-container-toolkit makecache; then
+    if [ "${OS_TYPE}" = "kylin" ] && [ "${OS_VERSION}" = "v10-sp1" ]; then
+      log "Kylin V10 SP1 首次刷新已导入 NVIDIA GPG 密钥，重试仓库校验..."
+      ${PKG_MGR} ${PKG_MGR_FLAGS} --disablerepo="*" \
+        --enablerepo=nvidia-container-toolkit makecache || {
+          log "错误: NVIDIA 仓库元数据或 GPG 签名校验失败"
+          exit 1
+        }
+    else
       log "错误: NVIDIA 仓库元数据或 GPG 签名校验失败"
       exit 1
-    }
+    fi
+  fi
 
   # 系统运行包仓库元数据由依赖解析按需加载。
   NVIDIA_PKGS=(
