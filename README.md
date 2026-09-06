@@ -160,26 +160,6 @@ sudo bash 27-Deploy-monitoring.sh         # 可选
 ...
 ```
 
-### DCU Exporter 离线镜像
-
-上游目前只提供源码和 Dockerfile，没有可直接下载的镜像。请在已安装 Go 1.21+ 和 Docker 的可联网 x86_64 构建机上提前构建：
-
-```bash
-git clone https://github.com/Project-HAMi/dcu-exporter.git
-cd dcu-exporter
-bash build.sh
-docker save -o dcu-exporter-v2.0.0.240718.tar dcu-exporter:v2.0.0.240718
-```
-
-将生成的 tar 复制到执行部署的节点和每个 DCU 节点，然后放入清单声明的路径：
-
-```bash
-sudo install -D -m 0644 dcu-exporter-v2.0.0.240718.tar \
-  /data/download/dcu/dcu-exporter-v2.0.0.240718.tar
-```
-
-每个 DCU 节点放置后执行 `12-Load-images.sh`。DCU 节点必须同时存在 `/dev/kfd`、`/dev/mkfd` 和 `/dev/dri`；DaemonSet 会在实际调度节点校验这些路径。监控脚本不会删除已有的 NVIDIA DCGM Exporter，便于混合加速卡集群使用。
-
 集中日志审计（二级等保，按需执行）：
 
 ```bash
