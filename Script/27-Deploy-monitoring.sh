@@ -178,19 +178,46 @@ ensure_namespace() {
 ################################################################################
 # Function: helm_install_or_upgrade
 ################################################################################
-helm_install_or_upgrade() {
+helm_install_or_upgrade() (
   local grafana_language="${GRAFANA_DEFAULT_LANGUAGE:-zh-Hans}"
   local grafana_theme="${GRAFANA_DEFAULT_THEME:-light}"
   local grafana_timezone="${GRAFANA_DEFAULT_TIMEZONE:-Asia/Shanghai}"
   local grafana_week_start="${GRAFANA_DEFAULT_WEEK_START:-monday}"
   local grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-123456}"
+  local password_file=""
+  local -a helm_cmd
+
+  trap 'if [ -n "${password_file}" ]; then rm -f "${password_file}"; fi' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 
   [ -n "${CHART}" ] || die "CHART 为空，无法执行 Helm 安装/升级"
   [ -f "${CHART}" ] || die "缺少制品: ${CHART}"
 
   log_info "Helm 安装/升级 ${RELEASE}（命名空间 ${NS}，values=${HELM_VALUES}，Grafana 默认语言=${grafana_language}，默认主题=${grafana_theme}，默认时区=${grafana_timezone}，默认每周起始日=${grafana_week_start}）..."
-  log_command "helm -n \"${NS}\" upgrade --install \"${RELEASE}\" \"${CHART}\" --create-namespace -f \"${HELM_VALUES}\" --set-string \"grafana.adminPassword=${grafana_admin_password}\" --set-string \"grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}\" --set-string \"grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}\" --set-string \"grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}\" --set-string \"grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}\" --set-string \"grafana.defaultDashboardsTimezone=${grafana_timezone}\""
-}
+  password_file="$(mktemp -t grafana-admin-password.XXXXXX)"
+  chmod 600 "${password_file}"
+  printf '%s' "${grafana_admin_password}" > "${password_file}"
+
+  helm_cmd=(
+    helm -n "${NS}" upgrade --install "${RELEASE}" "${CHART}"
+    --create-namespace
+    -f "${HELM_VALUES}"
+    --set-file "grafana.adminPassword=${password_file}"
+    --set-string "grafana.env.GF_USERS_DEFAULT_LANGUAGE=${grafana_language}"
+    --set-string "grafana.env.GF_USERS_DEFAULT_THEME=${grafana_theme}"
+    --set-string "grafana.env.GF_DATE_FORMATS_DEFAULT_TIMEZONE=${grafana_timezone}"
+    --set-string "grafana.env.GF_DATE_FORMATS_DEFAULT_WEEK_START=${grafana_week_start}"
+    --set-string "grafana.defaultDashboardsTimezone=${grafana_timezone}"
+  )
+
+  log_info "执行 Helm 安装/升级命令（Grafana admin 密码已隐藏）"
+  if "${helm_cmd[@]}"; then
+    log_info "Helm 安装/升级成功"
+  else
+    die "Helm 安装/升级失败"
+  fi
+)
 
 ################################################################################
 # Function: pick_free_local_port
@@ -210,10 +237,24 @@ pick_free_local_port() {
 # Function: configure_grafana_org_preferences
 # Description: 服务端默认时区不会覆盖已有组织偏好；这里同步设置默认组织偏好
 ################################################################################
-configure_grafana_org_preferences() {
+configure_grafana_org_preferences() (
   local grafana_theme="${GRAFANA_DEFAULT_THEME:-light}"
   local grafana_timezone="${GRAFANA_DEFAULT_TIMEZONE:-Asia/Shanghai}"
   local grafana_week_start="${GRAFANA_DEFAULT_WEEK_START:-monday}"
+  local pf_pid=""
+  local pf_log=""
+
+  trap '
+    if [ -n "${pf_pid}" ] && kill -0 "${pf_pid}" >/dev/null 2>&1; then
+      kill "${pf_pid}" >/dev/null 2>&1 || true
+      wait "${pf_pid}" >/dev/null 2>&1 || true
+    fi
+    if [ -n "${pf_log}" ]; then
+      rm -f "${pf_log}"
+    fi
+  ' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
 
   if ! have curl; then
     log_warn "缺少 curl，跳过 Grafana 组织默认偏好设置（timezone=${grafana_timezone}）"
@@ -229,7 +270,7 @@ configure_grafana_org_preferences() {
 
   log_command "kubectl -n \"${NS}\" rollout status \"deployment/${RELEASE}-grafana\" --timeout=180s"
 
-  local local_port pf_pid pf_log
+  local local_port
   local_port="$(pick_free_local_port)" || die "未找到可用本地端口，无法设置 Grafana 组织默认偏好"
   pf_log="$(mktemp -t grafana-port-forward.XXXXXX.log)"
 
@@ -251,9 +292,6 @@ configure_grafana_org_preferences() {
 
   if [ "${ready}" != "yes" ]; then
     log_warn "Grafana port-forward 未就绪，跳过组织默认偏好设置"
-    kill "${pf_pid}" >/dev/null 2>&1 || true
-    wait "${pf_pid}" >/dev/null 2>&1 || true
-    rm -f "${pf_log}"
     return 0
   fi
 
@@ -269,11 +307,7 @@ configure_grafana_org_preferences() {
   else
     log_warn "设置 Grafana 组织默认偏好失败，请登录 Grafana 后检查 Administration -> General -> Default preferences"
   fi
-
-  kill "${pf_pid}" >/dev/null 2>&1 || true
-  wait "${pf_pid}" >/dev/null 2>&1 || true
-  rm -f "${pf_log}"
-}
+)
 
 ################################################################################
 # Function: create_self_signed_tls_if_needed
