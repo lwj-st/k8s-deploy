@@ -52,7 +52,7 @@ jobs:
             range="HEAD~1...HEAD"
           fi
 
-          git diff --name-only "$range" | grep -E '(^.*\.(yml|yaml)$|^\.yamllint$)' > /tmp/changed_yaml.txt || true
+          git diff --name-only --diff-filter=ACMR "$range" | grep -E '(^.*\.(yml|yaml)$|^\.yamllint$)' > /tmp/changed_yaml.txt || true
           echo "count=$(wc -l < /tmp/changed_yaml.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Run yamllint

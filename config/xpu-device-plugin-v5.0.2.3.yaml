@@ -1,0 +1,132 @@
+# Official Kunlunxin xpu-device-plugin v5.0.2.3 (not HAMi community vxpu-device-plugin).
+# Source: xpu_k8s_device_plugin_5.0.2.3 (rbac + daemonset).
+# Adaptations for k8s-deploy:
+#   - imagePullPolicy: IfNotPresent (offline import)
+#   - nodeSelector: xpu=on
+# Default resource name: kunlunxin.com/xpu
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: xpu-device-plugin
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/component: xpu-device-plugin
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: xpu-device-plugin
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["update", "patch", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes/status"]
+    verbs: ["patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: xpu-device-plugin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: xpu-device-plugin
+subjects:
+  - kind: ServiceAccount
+    name: xpu-device-plugin
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: xpu-device-plugin-daemonset
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/component: xpu-device-plugin
+spec:
+  selector:
+    matchLabels:
+      name: xpu-device-plugin-ds
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+      labels:
+        name: xpu-device-plugin-ds
+        app.kubernetes.io/component: xpu-device-plugin
+    spec:
+      serviceAccountName: xpu-device-plugin
+      nodeSelector:
+        xpu: "on"
+      tolerations:
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - key: kunlunxin.com/xpu
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule
+      priorityClassName: system-node-critical
+      containers:
+        - name: xpu-device-plugin-ctr
+          image: iregistry.baidu-int.com/kunlunxin/xpu-device-plugin:v5.0.2-alpha.3
+          imagePullPolicy: IfNotPresent
+          command:
+            - xpu-device-plugin
+            - --memory-unit=MiB
+            - -logtostderr
+            - --v=5
+          env:
+            - name: KUBECONFIG
+              value: /etc/kubernetes/kubelet.conf
+            - name: LD_LIBRARY_PATH
+              value: /usr/local/xpu/so:/usr/local/xpu/lib
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            capabilities:
+              add: ["ALL"]
+            privileged: true
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+            - name: xre
+              mountPath: /usr/local/xpu
+            - name: libxpuml
+              mountPath: /usr/lib/x86_64-linux-gnu/libxpuml.so.1
+            - name: dev
+              mountPath: /dev
+            - name: unhealthy-config
+              mountPath: /etc/xpu-device-plugin
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: xre
+          hostPath:
+            path: /usr/local/xpu
+        - name: libxpuml
+          hostPath:
+            path: /usr/lib/x86_64-linux-gnu/libxpuml.so.515.58.kunlun
+            type: File
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: unhealthy-config
+          hostPath:
+            path: /etc/xpu-device-plugin
+            type: DirectoryOrCreate

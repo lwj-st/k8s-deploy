@@ -25,7 +25,7 @@
 - `Script/15-Deploy-ascend.sh`：部署 Ascend plugin（NPU，仅择一执行）
 - `Script/15-Deploy-dcu.sh`：部署 Hygon DCU device-plugin（mixed/mig/hami）
 - `Script/15-Deploy-iluvatar.sh`：部署 天数智芯（Iluvatar CoreX）ix-device-plugin
-- `Script/15-Deploy-vxpu.sh`：部署昆仑芯（Kunlunxin）vxpu-device-plugin
+- `Script/15-Deploy-vxpu.sh`：部署昆仑芯官方 xpu-device-plugin（v5.0.2.3，资源名 `kunlunxin.com/xpu`）
 - `Script/20-Deploy-local-path.sh`
 - `Script/21-Deploy-nfs-provisioner.sh`
 - `Script/22-Deploy-tidb-operator.sh`：部署tidb operator
