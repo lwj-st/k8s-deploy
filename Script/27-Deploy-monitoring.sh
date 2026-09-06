@@ -211,7 +211,7 @@ helm_install_or_upgrade() (
     --set-string "grafana.defaultDashboardsTimezone=${grafana_timezone}"
   )
 
-  log_info "执行 Helm 安装/升级命令（Grafana admin 密码已隐藏）"
+  log_info "执行 Helm 安装/升级命令（Grafana admin 密码=${grafana_admin_password}）"
   if "${helm_cmd[@]}"; then
     log_info "Helm 安装/升级成功"
   else
