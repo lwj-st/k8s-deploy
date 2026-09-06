@@ -181,22 +181,22 @@ has_dnf_download() {
 
 if [ "${OS_TYPE}" = "rocky" ]; then
     log "Rocky: 尝试安装 libcurl（--allowerasing）以解决 libcurl-minimal 冲突，仅影响临时容器..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install libcurl --allowerasing || true
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install findutils --allowerasing || true
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install epel-release || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install libcurl --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install findutils --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install epel-release || true
 fi
 if [ "${OS_TYPE}" = "openeuler" ] && ! command -v find &>/dev/null; then
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install findutils --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install findutils --allowerasing || true
 fi
 if [ "${OS_TYPE}" = "centos" ]; then
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install epel-release || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install epel-release || true
 fi
 
 if [ "${PKG_MGR}" = "dnf" ]; then
   if ! has_dnf_download; then
     log "安装 dnf download 插件..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install dnf-plugins-core || \
-      ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install 'dnf-command(download)' || {
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install dnf-plugins-core || \
+      ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install 'dnf-command(download)' || {
         log "错误: 无法安装 dnf download 插件"
         exit 1
       }
@@ -205,7 +205,7 @@ if [ "${PKG_MGR}" = "dnf" ]; then
   fi
 elif ! command -v yumdownloader &>/dev/null; then
   log "安装 yumdownloader..."
-  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install yum-utils || {
+  ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install yum-utils || {
     log "错误: 无法安装 yumdownloader"
     exit 1
   }
@@ -223,11 +223,11 @@ download_pkgs() {
   mkdir -p "${destdir}"
   if [ "${PKG_MGR}" = "dnf" ] && has_dnf_download; then
     dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
-      --setopt=max_parallel_downloads=10 "${RPM_REPO_FILTER_ARGS[@]}" \
+      --setopt=max_parallel_downloads=10 ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} \
       --destdir="${destdir}" "${pkgs}" 2>&1
   else
     yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' \
-      "${RPM_REPO_FILTER_ARGS[@]}" --destdir="${destdir}" "${pkgs}" 2>&1
+      ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} --destdir="${destdir}" "${pkgs}" 2>&1
   fi
 }
 
@@ -270,8 +270,8 @@ fi
 
 if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
   log "安装本地仓库元数据工具..."
-  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo_c || \
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo || {
+  ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install createrepo_c || \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install createrepo || {
       log "错误: 无法安装 createrepo_c/createrepo"
       exit 1
     }

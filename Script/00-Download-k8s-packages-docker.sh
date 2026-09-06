@@ -224,7 +224,7 @@ else
   command -v yumdownloader &>/dev/null || BOOTSTRAP_PACKAGES+=(yum-utils)
 fi
 if [ "${#BOOTSTRAP_PACKAGES[@]}" -gt 0 ]; then
-  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install "${BOOTSTRAP_PACKAGES[@]}" || {
+  ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install "${BOOTSTRAP_PACKAGES[@]}" || {
     log "错误: 无法安装必要下载工具: ${BOOTSTRAP_PACKAGES[*]}"
     exit 1
   }
@@ -260,8 +260,8 @@ ${PKG_MGR} makecache --disablerepo="*" --enablerepo=kubernetes || {
 if [ "${PKG_MGR}" = "dnf" ]; then
   if ! has_dnf_download; then
     log "检测到 dnf download 不可用，尝试安装插件..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install dnf-plugins-core || true
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install 'dnf-command(download)' || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install dnf-plugins-core || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install 'dnf-command(download)' || true
   fi
 fi
 
@@ -290,12 +290,12 @@ download_kubernetes_rpms() {
     log "使用 dnf download 下载（系统仓库 + Kubernetes 仓库）..."
     dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
       --setopt=max_parallel_downloads=10 --disableexcludes=kubernetes \
-      --enablerepo=kubernetes "${RPM_REPO_FILTER_ARGS[@]}" \
+      --enablerepo=kubernetes ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} \
       "${PKG_NAMES_VERSIONED[@]}" 2>&1
   elif command -v yumdownloader &>/dev/null; then
     log "使用 yumdownloader 下载（系统仓库 + Kubernetes 仓库）..."
     yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes \
-      "${RPM_REPO_FILTER_ARGS[@]}" \
+      ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} \
       "${PKG_NAMES_VERSIONED[@]}" 2>&1
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
@@ -358,8 +358,8 @@ done
 # 由 dnf/yum 从这里选择目标机真正缺少的依赖，避免整目录强制安装。
 if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
   log "安装本地仓库元数据工具..."
-  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo_c || \
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo || {
+  ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install createrepo_c || \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} install createrepo || {
       log "错误: 无法安装 createrepo_c/createrepo，不能生成离线仓库元数据"
       exit 1
     }

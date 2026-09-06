@@ -184,7 +184,7 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
   fi
   if [ "${#BOOTSTRAP_PACKAGES[@]}" -gt 0 ]; then
     log "安装必要下载工具: ${BOOTSTRAP_PACKAGES[*]}"
-    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} \
       install "${BOOTSTRAP_PACKAGES[@]}" || {
         log "错误: 无法安装必要下载工具: ${BOOTSTRAP_PACKAGES[*]}"
         exit 1
@@ -198,7 +198,14 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
   curl -fsSL "${NVIDIA_RPM_REPO_URL}" \
     -o /etc/yum.repos.d/nvidia-container-toolkit.repo
 
-  # 不预先刷新全部仓库；下载时按需加载 NVIDIA 和系统运行包元数据。
+  # 仅刷新 NVIDIA 仓库，并通过 -y 在 CI 中非交互确认导入官方 GPG Key。
+  ${PKG_MGR} ${PKG_MGR_FLAGS} --disablerepo="*" \
+    --enablerepo=nvidia-container-toolkit makecache || {
+      log "错误: NVIDIA 仓库元数据或 GPG 签名校验失败"
+      exit 1
+    }
+
+  # 系统运行包仓库元数据由依赖解析按需加载。
   NVIDIA_PKGS=(
     "nvidia-container-toolkit-1.17.8-1"
     "nvidia-container-toolkit-base-1.17.8-1"
@@ -212,11 +219,11 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
   download_pkgs() {
     if [ "${PKG_MGR}" = "dnf" ] && has_dnf_download; then
       dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
-        --setopt=max_parallel_downloads=10 "${RPM_REPO_FILTER_ARGS[@]}" \
+        --setopt=max_parallel_downloads=10 ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} \
         --destdir="${OUTPUT_DIR}" "${NVIDIA_PKGS[@]}" 2>&1
     else
       yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' \
-        "${RPM_REPO_FILTER_ARGS[@]}" --destdir="${OUTPUT_DIR}" \
+        ${RPM_REPO_FILTER_ARGS[@]+"${RPM_REPO_FILTER_ARGS[@]}"} --destdir="${OUTPUT_DIR}" \
         "${NVIDIA_PKGS[@]}" 2>&1
     fi
   }
