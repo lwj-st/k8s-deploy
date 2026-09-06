@@ -86,9 +86,32 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   total_debs=0
   for tool in ${PRIMARY_TOOLS}; do
     log "下载工具: ${tool}（仅下载不安装）..."
-    apt-get install -d -y "${tool}" 2>&1 || true
+    if ! apt-get install -d -y "${tool}" 2>&1; then
+      log "警告: 工具 ${tool} 或其依赖下载失败，不保留不完整目录"
+      rm -rf "${OUTPUT_DIR:?}/${tool}"
+      rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
+      continue
+    fi
     mkdir -p "${OUTPUT_DIR}/${tool}"
     cp -n /var/cache/apt/archives/*.deb "${OUTPUT_DIR}/${tool}/" 2>/dev/null || true
+    main_pkg_found=0
+    for deb_file in "${OUTPUT_DIR}/${tool}"/*.deb; do
+      [ -f "${deb_file}" ] || continue
+      deb_name="$(dpkg-deb -f "${deb_file}" Package 2>/dev/null)" || {
+        log "错误: DEB 文件损坏或元数据不可读: ${deb_file}"
+        exit 1
+      }
+      if [ "${deb_name}" = "${tool}" ]; then
+        main_pkg_found=1
+        break
+      fi
+    done
+    if [ "${main_pkg_found}" -ne 1 ]; then
+      log "警告: 工具目录缺少主包 ${tool}，不保留不完整目录"
+      rm -rf "${OUTPUT_DIR:?}/${tool}"
+      rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
+      continue
+    fi
     n=$(find "${OUTPUT_DIR}/${tool}" -maxdepth 1 -name '*.deb' 2>/dev/null | wc -l)
     if [ "${n}" -gt 0 ]; then
       (
@@ -145,48 +168,66 @@ else
   exit 1
 fi
 
+# openEuler 默认启用源码和调试仓库，下载运行工具及其依赖时不需要访问。
+RPM_REPO_FILTER_ARGS=()
+if [ "${OS_TYPE}" = "openeuler" ]; then
+  RPM_REPO_FILTER_ARGS=(--disablerepo='*source*' --disablerepo='*debuginfo*')
+  log "openEuler: 下载时跳过源码和调试仓库"
+fi
+
+has_dnf_download() {
+  dnf download --help >/dev/null 2>&1
+}
+
 if [ "${OS_TYPE}" = "rocky" ]; then
     log "Rocky: 尝试安装 libcurl（--allowerasing）以解决 libcurl-minimal 冲突，仅影响临时容器..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS}  install libcurl --allowerasing || true
-    ${PKG_MGR} ${PKG_MGR_FLAGS}  install findutils --allowerasing || true
-    ${PKG_MGR} ${PKG_MGR_FLAGS}  install epel-release || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install libcurl --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install findutils --allowerasing || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install epel-release || true
 fi
-if [ "${OS_TYPE}" = "openeuler" ]; then
-    ${PKG_MGR} ${PKG_MGR_FLAGS}  install findutils --allowerasing || true
+if [ "${OS_TYPE}" = "openeuler" ] && ! command -v find &>/dev/null; then
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install findutils --allowerasing || true
 fi
 if [ "${OS_TYPE}" = "centos" ]; then
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install  epel-release || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install epel-release || true
 fi
 
-log "安装 yum-utils / dnf-plugins-core..."
-${PKG_MGR} ${PKG_MGR_FLAGS} install yum-utils 2>/dev/null || \
-${PKG_MGR} ${PKG_MGR_FLAGS} install dnf-plugins-core 2>/dev/null || true
-
-${PKG_MGR} makecache || true
+if [ "${PKG_MGR}" = "dnf" ]; then
+  if ! has_dnf_download; then
+    log "安装 dnf download 插件..."
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install dnf-plugins-core || \
+      ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install 'dnf-command(download)' || {
+        log "错误: 无法安装 dnf download 插件"
+        exit 1
+      }
+  else
+    log "dnf download 已存在，跳过插件安装"
+  fi
+elif ! command -v yumdownloader &>/dev/null; then
+  log "安装 yumdownloader..."
+  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install yum-utils || {
+    log "错误: 无法安装 yumdownloader"
+    exit 1
+  }
+fi
 
 mkdir -p "${OUTPUT_DIR}"
 cd "${OUTPUT_DIR}"
 
 log "待下载工具包（基础 + 扩展）..."
 
-if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
-  log "安装本地仓库元数据工具..."
-  ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo_c || \
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo || {
-      log "错误: 无法安装 createrepo_c/createrepo"
-      exit 1
-    }
-fi
-
 download_pkgs() {
   local pkgs="$1"
   local destdir="$2"
   if [ -z "${pkgs}" ]; then return 0; fi
   mkdir -p "${destdir}"
-  if command -v yumdownloader &>/dev/null; then
-    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${destdir}" ${pkgs} 2>&1 || true
+  if [ "${PKG_MGR}" = "dnf" ] && has_dnf_download; then
+    dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
+      --setopt=max_parallel_downloads=10 "${RPM_REPO_FILTER_ARGS[@]}" \
+      --destdir="${destdir}" "${pkgs}" 2>&1
   else
-    dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --destdir="${destdir}" ${pkgs} 2>&1 || true
+    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' \
+      "${RPM_REPO_FILTER_ARGS[@]}" --destdir="${destdir}" "${pkgs}" 2>&1
   fi
 }
 
@@ -195,7 +236,28 @@ download_pkgs() {
 log "逐个下载基础工具包..."
 for tool in ${TOOLS_BASE}; do
   log "下载工具: ${tool}（含依赖，解析后下载）..."
-  download_pkgs "${tool}" "${OUTPUT_DIR}/${tool}"
+  tool_dir="${OUTPUT_DIR}/${tool}"
+  if ! download_pkgs "${tool}" "${tool_dir}"; then
+    log "警告: 工具 ${tool} 或其依赖下载失败，不保留不完整目录"
+    rm -rf "${tool_dir}"
+    continue
+  fi
+  main_pkg_found=0
+  for rpm_file in "${tool_dir}"/*.rpm; do
+    [ -f "${rpm_file}" ] || continue
+    rpm_name="$(rpm -qp --qf '%{NAME}' "${rpm_file}" 2>/dev/null)" || {
+      log "错误: RPM 文件损坏或元数据不可读: ${rpm_file}"
+      exit 1
+    }
+    if [ "${rpm_name}" = "${tool}" ]; then
+      main_pkg_found=1
+      break
+    fi
+  done
+  if [ "${main_pkg_found}" -ne 1 ]; then
+    log "警告: 工具目录缺少主包 ${tool}，不保留不完整目录"
+    rm -rf "${tool_dir}"
+  fi
 done
 
 # 统计下载结果（RPM 在各工具目录内，不再集中在 OUTPUT_DIR 根目录）
@@ -204,6 +266,15 @@ if [ "${PKG_COUNT}" -eq 0 ]; then
   log "警告: 未下载到任何 RPM 包（可能镜像超时/网络问题）。继续执行以避免整体流程失败。"
 else
   log "下载完成！共 ${PKG_COUNT} 个 RPM 包（已按工具目录存放）"
+fi
+
+if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
+  log "安装本地仓库元数据工具..."
+  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo_c || \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo || {
+      log "错误: 无法安装 createrepo_c/createrepo"
+      exit 1
+    }
 fi
 
 for repo_dir in "${OUTPUT_DIR}"/*/; do

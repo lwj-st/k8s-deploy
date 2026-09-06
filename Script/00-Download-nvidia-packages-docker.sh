@@ -86,15 +86,18 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   apt-get update -qq
 
   # 与 artifacts.yaml 中 deb 相同的一组包
-  NVIDIA_PKGS="
-    nvidia-container-toolkit=1.17.8-1
-    nvidia-container-toolkit-base=1.17.8-1
-    libnvidia-container-tools=1.17.8-1
-    libnvidia-container1=1.17.8-1
-  "
+  NVIDIA_PKGS=(
+    "nvidia-container-toolkit=1.17.8-1"
+    "nvidia-container-toolkit-base=1.17.8-1"
+    "libnvidia-container-tools=1.17.8-1"
+    "libnvidia-container1=1.17.8-1"
+  )
 
   log "仅下载（不安装）NVIDIA 相关 deb..."
-  apt-get install -d -y ${NVIDIA_PKGS} 2>&1 || true
+  apt-get install -d -y "${NVIDIA_PKGS[@]}" 2>&1 || {
+    log "错误: NVIDIA DEB 包或依赖下载失败"
+    exit 1
+  }
   cp -n /var/cache/apt/archives/*.deb "${OUTPUT_DIR}/" 2>/dev/null || true
   rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
 
@@ -107,6 +110,29 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
     log "错误: 未下载到任何 NVIDIA 相关 deb 包，请检查仓库与网络"
     exit 1
   fi
+  for required_pkg in \
+    nvidia-container-toolkit \
+    nvidia-container-toolkit-base \
+    libnvidia-container-tools \
+    libnvidia-container1; do
+    matched=0
+    for deb_file in "${OUTPUT_DIR}/${required_pkg}_"*.deb; do
+      [ -f "${deb_file}" ] || continue
+      deb_name="$(dpkg-deb -f "${deb_file}" Package 2>/dev/null)" || {
+        log "错误: DEB 文件损坏或元数据不可读: ${deb_file}"
+        exit 1
+      }
+      deb_version="$(dpkg-deb -f "${deb_file}" Version)"
+      if [ "${deb_name}" = "${required_pkg}" ] && [ "${deb_version}" = "1.17.8-1" ]; then
+        matched=1
+        break
+      fi
+    done
+    [ "${matched}" -eq 1 ] || {
+      log "错误: 缺少精确版本 NVIDIA DEB: ${required_pkg}=1.17.8-1"
+      exit 1
+    }
+  done
 
   log "下载完成！共 ${PKG_COUNT} 个 deb 包"
   cat > "${OUTPUT_DIR}/README.txt" <<'UBUNTU_EOF'
@@ -138,43 +164,68 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
     exit 1
   fi
 
-  ${PKG_MGR} ${PKG_MGR_FLAGS} install -y curl ca-certificates || true
+  RPM_REPO_FILTER_ARGS=()
+  if [ "${OS_TYPE}" = "openeuler" ]; then
+    RPM_REPO_FILTER_ARGS=(--disablerepo='*source*' --disablerepo='*debuginfo*')
+    log "openEuler: 下载时跳过源码和调试仓库"
+  fi
+
+  has_dnf_download() {
+    dnf download --help >/dev/null 2>&1
+  }
+
+  BOOTSTRAP_PACKAGES=()
+  command -v curl &>/dev/null || BOOTSTRAP_PACKAGES+=(curl)
+  rpm -q ca-certificates &>/dev/null || BOOTSTRAP_PACKAGES+=(ca-certificates)
+  if [ "${PKG_MGR}" = "dnf" ]; then
+    has_dnf_download || BOOTSTRAP_PACKAGES+=(dnf-plugins-core)
+  else
+    command -v yumdownloader &>/dev/null || BOOTSTRAP_PACKAGES+=(yum-utils)
+  fi
+  if [ "${#BOOTSTRAP_PACKAGES[@]}" -gt 0 ]; then
+    log "安装必要下载工具: ${BOOTSTRAP_PACKAGES[*]}"
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" \
+      install "${BOOTSTRAP_PACKAGES[@]}" || {
+        log "错误: 无法安装必要下载工具: ${BOOTSTRAP_PACKAGES[*]}"
+        exit 1
+      }
+  else
+    log "必要下载工具已存在，跳过安装"
+  fi
 
   # 对于 RPM 系发行版，官方推荐使用通用 stable 仓库
   log "配置 NVIDIA libnvidia-container YUM/DNF 源 (stable/rpm)..."
   curl -fsSL "${NVIDIA_RPM_REPO_URL}" \
     -o /etc/yum.repos.d/nvidia-container-toolkit.repo
 
-  ${PKG_MGR} makecache || true
-
-  NVIDIA_PKGS="
-    nvidia-container-toolkit-1.17.8-1
-    nvidia-container-toolkit-base-1.17.8-1
-    libnvidia-container-tools-1.17.8-1
-    libnvidia-container1-1.17.8-1
-  "
-
-  log "安装 yum-utils / dnf-plugins-core（用于 yumdownloader/dnf download）..."
-  ${PKG_MGR} ${PKG_MGR_FLAGS} install -y yum-utils 2>/dev/null || \
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install -y dnf-plugins-core 2>/dev/null || true
+  # 不预先刷新全部仓库；下载时按需加载 NVIDIA 和系统运行包元数据。
+  NVIDIA_PKGS=(
+    "nvidia-container-toolkit-1.17.8-1"
+    "nvidia-container-toolkit-base-1.17.8-1"
+    "libnvidia-container-tools-1.17.8-1"
+    "libnvidia-container1-1.17.8-1"
+  )
 
   cd "${OUTPUT_DIR}"
 
   # 下载固定版本的 toolkit 包及其全部 RPM 依赖，确保可严格离线安装。
   download_pkgs() {
-    local pkgs="$1"
-    if [ -z "${pkgs}" ]; then
-      return 0
-    fi
-    if command -v yumdownloader &>/dev/null; then
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+    if [ "${PKG_MGR}" = "dnf" ] && has_dnf_download; then
+      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
+        --setopt=max_parallel_downloads=10 "${RPM_REPO_FILTER_ARGS[@]}" \
+        --destdir="${OUTPUT_DIR}" "${NVIDIA_PKGS[@]}" 2>&1
     else
-      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --destdir="${OUTPUT_DIR}" ${pkgs} 2>&1 || true
+      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' \
+        "${RPM_REPO_FILTER_ARGS[@]}" --destdir="${OUTPUT_DIR}" \
+        "${NVIDIA_PKGS[@]}" 2>&1
     fi
   }
 
   log "下载 NVIDIA container toolkit 相关 rpm..."
-  download_pkgs "${NVIDIA_PKGS}"
+  download_pkgs || {
+    log "错误: NVIDIA RPM 包或依赖下载失败"
+    exit 1
+  }
 
   # 依赖声明通常是 >= 1.17.8，解析器可能同时下载更新的 1.19.x。
   # 当前制品固定为 1.17.8，删除同名的更高版本，避免离线安装时出现重复版本。
@@ -202,6 +253,29 @@ if [ "${OS_TYPE}" = "centos" ] || [ "${OS_TYPE}" = "rocky" ] || [ "${OS_TYPE}" =
     log "错误: 未下载到任何 NVIDIA 相关 RPM 包，请检查仓库与网络"
     exit 1
   fi
+  for required_pkg in \
+    nvidia-container-toolkit \
+    nvidia-container-toolkit-base \
+    libnvidia-container-tools \
+    libnvidia-container1; do
+    matched=0
+    for rpm_file in "${OUTPUT_DIR}/${required_pkg}-"*.rpm; do
+      [ -f "${rpm_file}" ] || continue
+      rpm_name="$(rpm -qp --qf '%{NAME}' "${rpm_file}" 2>/dev/null)" || {
+        log "错误: RPM 文件损坏或元数据不可读: ${rpm_file}"
+        exit 1
+      }
+      version_release="$(rpm -qp --qf '%{VERSION}-%{RELEASE}' "${rpm_file}")"
+      if [ "${rpm_name}" = "${required_pkg}" ] && [ "${version_release}" = "1.17.8-1" ]; then
+        matched=1
+        break
+      fi
+    done
+    [ "${matched}" -eq 1 ] || {
+      log "错误: 缺少精确版本 NVIDIA RPM: ${required_pkg}-1.17.8-1"
+      exit 1
+    }
+  done
 
   log "下载完成！共 ${PKG_COUNT} 个 RPM 包"
   cat > "${OUTPUT_DIR}/README.txt" <<'RPM_EOF'

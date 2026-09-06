@@ -120,13 +120,17 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
   : "${K8S_DEB_REPO:?未配置 Kubernetes APT 源}"
   log "配置 Kubernetes apt 源（v${K8S_VERSION_SHORT}）..."
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "${K8S_DEB_KEY_URL}" -o /tmp/k8s-apt-key.asc 2>/dev/null && gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc 2>/dev/null || true
+  curl -fsSL "${K8S_DEB_KEY_URL}" -o /tmp/k8s-apt-key.asc
+  gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < /tmp/k8s-apt-key.asc
   echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] ${K8S_DEB_REPO}/ /" > /etc/apt/sources.list.d/kubernetes.list
-  apt-get update -qq || true
+  apt-get update -qq
   rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
 
   log "下载 kubelet/kubeadm/kubectl 及其依赖（仅下载不安装）..."
-  apt-get install -d -y kubelet="${K8S_VERSION}-*" kubeadm="${K8S_VERSION}-*" kubectl="${K8S_VERSION}-*" 2>&1 || true
+  apt-get install -d -y kubelet="${K8S_VERSION}-*" kubeadm="${K8S_VERSION}-*" kubectl="${K8S_VERSION}-*" 2>&1 || {
+    log "错误: Kubernetes DEB 包或依赖下载失败"
+    exit 1
+  }
   # 将缓存目录下所有相关 .deb 一并打包，方便在离线环境完整安装依赖
   cp -n /var/cache/apt/archives/*.deb "${OUTPUT_DIR}/" 2>/dev/null || true
   rm -f /var/cache/apt/archives/*.deb 2>/dev/null || true
@@ -140,8 +144,21 @@ if [ "${OS_TYPE}" = "ubuntu" ]; then
     exit 1
   fi
   for required_pkg in kubelet kubeadm kubectl; do
-    compgen -G "${OUTPUT_DIR}/${required_pkg}_*.deb" >/dev/null || {
-      log "错误: 缺少 Kubernetes 主包: ${required_pkg}"
+    matched=0
+    for deb_file in "${OUTPUT_DIR}/${required_pkg}_"*.deb; do
+      [ -f "${deb_file}" ] || continue
+      deb_name="$(dpkg-deb -f "${deb_file}" Package 2>/dev/null)" || {
+        log "错误: DEB 文件损坏或元数据不可读: ${deb_file}"
+        exit 1
+      }
+      deb_version="$(dpkg-deb -f "${deb_file}" Version)"
+      if [ "${deb_name}" = "${required_pkg}" ] && [[ "${deb_version}" == "${K8S_VERSION}-"* ]]; then
+        matched=1
+        break
+      fi
+    done
+    [ "${matched}" -eq 1 ] || {
+      log "错误: 缺少精确版本 Kubernetes DEB: ${required_pkg}=${K8S_VERSION}-*"
       exit 1
     }
   done
@@ -184,20 +201,35 @@ else
   exit 1
 fi
 
-# 安装必要工具（禁用其他 repo，只使用 base 和 kubernetes）
-log "安装必要工具..."
+# openEuler 默认启用源码和调试仓库，但离线运行包不需要这些仓库。
+# 使用通配符兼容不同 openEuler 版本的 repo id。
+RPM_REPO_FILTER_ARGS=()
+if [ "${OS_TYPE}" = "openeuler" ]; then
+  RPM_REPO_FILTER_ARGS=(--disablerepo='*source*' --disablerepo='*debuginfo*')
+  log "openEuler: 下载时跳过源码和调试仓库"
+fi
+
+# 仅在命令确实缺失时安装下载工具。不同 RPM 系统仓库 ID 不同，
+# 直接使用系统默认二进制仓库，避免先尝试固定的 base/updates/extras。
+log "检查必要工具..."
 if [ "${PKG_MGR}" = "dnf" ]; then
-  ${PKG_MGR} ${PKG_MGR_FLAGS} --disablerepo="*" --enablerepo="base,updates,extras" install curl ca-certificates dnf-plugins-core yum-utils || {
-    # 如果禁用 repo 失败，尝试正常安装
-    log "警告: 使用默认 repo 配置安装工具..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install curl ca-certificates dnf-plugins-core yum-utils || true
+  BOOTSTRAP_PACKAGES=()
+  command -v curl &>/dev/null || BOOTSTRAP_PACKAGES+=(curl)
+  rpm -q ca-certificates &>/dev/null || BOOTSTRAP_PACKAGES+=(ca-certificates)
+  has_dnf_download || BOOTSTRAP_PACKAGES+=(dnf-plugins-core)
+else
+  BOOTSTRAP_PACKAGES=()
+  command -v curl &>/dev/null || BOOTSTRAP_PACKAGES+=(curl)
+  rpm -q ca-certificates &>/dev/null || BOOTSTRAP_PACKAGES+=(ca-certificates)
+  command -v yumdownloader &>/dev/null || BOOTSTRAP_PACKAGES+=(yum-utils)
+fi
+if [ "${#BOOTSTRAP_PACKAGES[@]}" -gt 0 ]; then
+  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install "${BOOTSTRAP_PACKAGES[@]}" || {
+    log "错误: 无法安装必要下载工具: ${BOOTSTRAP_PACKAGES[*]}"
+    exit 1
   }
 else
-  ${PKG_MGR} ${PKG_MGR_FLAGS} --disablerepo="*" --enablerepo="base,updates,extras" install curl ca-certificates yum-utils || {
-    # 如果禁用 repo 失败，尝试正常安装
-    log "警告: 使用默认 repo 配置安装工具..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install curl ca-certificates yum-utils || true
-  }
+  log "必要下载工具已存在，跳过安装"
 fi
 
 # 创建 Kubernetes 仓库。默认使用官方源，下载失败时再切换备用源。
@@ -217,49 +249,28 @@ EOF
 
 configure_kubernetes_rpm_repo "${K8S_RPM_REPO}" "${K8S_RPM_GPGKEY}" "官方源"
 
-# 清理并更新缓存
-log "更新仓库缓存..."
-${PKG_MGR} clean all
-${PKG_MGR} makecache || {
-  log "警告: 部分仓库缓存更新失败，尝试继续下载..."
+# 新容器没有需要清理的旧缓存；这里只刷新刚添加的 Kubernetes 仓库。
+# 系统仓库元数据由依赖解析按需加载，避免重复下载大体积元数据。
+log "更新 Kubernetes 仓库缓存..."
+${PKG_MGR} makecache --disablerepo="*" --enablerepo=kubernetes || {
+  log "警告: Kubernetes 仓库缓存更新失败，尝试继续下载..."
 }
 
 # 确保下载命令可用（部分镜像默认不带 dnf download）
 if [ "${PKG_MGR}" = "dnf" ]; then
   if ! has_dnf_download; then
     log "检测到 dnf download 不可用，尝试安装插件..."
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install dnf-plugins-core || true
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install 'dnf-command(download)' || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install dnf-plugins-core || true
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install 'dnf-command(download)' || true
   fi
 fi
 
 # 创建输出目录
 mkdir -p "${OUTPUT_DIR}"
 
-# 优先使用传入的版本；若仓库中不存在则再按仓库可用版本选择
-log "检测 Kubernetes 仓库中可用的版本（期望大版本: ${K8S_VERSION_SHORT}）..."
+# 严格使用传入版本。仓库不存在该版本时由下载命令失败，禁止静默换版。
 K8S_YUM_VERSION="${K8S_VERSION}"
-
-AVAILABLE_VERSIONS=$(${PKG_MGR} --enablerepo=kubernetes --showduplicates list kubelet 2>/dev/null \
-  | awk '/kubelet/ {print $2}' | sed 's/-.*//' | grep "^${K8S_VERSION_SHORT}\." | sort -V || true)
-
-if echo "${AVAILABLE_VERSIONS}" | grep -q "^${K8S_VERSION}$"; then
-  K8S_YUM_VERSION="${K8S_VERSION}"
-  log "使用指定版本: ${K8S_YUM_VERSION}"
-elif [ -n "${AVAILABLE_VERSIONS}" ]; then
-  K8S_YUM_VERSION=$(echo "${AVAILABLE_VERSIONS}" | tail -1)
-  log "指定版本 ${K8S_VERSION} 不在仓库中，使用同系列可用版本: ${K8S_YUM_VERSION}"
-else
-  # 如果没有匹配到相同大版本，则尝试取仓库中最新版本
-  K8S_YUM_VERSION=$(${PKG_MGR} --enablerepo=kubernetes --showduplicates list kubelet 2>/dev/null \
-    | awk '/kubelet/ {print $2}' | sed 's/-.*//' | sort -V | tail -1 || echo "")
-  if [ -n "${K8S_YUM_VERSION}" ]; then
-    log "未找到 ${K8S_VERSION_SHORT}.* ，使用仓库中最新版本: ${K8S_YUM_VERSION}"
-  else
-    log "警告: 无法从仓库中解析 kubelet 版本，将直接使用传入版本: ${K8S_VERSION}"
-    K8S_YUM_VERSION="${K8S_VERSION}"
-  fi
-fi
+log "严格使用指定版本: ${K8S_YUM_VERSION}"
 
 # 下载 RPM 包（指定版本，避免被解析为仓库最新）
 log "开始下载 Kubernetes RPM 包（目标版本: ${K8S_YUM_VERSION}）..."
@@ -278,11 +289,13 @@ download_kubernetes_rpms() {
   if [ "${PKG_MGR}" = "dnf" ] && has_dnf_download; then
     log "使用 dnf download 下载（系统仓库 + Kubernetes 仓库）..."
     dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
-      --disableexcludes=kubernetes --enablerepo=kubernetes \
+      --setopt=max_parallel_downloads=10 --disableexcludes=kubernetes \
+      --enablerepo=kubernetes "${RPM_REPO_FILTER_ARGS[@]}" \
       "${PKG_NAMES_VERSIONED[@]}" 2>&1
   elif command -v yumdownloader &>/dev/null; then
     log "使用 yumdownloader 下载（系统仓库 + Kubernetes 仓库）..."
     yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes \
+      "${RPM_REPO_FILTER_ARGS[@]}" \
       "${PKG_NAMES_VERSIONED[@]}" 2>&1
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
@@ -298,8 +311,9 @@ if ! download_kubernetes_rpms; then
       "${K8S_RPM_FALLBACK_REPO}" \
       "${K8S_RPM_FALLBACK_GPGKEY:?未配置 Kubernetes RPM 备用源 GPG Key}" \
       "阿里云备用源"
-    ${PKG_MGR} clean metadata || true
-    ${PKG_MGR} makecache || log "警告: 备用源缓存更新未完全成功，尝试直接下载..."
+    ${PKG_MGR} clean metadata --disablerepo="*" --enablerepo=kubernetes || true
+    ${PKG_MGR} makecache --disablerepo="*" --enablerepo=kubernetes || \
+      log "警告: 备用源缓存更新未完全成功，尝试直接下载..."
     download_kubernetes_rpms || {
       log "错误: Kubernetes RPM 官方源和备用源均下载失败"
       exit 1
@@ -321,8 +335,21 @@ if [ "${PKG_COUNT}" -eq 0 ]; then
   exit 1
 fi
 for required_pkg in kubelet kubeadm kubectl; do
-  compgen -G "${OUTPUT_DIR}/${required_pkg}-*.rpm" >/dev/null || {
-    log "错误: 缺少 Kubernetes 主包: ${required_pkg}"
+  matched=0
+  for rpm_file in "${OUTPUT_DIR}/${required_pkg}-"*.rpm; do
+    [ -f "${rpm_file}" ] || continue
+    rpm_name="$(rpm -qp --qf '%{NAME}' "${rpm_file}" 2>/dev/null)" || {
+      log "错误: RPM 文件损坏或元数据不可读: ${rpm_file}"
+      exit 1
+    }
+    rpm_version="$(rpm -qp --qf '%{VERSION}' "${rpm_file}")"
+    if [ "${rpm_name}" = "${required_pkg}" ] && [ "${rpm_version}" = "${K8S_VERSION}" ]; then
+      matched=1
+      break
+    fi
+  done
+  [ "${matched}" -eq 1 ] || {
+    log "错误: 缺少精确版本 Kubernetes 主包: ${required_pkg}-${K8S_VERSION}"
     exit 1
   }
 done
@@ -331,8 +358,8 @@ done
 # 由 dnf/yum 从这里选择目标机真正缺少的依赖，避免整目录强制安装。
 if ! command -v createrepo_c &>/dev/null && ! command -v createrepo &>/dev/null; then
   log "安装本地仓库元数据工具..."
-  ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo_c || \
-    ${PKG_MGR} ${PKG_MGR_FLAGS} install createrepo || {
+  ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo_c || \
+    ${PKG_MGR} ${PKG_MGR_FLAGS} "${RPM_REPO_FILTER_ARGS[@]}" install createrepo || {
       log "错误: 无法安装 createrepo_c/createrepo，不能生成离线仓库元数据"
       exit 1
     }
