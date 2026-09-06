@@ -200,25 +200,28 @@ else
   }
 fi
 
-# 创建 Kubernetes 仓库（阿里云）
-log "配置 Kubernetes 仓库（阿里云镜像）..."
-cat > /etc/yum.repos.d/kubernetes.repo <<EOF
+# 创建 Kubernetes 仓库。默认使用官方源，下载失败时再切换备用源。
+configure_kubernetes_rpm_repo() {
+  local repo_url="$1" gpgkey_url="$2" repo_name="$3"
+
+  log "配置 Kubernetes 仓库（${repo_name}）: ${repo_url}"
+  cat > /etc/yum.repos.d/kubernetes.repo <<EOF
 [kubernetes]
 name=Kubernetes
-baseurl=${K8S_RPM_REPO}
+baseurl=${repo_url}
 enabled=1
 gpgcheck=1
-gpgkey=${K8S_RPM_GPGKEY}
+gpgkey=${gpgkey_url}
 EOF
+}
+
+configure_kubernetes_rpm_repo "${K8S_RPM_REPO}" "${K8S_RPM_GPGKEY}" "官方源"
 
 # 清理并更新缓存
 log "更新仓库缓存..."
 ${PKG_MGR} clean all
-${PKG_MGR} makecache --disablerepo="*" --enablerepo="base,updates,extras,kubernetes" || {
-  log "警告: makecache 失败，尝试使用所有 repo..."
-  ${PKG_MGR} makecache || {
-    log "警告: makecache 完全失败，尝试继续..."
-  }
+${PKG_MGR} makecache || {
+  log "警告: 部分仓库缓存更新失败，尝试继续下载..."
 }
 
 # 确保下载命令可用（部分镜像默认不带 dnf download）
@@ -263,48 +266,46 @@ log "开始下载 Kubernetes RPM 包（目标版本: ${K8S_YUM_VERSION}）..."
 cd "${OUTPUT_DIR}"
 
 PKG_NAMES="kubelet kubeadm kubectl"
-PKG_NAMES_VERSIONED="kubelet-${K8S_YUM_VERSION}-* kubeadm-${K8S_YUM_VERSION}-* kubectl-${K8S_YUM_VERSION}-*"
+PKG_NAMES_VERSIONED=(
+  "kubelet-${K8S_YUM_VERSION}-*"
+  "kubeadm-${K8S_YUM_VERSION}-*"
+  "kubectl-${K8S_YUM_VERSION}-*"
+)
 log "下载包: ${PKG_NAMES}（版本 ${K8S_YUM_VERSION}）"
 
-# 执行下载
-if [ "${PKG_MGR}" = "dnf" ]; then
-  if has_dnf_download; then
-    log "使用 dnf download 下载..."
-    dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --enablerepo=kubernetes --disablerepo="*" \
-      ${PKG_NAMES_VERSIONED} 2>&1 || {
-      log "警告: 使用所有 repo 重试..."
-      dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes ${PKG_NAMES_VERSIONED} 2>&1 || {
-        log "错误: Kubernetes RPM 及其依赖下载失败"
-        exit 1
-      }
-    }
+# 下载时保留系统默认仓库，用于解析不同 RPM 系统各自的基础依赖。
+download_kubernetes_rpms() {
+  if [ "${PKG_MGR}" = "dnf" ] && has_dnf_download; then
+    log "使用 dnf download 下载（系统仓库 + Kubernetes 仓库）..."
+    dnf download --resolve --alldeps --arch=x86_64,noarch --exclude='*.i?86' \
+      --disableexcludes=kubernetes --enablerepo=kubernetes \
+      "${PKG_NAMES_VERSIONED[@]}" 2>&1
   elif command -v yumdownloader &>/dev/null; then
-    log "dnf download 不可用，回退使用 yumdownloader..."
-    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
-      ${PKG_NAMES_VERSIONED} 2>&1 || {
-      log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || {
-        log "错误: Kubernetes RPM 及其依赖下载失败"
-        exit 1
-      }
-    }
+    log "使用 yumdownloader 下载（系统仓库 + Kubernetes 仓库）..."
+    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes \
+      "${PKG_NAMES_VERSIONED[@]}" 2>&1
   else
     log "错误: dnf download 不可用且 yumdownloader 不存在"
-    exit 1
+    return 127
   fi
-else
-  if command -v yumdownloader &>/dev/null; then
-    log "使用 yumdownloader 下载..."
-    yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" --enablerepo=kubernetes --disablerepo="*" \
-      ${PKG_NAMES_VERSIONED} 2>&1 || {
-      log "警告: 使用所有 repo 重试..."
-      yumdownloader --resolve --archlist=x86_64,noarch --exclude='*.i?86' --disableexcludes=kubernetes --destdir="${OUTPUT_DIR}" ${PKG_NAMES_VERSIONED} 2>&1 || {
-        log "错误: Kubernetes RPM 及其依赖下载失败"
-        exit 1
-      }
+}
+
+if ! download_kubernetes_rpms; then
+  if [ -n "${K8S_RPM_FALLBACK_REPO:-}" ] && \
+     [ "${K8S_RPM_FALLBACK_REPO}" != "${K8S_RPM_REPO}" ]; then
+    log "警告: Kubernetes 官方 RPM 源下载失败，切换到阿里云备用源..."
+    configure_kubernetes_rpm_repo \
+      "${K8S_RPM_FALLBACK_REPO}" \
+      "${K8S_RPM_FALLBACK_GPGKEY:?未配置 Kubernetes RPM 备用源 GPG Key}" \
+      "阿里云备用源"
+    ${PKG_MGR} clean metadata || true
+    ${PKG_MGR} makecache || log "警告: 备用源缓存更新未完全成功，尝试直接下载..."
+    download_kubernetes_rpms || {
+      log "错误: Kubernetes RPM 官方源和备用源均下载失败"
+      exit 1
     }
   else
-    log "错误: yumdownloader 不可用（应该在安装工具阶段已安装）"
+    log "错误: Kubernetes RPM 及其依赖下载失败，且未配置备用源"
     exit 1
   fi
 fi
