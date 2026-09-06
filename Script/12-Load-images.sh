@@ -41,11 +41,15 @@ import_from_manifest() {
   [ -f "${manifest}" ] || die "未找到制品清单: ${manifest}"
 
   local count=0
-  while IFS=$'\x1f' read -r module type name path _url _md5 _desc _os_id; do
+  while IFS=$'\x1f' read -r module type name path _url md5 _desc _os_id; do
     [ -n "${module}" ] || continue
     [ "${module}" = "os" ] && continue
     [ "${type}" = "tar" ] || continue
     [[ "${path}" == *.tar ]] || continue
+    if [ "${md5}" = "__LOCAL_ONLY__" ] && [ ! -f "${path}" ]; then
+      log_warn "[SKIP] 本地可选镜像未预置: name=${name} path=${path}"
+      continue
+    fi
     import_tar "${name}" "${path}"
     count=$((count+1))
   done < <(parse_artifacts_yaml "${manifest}")

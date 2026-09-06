@@ -33,7 +33,7 @@
 - `Script/24-Deploy-minio.sh`：部署 MinIO
 - `Script/25-Deploy-juicefs-csi-driver.sh`：部署 JuiceFS CSI Driver
 - `Script/26-Deploy-dragonfly-operator.sh`：部署 Dragonfly Operator
-- `Script/27-Deploy-monitoring.sh`：部署 Monitoring（NVIDIA DCGM / 昆仑芯 DCXM / Ascend / Iluvatar）
+- `Script/27-Deploy-monitoring.sh`：部署 Monitoring（NVIDIA DCGM / 昆仑芯 DCXM / Ascend / Iluvatar / Hygon DCU）
 - `Script/30-Deploy-rsyslog.sh`：配置 rsyslog 集中日志；日志服务器和每个 K8s 节点都执行同一个脚本
 - `Script/89-Generate-tls.sh`：生成 TLS 证书
 - `Script/90-Shovel-k8s.sh`：清理集群（kubeadm reset + 只清 KUBE/CALI 相关链）
@@ -156,7 +156,7 @@ sudo bash 24-Deploy-minio.sh              # 可选
 sudo bash 25-Deploy-juicefs-csi-driver.sh # 可选
 sudo bash 26-Deploy-dragonfly-operator.sh # 可选
 sudo bash 27-Deploy-monitoring.sh         # 可选
-# 可强制类型：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar
+# 可强制类型：MONITOR_ACCELERATOR=vxpu|nvidia|ascend|iluvatar|dcu
 ...
 ```
 

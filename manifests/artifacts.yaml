@@ -576,6 +576,15 @@ artifacts:
     md5: "dd090a641b95f2f65b119b763eb0e77d"
     description: "hygon dcu device-plugin hami manifest"
 
+  - module: dcu
+    type: tar
+    name: dcu.image.exporter.v2.0.0.240718
+    path: /data/download/dcu/dcu-exporter-v2.0.0.240718.tar
+    url: ""
+    base_url: "dcu-exporter:v2.0.0.240718"
+    md5: "__LOCAL_ONLY__"
+    description: "hygon dcu exporter image tar; build from Project-HAMi/dcu-exporter or place locally"
+
   - module: iluvatar
     type: dir
     name: iluvatar.dir.device-plugin
